@@ -25,6 +25,7 @@
   header { display: flex; align-items: center; justify-content: space-between; padding: .9rem clamp(1rem, 3vw, 2rem); border-bottom: 1px solid var(--line); }
   .brand { display: flex; align-items: center; gap: .6rem; font-family: var(--display); font-weight: 700; font-size: 1.05rem; color: var(--text); text-decoration: none; letter-spacing: -.02em; }
   .brand img { width: 30px; height: 30px; }
+  .brand img.wordmark { width: auto; height: 30px; }
   .brand span { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .pill { font-family: var(--display); font-size: .82rem; padding: .45rem .9rem; border-radius: 999px; border: 1px solid var(--line-2); color: var(--text); text-decoration: none; }
 
@@ -44,7 +45,7 @@
 <body>
 
 <header>
-  <a class="brand" href="/"><img src="brand/gigamail.ico" alt=""><span>GigaMail</span></a>
+  <a class="brand" href="/"><img class="wordmark" src="brand/gigamail-wordmark.png" alt="GigaMail" width="110" height="30"></a>
   <a class="pill" href="/">Back to site</a>
 </header>
 
