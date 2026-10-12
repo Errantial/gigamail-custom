@@ -124,8 +124,12 @@ jobs:
           $env:GIGAMAIL_EXE = Join-Path $dir "GigaMail.exe"
           $env:ADE_CONSOLE_PORT = "8022"
           $env:GIGAMAIL_EXPECTED_VERSION = (Select-String -Path ../pyproject.toml -Pattern '^version\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
-          npm run test:packaged
-          if ($LASTEXITCODE -ne 0) { throw "smoke test dell'app installata fallito" }
+          npm run test:packaged 2>&1 | Tee-Object -FilePath smoke.log
+          if ($LASTEXITCODE -ne 0) {
+            $tail = (Get-Content smoke.log -Tail 40) -join '%0A'
+            Write-Host "::error title=smoke test failed::$tail"
+            throw "smoke test dell'app installata fallito"
+          }
 
       - name: Il backend impacchettato si importa
         shell: pwsh
