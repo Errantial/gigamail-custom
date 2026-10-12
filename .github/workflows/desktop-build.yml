@@ -73,11 +73,11 @@ jobs:
         # On failure the tail of the output goes into an annotation too:
         # readable from the checks API without downloading the whole log.
         run: |
-          npm run dist 2>&1 | Tee-Object -FilePath build.log
+          npm run dist 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP/build.log"
           $code = $LASTEXITCODE
-          Write-Host "::notice title=npm run dist (exit $code)::$((Get-Content build.log -Tail 40) -join '%0A')"
+          Write-Host "::notice title=npm run dist (exit $code)::$((Get-Content "$env:RUNNER_TEMP/build.log" -Tail 40) -join '%0A')"
           if ($code -ne 0) {
-            $tail = (Get-Content build.log -Tail 40) -join '%0A'
+            $tail = (Get-Content "$env:RUNNER_TEMP/build.log" -Tail 40) -join '%0A'
             Write-Host "::error title=npm run dist failed::$tail"
             exit 1
           }
@@ -126,9 +126,9 @@ jobs:
           $env:GIGAMAIL_EXE = Join-Path $dir "GigaMail.exe"
           $env:ADE_CONSOLE_PORT = "8022"
           $env:GIGAMAIL_EXPECTED_VERSION = (Select-String -Path ../pyproject.toml -Pattern '^version\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
-          npm run test:packaged 2>&1 | Tee-Object -FilePath smoke.log
+          npm run test:packaged 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP/smoke.log"
           if ($LASTEXITCODE -ne 0) {
-            $tail = (Get-Content smoke.log -Tail 80) -join '%0A'
+            $tail = (Get-Content "$env:RUNNER_TEMP/smoke.log" -Tail 80) -join '%0A'
             Write-Host "::error title=smoke test failed::$tail"
             throw "smoke test dell'app installata fallito"
           }
