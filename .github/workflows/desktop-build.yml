@@ -70,8 +70,10 @@ jobs:
       - name: Build installer
         working-directory: console
         shell: pwsh
-        # On failure the tail of the output goes into an annotation too:
-        # readable from the checks API without downloading the whole log.
+        # The tail of the output also goes into an annotation, readable from
+        # the checks API. The log lives in RUNNER_TEMP, never in console/:
+        # electron-builder packs that whole folder, and a log still open
+        # for writing ended up in app.asar and broke the installed app.
         run: |
           npm run dist 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP/build.log"
           $code = $LASTEXITCODE
