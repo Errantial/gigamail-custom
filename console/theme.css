@@ -145,3 +145,20 @@ body { background: var(--gm-bg); color: var(--gm-ink); }
   background: #fcfcfd !important; border-top: 1px solid var(--gm-line) !important; }
 #identityModal > div > div:first-child, #folderIdentityModal > div > div:first-child, #identityPreviewModal > div > div:first-child {
   background: var(--gm-card) !important; border-bottom: 1px solid var(--gm-line) !important; }
+
+/* onboarding: il marchio al posto dell'icona (che nell'app installata non c'era) */
+.ob-wordmark { display: block; height: 52px; width: auto; margin: 4px auto 10px; }
+.ob-hero-sub { color: var(--gm-muted); }
+/* suggerimenti della barra e menu contestuale */
+.s-tooltip { background: var(--gm-ink); color: #fff; border: none; box-shadow: 0 6px 16px rgba(0,0,0,0.18); }
+.ade-context-menu { background: var(--gm-card); border: 1.5px solid var(--gm-line); border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(40,30,55,0.18); padding: 6px; }
+.ade-context-menu .ctx-item { border-radius: 8px; color: var(--gm-ink); }
+.ade-context-menu .ctx-item:hover { background: var(--gm-tint); color: var(--gm-pink); }
+.ade-toast { border-radius: 14px; box-shadow: 0 12px 30px rgba(40,30,55,0.16); }
+.ob-lang.active { background: var(--gm-tint) !important; color: var(--gm-pink) !important; border-color: var(--gm-tint-line) !important; font-weight: 700; }
+.ob-dot.active { background: var(--gm-pink) !important; border-color: var(--gm-pink) !important; }
+.ob-dot.done { background: var(--gm-tint-line) !important; border-color: var(--gm-tint-line) !important; }
+.ob-choice { border-radius: 16px; border: 1.5px solid var(--gm-line); background: #fafafc; }
+.ob-choice:hover { background: var(--gm-tint); border-color: var(--gm-tint-line); }
+.ob-code { background: var(--gm-fill); border: 1.5px solid var(--gm-line); }
