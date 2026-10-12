@@ -67,11 +67,23 @@ def code_stamp() -> str:
 _LOADED_STAMP = code_stamp()
 
 
+def _src_dir() -> str:
+    """La cartella da cui gira il codice (quella che contiene gigamail/).
+    La console la confronta con la sua: senza, una console avviata da
+    sorgente riusava il backend dell'app installata, rimasto acceso."""
+    import gigamail
+    return str(Path(gigamail.__file__).resolve().parent.parent)
+
+
+_SRC_DIR = _src_dir()
+
+
 @app.get("/health")
 def health():
     from gigamail import __version__
     return {"status": "ok", "service": "gigamail-console", "version": __version__,
-            "pid": os.getpid(), "stale": code_stamp() != _LOADED_STAMP}
+            "pid": os.getpid(), "stale": code_stamp() != _LOADED_STAMP,
+            "src": _SRC_DIR}
 
 
 # Un router per dominio: stessi path di prima, nessun prefisso.

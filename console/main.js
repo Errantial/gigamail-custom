@@ -240,6 +240,13 @@ function getResourcesPath() {
   return path.join(__dirname, '..');
 }
 
+// Come la vede Python (Path.resolve): link e giunzioni risolti, o un
+// percorso uguale sembrerebbe diverso e il backend verrebbe rifatto a
+// ogni avvio.
+function realDir(dir) {
+  try { return fs.realpathSync.native(dir); } catch (_) { return path.resolve(dir); }
+}
+
 function startPythonServer() {
   const resourcesPath = getResourcesPath();
   // Packaged: python embedded in resources. Dev: venv del repo gigamail
@@ -300,7 +307,7 @@ function startPythonServer() {
           start();
           return;
         }
-        const why = restartReason(health, app.getVersion());
+        const why = restartReason(health, app.getVersion(), realDir(srcDir));
         if (!why) {
           console.log(`[GIGAMAIL] Backend console gia' attivo su porta ${API_PORT}`);
           resolve();

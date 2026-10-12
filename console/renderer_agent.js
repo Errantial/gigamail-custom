@@ -142,7 +142,9 @@
     } catch (e) {
       wait.remove();
       const msg = String(e.message || e);
-      addBubble('agent error', escHtml(/agent|agente|claude|codex/i.test(msg) && /install|trovat|found|unavailable/i.test(msg)
+      addBubble('agent error', escHtml(/^not found$/i.test(msg)
+        ? L('agent_old_backend', 'Il backend in uso non conosce ancora questa funzione: chiudi GigaMail (anche dall\'icona vicino all\'orologio) e riaprila.')
+        : /agent|agente|claude|codex/i.test(msg) && /install|trovat|found|unavailable/i.test(msg)
         ? L('agent_unavailable', 'Nessun agente trovato. Installa Claude Code o Codex e riprova.')
         : msg));
     } finally {

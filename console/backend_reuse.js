@@ -8,12 +8,30 @@
 // process to replace when it is not. Pure functions: tests/backend_reuse.test.js.
 'use strict';
 
-/** Why the backend that answered /health must be replaced; '' to reuse it. */
-function restartReason(health, appVersion) {
+/** Path comparable across the two sides: forward slashes, no trailing
+ *  slash, case-insensitive on Windows. */
+function samePath(a, b, platform = process.platform) {
+  const norm = (p) => {
+    let s = String(p || '').replace(/\\/g, '/').replace(/\/+$/, '');
+    if (platform === 'win32') s = s.toLowerCase();
+    return s;
+  };
+  return norm(a) === norm(b);
+}
+
+/** Why the backend that answered /health must be replaced; '' to reuse it.
+ *  srcDir: where this console expects the backend code to run from. */
+function restartReason(health, appVersion, srcDir = '', platform = process.platform) {
   if (!health || health.service !== 'gigamail-console') return '';   // not ours: not ours to stop
   // Up to 0.4.0 the backend did not say whether its code is current.
   if (typeof health.stale !== 'boolean') return 'backend older than this console';
   if (health.stale) return 'its code changed on disk since it started';
+  // The installed app leaves its backend running: a console started from
+  // the sources found it, same version, and talked to the installed code.
+  if (srcDir) {
+    if (!health.src) return 'backend does not say where its code runs from';
+    if (!samePath(health.src, srcDir, platform)) return `code from ${health.src}, console expects ${srcDir}`;
+  }
   const version = String(health.version || '');
   // "0.0.0+unknown": sources run without package metadata, nothing to compare.
   if (version && !version.startsWith('0.0.0') && appVersion && version !== String(appVersion)) {
@@ -41,4 +59,4 @@ function pidFromLsof(output) {
   return pid > 0 ? pid : 0;
 }
 
-module.exports = { restartReason, pidFromNetstat, pidFromLsof };
+module.exports = { restartReason, samePath, pidFromNetstat, pidFromLsof };

@@ -35,6 +35,19 @@ test('something that is not our backend is never ours to stop', () => {
   assert.equal(restartReason(null, '0.4.1'), '');
 });
 
+test('a backend running code from another folder is replaced', () => {
+  // the installed app left its backend on; the console runs from the sources
+  const installed = { ...OURS, src: 'C:\\Users\\simon\\AppData\\Local\\Programs\\GigaMail\\resources\\gigamail\\src' };
+  assert.match(restartReason(installed, '0.4.1', 'C:\\Users\\simon\\gigamail-ui\\src', 'win32'), /expects/);
+  // same folder, different case and slashes on Windows: reused
+  const mine = { ...OURS, src: 'c:/users/simon/gigamail-ui/src/' };
+  assert.equal(restartReason(mine, '0.4.1', 'C:\\Users\\simon\\gigamail-ui\\src', 'win32'), '');
+  // a backend that does not report its folder cannot be trusted to be ours
+  assert.ok(restartReason(OURS, '0.4.1', '/home/u/gigamail/src', 'linux'));
+  // no folder to compare: the old rules only
+  assert.equal(restartReason(OURS, '0.4.1'), '');
+});
+
 test('pidFromNetstat: the process listening on the port, not its clients', () => {
   const out = [
     '',
