@@ -106,9 +106,13 @@ async function main() {
   // traccia di cosa e' successo nel main process.
   const appLog = path.join(os.tmpdir(), `gigamail-smoke-app-${Date.now()}.log`);
   const logFd = fs.openSync(appLog, 'w');
-  const child = spawn(EXE, [debugArg], {
+  // Su Windows un exe GUI non scrive su stdout: il log di Electron va su file.
+  const chromeLog = appLog.replace(/\.log$/, '-electron.log');
+  const child = spawn(EXE, [debugArg, '--enable-logging=file', '--log-file=' + chromeLog], {
     env: { ...env, ELECTRON_ENABLE_LOGGING: '1' }, stdio: ['ignore', logFd, logFd], detached: false,
   });
+  let exitInfo = '';
+  child.on('exit', (code, signal) => { exitInfo = `processo uscito: code=${code} signal=${signal}`; });
   let cdp;
   try {
     const page = await waitUntil(async () => {
@@ -160,8 +164,13 @@ async function main() {
   if (failures) {
     try {
       const lines = fs.readFileSync(appLog, 'utf-8').split(/\r?\n/).filter((l) => l.trim());
-      console.log('\n[log dell\'app, ultime righe]\n' + lines.slice(-40).join('\n'));
+      console.log('\n[log dell\'app, ultime righe]\n' + lines.slice(-30).join('\n'));
     } catch (_) { /* nessun log */ }
+    try {
+      const lines = fs.readFileSync(chromeLog, 'utf-8').split(/\r?\n/).filter((l) => l.trim());
+      console.log('\n[log di Electron, ultime righe]\n' + lines.slice(-30).join('\n'));
+    } catch (_) { console.log('\n[log di Electron assente]'); }
+    console.log(exitInfo || 'processo ancora vivo alla fine della prova');
   }
   console.log(failures ? `\n${failures} controlli falliti` : '\ntutti i controlli passati');
   process.exit(failures ? 1 : 0);
