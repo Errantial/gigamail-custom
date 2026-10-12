@@ -126,7 +126,7 @@ jobs:
           $env:GIGAMAIL_EXPECTED_VERSION = (Select-String -Path ../pyproject.toml -Pattern '^version\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
           npm run test:packaged 2>&1 | Tee-Object -FilePath smoke.log
           if ($LASTEXITCODE -ne 0) {
-            $tail = (Get-Content smoke.log -Tail 40) -join '%0A'
+            $tail = (Get-Content smoke.log -Tail 80) -join '%0A'
             Write-Host "::error title=smoke test failed::$tail"
             throw "smoke test dell'app installata fallito"
           }

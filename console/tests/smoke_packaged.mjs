@@ -102,7 +102,13 @@ async function main() {
   // legge come "comando composto con dati" (falso positivo di forma).
   console.log('[app installata] ' + EXE + '\n  profilo: ' + fresh);
   const debugArg = '--remote-debugging-port=' + PORT;
-  const child = spawn(EXE, [debugArg], { env, stdio: 'ignore', detached: false });
+  // L'output dell'app va in un file: se la finestra non si apre e' l'unica
+  // traccia di cosa e' successo nel main process.
+  const appLog = path.join(os.tmpdir(), `gigamail-smoke-app-${Date.now()}.log`);
+  const logFd = fs.openSync(appLog, 'w');
+  const child = spawn(EXE, [debugArg], {
+    env: { ...env, ELECTRON_ENABLE_LOGGING: '1' }, stdio: ['ignore', logFd, logFd], detached: false,
+  });
   let cdp;
   try {
     const page = await waitUntil(async () => {
@@ -150,6 +156,12 @@ async function main() {
     try { if (process.platform === 'win32') spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' }); else child.kill(); } catch (_) { /* */ }
     killPort(API_PORT);
     try { fs.rmSync(fresh, { recursive: true, force: true }); } catch (_) { /* file in uso */ }
+  }
+  if (failures) {
+    try {
+      const lines = fs.readFileSync(appLog, 'utf-8').split(/\r?\n/).filter((l) => l.trim());
+      console.log('\n[log dell\'app, ultime righe]\n' + lines.slice(-40).join('\n'));
+    } catch (_) { /* nessun log */ }
   }
   console.log(failures ? `\n${failures} controlli falliti` : '\ntutti i controlli passati');
   process.exit(failures ? 1 : 0);
