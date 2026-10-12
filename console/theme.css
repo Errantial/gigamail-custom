@@ -1,0 +1,128 @@
+/* theme.css — stile GigaMail 0.6: grigio chiaro, schede bianche, rosa a tinta piena.
+   Si carica DOPO style_v2.css e sovrascrive solo l'aspetto: nessun id,
+   nessun comportamento. Toglierlo riporta la console allo stile 0.5. */
+:root {
+  --gm-bg:        #d1d1d6;
+  --gm-card:      #ffffff;
+  --gm-ink:       #1c1c20;
+  --gm-muted:     #5f5f69;   /* 6.2:1 su bianco */
+  --gm-line:      #e6e6ec;
+  --gm-fill:      #f3f3f6;
+  --gm-pink:      #e0409a;   /* rosa GigaMail, pulsanti e accenti */
+  --gm-pink-hi:   #ec5aac;
+  --gm-pink-dn:   #be287d;
+  --gm-tint:      #fdf3f9;   /* selezione: tinta piena, mai sfumatura */
+  --gm-tint-line: #eeb9dd;
+  --gm-amber:     #b26f00;   /* in attesa di approvazione */
+  --gm-amber-bg:  #fcf0dc;
+  --gm-green:     #1f8a47;
+  --gm-radius:    18px;
+  --gm-shadow:    0 10px 30px rgba(40,30,55,0.10);
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --tint: var(--gm-tint);
+}
+body { background: var(--gm-bg); color: var(--gm-ink); }
+.app { background: var(--gm-bg); padding: 12px; gap: 12px; }
+
+/* finestra: pulsanti discreti, niente riquadri */
+.win-btn { background: transparent; border: none; box-shadow: none; color: var(--gm-muted); }
+.win-btn:hover { background: rgba(255,255,255,0.6); box-shadow: none; }
+
+/* barra icone: scheda bianca */
+.sidebar { background: var(--gm-card); border: none; border-radius: var(--gm-radius);
+  box-shadow: var(--gm-shadow); padding-top: 22px; }
+.s-item { color: var(--gm-muted); border: 1px solid transparent; }
+.s-item:hover { background: var(--gm-fill); border: 1px solid transparent; box-shadow: none; }
+.s-item.active, .s-item.active:hover { background: var(--gm-tint); color: var(--gm-pink);
+  border: 1px solid var(--gm-tint-line); box-shadow: none; }
+.s-div { background: var(--gm-line); }
+
+/* colonna posta: scheda bianca col marchio in testa */
+.mail-list-panel { background: var(--gm-card); border: none; border-radius: var(--gm-radius);
+  box-shadow: var(--gm-shadow); overflow: hidden; width: 300px; }
+.panel-header { padding: 18px 16px 12px; border-bottom: 1px solid var(--gm-line); }
+.gm-wordmark { display: block; height: 28px; width: auto; margin: 0 0 14px; }
+.panel-title { color: var(--gm-ink); font-weight: 700; font-size: 17px; letter-spacing: -0.2px; }
+.panel-title > span:last-child { color: var(--gm-muted); }
+.account-select { background: var(--gm-card) !important; border: 1.5px solid var(--gm-line) !important;
+  border-radius: 12px !important; color: var(--gm-ink) !important; font-weight: 600; }
+.icon-btn-sm { background: var(--gm-card); border: 1.5px solid var(--gm-line); border-radius: 10px; box-shadow: none; }
+.chip-btn { background: var(--gm-card); border: 1.5px solid var(--gm-line); border-radius: 10px;
+  color: var(--gm-muted); box-shadow: none; }
+.chip-btn:hover { border-color: var(--gm-tint-line); color: var(--gm-pink); background: var(--gm-tint); }
+.search-bar { background: var(--gm-fill); border: 1.5px solid transparent; border-radius: 12px; box-shadow: none; }
+.search-bar:focus-within { border-color: var(--gm-tint-line); background: var(--gm-card); }
+.tabs { border-bottom: none; padding: 10px 14px 4px; }
+.tab { border-radius: 999px; background: var(--gm-fill); color: var(--gm-muted); }
+.tab.active { background: var(--gm-tint); color: var(--gm-pink); box-shadow: inset 0 0 0 1.5px var(--gm-tint-line); }
+.custom-folders { border-bottom: 1px solid var(--gm-line); padding: 4px 14px 10px; gap: 6px; }
+.custom-folder-chip { border-radius: 999px; background: var(--gm-fill); border: 1.5px solid transparent; color: var(--gm-muted); }
+.custom-folder-chip:hover, .custom-folder-chip.active { background: var(--gm-tint); color: var(--gm-pink);
+  border-color: var(--gm-tint-line); font-weight: 700; }
+
+/* elenco mail */
+.mail-list { padding: 8px 10px; }
+.mail-item, .m-item { background: var(--gm-card); border: 1.5px solid transparent; border-radius: 14px;
+  padding: 11px 12px; box-shadow: none; }
+.mail-item:hover, .m-item:hover { background: #fafafc; border-color: var(--gm-line); }
+.mail-item.selected, .m-item.selected { background: var(--gm-tint); border-color: var(--gm-tint-line); box-shadow: none; }
+.mail-sender, .m-sender { color: var(--gm-ink); font-size: 13px; }
+.mail-subject, .m-subject { color: var(--gm-ink); font-size: 13px; }
+.mail-preview, .m-preview, .mail-date, .m-time { color: var(--gm-muted); }
+.mail-item.unread .mail-sender::before, .u-dot { background: var(--gm-pink); }
+.local-draft-badge { color: var(--gm-pink); }
+
+/* pulsante principale: rosa pieno, testo bianco */
+.compose-btn { background: var(--gm-pink); color: #fff; border: none; border-radius: 12px;
+  font-size: 13px; font-weight: 700; box-shadow: 0 6px 16px rgba(224,64,154,0.25); }
+.compose-btn:hover { background: var(--gm-pink-hi); border: none; box-shadow: 0 8px 18px rgba(224,64,154,0.30); }
+.compose-btn:disabled { background: #e9b5d2; box-shadow: none; }
+.btn-primary { background: var(--gm-pink); color: #fff; box-shadow: 0 4px 12px rgba(224,64,154,0.25); }
+.btn-primary:hover { background: var(--gm-pink-hi); }
+.reply-send-btn { background: var(--gm-pink); color: #fff; border: none; border-radius: 10px;
+  box-shadow: 0 6px 14px rgba(224,64,154,0.25); }
+.reply-send-btn:hover { background: var(--gm-pink-hi); border: none; }
+
+/* area di lettura e viste: scheda bianca */
+#mailDetail, .cal-wrap, .auto-wrap, .mkt-layout { background: var(--gm-card); border-radius: var(--gm-radius);
+  box-shadow: var(--gm-shadow); }
+#view-calendar, #view-automations, #view-marketing { background: transparent; }
+.mail-detail-header { border-bottom: 1px solid var(--gm-line); padding: 20px 24px 14px; }
+.mail-detail-subject { color: var(--gm-ink); font-weight: 700; }
+.main-hint { color: var(--gm-muted); }
+
+/* stati: ambra = in attesa, verde = fatto */
+.ob-status.warn { color: var(--gm-amber); }
+.ob-status.ok { color: var(--gm-green); }
+
+/* niente sfumature sotto testi o sulle barre */
+.progress-fill { background: var(--gm-pink); }
+.sidebar-logo { background: var(--gm-pink); box-shadow: none; }
+.s-avatar { background: var(--gm-tint) !important; color: var(--gm-pink) !important; font-weight: 700; }
+
+/* finestre modali */
+.modal, .ob-modal { border-radius: 20px; border: 1.5px solid var(--gm-tint-line); box-shadow: 0 24px 60px rgba(40,30,55,0.22); }
+.field-input { border-radius: 10px; border: 1.5px solid var(--gm-line); }
+.field-input:focus { border-color: var(--gm-pink); box-shadow: 0 0 0 3px rgba(224,64,154,0.12); }
+
+/* spazio tra colonna posta e area di lettura */
+.view.active { gap: 12px; }
+/* dashboard: le schede interne su fondo appena grigio, senza bordo scuro */
+#dash-accounts > *, #dash-calendar > *, #dash-todo > * { background: #fafafc !important;
+  border: 1.5px solid var(--gm-line) !important; border-radius: 16px !important; box-shadow: none !important; }
+#mailDetail { padding: 6px; }
+
+/* lettura mail */
+.mail-detail-content > div:first-child { background: var(--gm-card) !important; border-bottom: 1px solid var(--gm-line) !important; }
+#btnPopOut { background: var(--gm-fill) !important; border: none !important; border-radius: 10px !important; }
+.mail-detail-header { padding: 18px 26px 16px; }
+.mail-detail-subject { font-size: 22px; letter-spacing: -0.3px; margin-bottom: 6px; }
+.mail-detail-meta { font-size: 13px; color: var(--gm-muted); }
+.mail-detail-actions { gap: 8px; margin-top: 12px; }
+.btn { background: var(--gm-card); border: 1.5px solid var(--gm-line); border-radius: 10px; color: var(--gm-ink);
+  font-size: 12px; font-weight: 600; padding: 7px 12px; box-shadow: none; text-transform: none; }
+.btn:hover { background: var(--gm-tint); border-color: var(--gm-tint-line); color: var(--gm-pink); transform: none; box-shadow: none; }
+.btn-danger { color: #c62828; }
+.btn-danger:hover { background: #fdecec; border-color: #f2b8b8; color: #c62828; }
+.mail-body { border: none !important; border-radius: 0; font-size: 15px; line-height: 1.65; padding: 22px 26px !important; color: #2b2b31; }
+.mail-summary-box { background: var(--gm-tint); border: 1.5px solid var(--gm-tint-line); border-radius: 14px; }

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **New console look (branch `ui-refactor`).** Light grey shell with the
+  panels as white cards, the GIGAMAIL wordmark at the top of the mail
+  column, pink only as a solid accent (New mail, Send, the selected
+  folder and mail) and no gradients under text. Two stylesheets loaded
+  after the existing ones, `console/theme.css` for the main window and
+  `console/theme-popup.css` for the separate windows: they change only
+  the look, so removing them brings back the 0.5 style.
 ## v0.5.1 — 2026-10-09
 
 - **The Windows installer no longer asks for an administrator.** It

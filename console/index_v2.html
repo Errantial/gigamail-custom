@@ -5,6 +5,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' file:; script-src 'self' file: 'unsafe-inline'; style-src 'self' file: 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' file: data: https://fonts.gstatic.com; img-src 'self' file: http://127.0.0.1:* http://localhost:* https: http: data: blob:; connect-src http://127.0.0.1:* http://localhost:*; media-src 'self' file: blob: data: http://127.0.0.1:* http://localhost:*; object-src 'none'; base-uri 'none'; form-action 'none'"/>
 <title>GIGAMAIL</title>
 <link rel="stylesheet" href="style_v2.css"/>
+<link rel="stylesheet" href="theme.css"/>
 </head>
 <body>
 <div id="ade-toast-container"></div>
@@ -40,6 +41,7 @@
     <div class="view active" id="view-mail">
       <div class="mail-list-panel">
         <div class="panel-header">
+          <img class="gm-wordmark" src="gigamail-wordmark.png" alt="GigaMail"/>
           <div class="panel-title"><span id="currentFolderLabel" data-i18n="inbox">Posta in arrivo</span><span id="statMail"></span></div>
           <div class="account-row">
             <select id="accountSelect" class="account-select"></select>
