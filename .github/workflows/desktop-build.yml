@@ -69,7 +69,16 @@ jobs:
 
       - name: Build installer
         working-directory: console
-        run: npm run dist
+        shell: pwsh
+        # On failure the tail of the output goes into an annotation too:
+        # readable from the checks API without downloading the whole log.
+        run: |
+          npm run dist 2>&1 | Tee-Object -FilePath build.log
+          if ($LASTEXITCODE -ne 0) {
+            $tail = (Get-Content build.log -Tail 40) -join '%0A'
+            Write-Host "::error title=npm run dist failed::$tail"
+            exit 1
+          }
 
       - name: La versione dell'installer segue pyproject.toml
         shell: pwsh
