@@ -126,3 +126,22 @@ body { background: var(--gm-bg); color: var(--gm-ink); }
 .btn-danger:hover { background: #fdecec; border-color: #f2b8b8; color: #c62828; }
 .mail-body { border: none !important; border-radius: 0; font-size: 15px; line-height: 1.65; padding: 22px 26px !important; color: #2b2b31; }
 .mail-summary-box { background: var(--gm-tint); border: 1.5px solid var(--gm-tint-line); border-radius: 14px; }
+
+/* finestre di dialogo: testata bianca, campi bianchi */
+.modal { background: var(--gm-card); }
+.modal-hdr { background: var(--gm-card); border-bottom: 1px solid var(--gm-line); }
+.modal-title { color: var(--gm-ink); font-weight: 700; }
+.modal-ftr { background: #fcfcfd; border-top: 1px solid var(--gm-line); }
+.field-input { background: var(--gm-card); }
+/* dialoghi costruiti in JS con stile in linea (identita', anteprima, risposta) */
+#identityModal > div, #folderIdentityModal > div, #identityPreviewModal > div, #replyModal > div {
+  border: 1.5px solid var(--gm-tint-line) !important; border-top: 1.5px solid var(--gm-tint-line) !important;
+  border-radius: 20px !important; box-shadow: 0 24px 60px rgba(40,30,55,0.22) !important; }
+#identityModal input, #identityModal textarea, #folderIdentityModal input, #folderIdentityModal textarea {
+  background: var(--gm-card) !important; border: 1.5px solid var(--gm-line) !important; border-radius: 10px !important; }
+#identityModal input:focus, #identityModal textarea:focus, #folderIdentityModal input:focus, #folderIdentityModal textarea:focus {
+  border-color: var(--gm-pink) !important; box-shadow: 0 0 0 3px rgba(224,64,154,0.12) !important; }
+#identityModal > div > div:last-child, #folderIdentityModal > div > div:last-child, #identityPreviewModal > div > div:last-child {
+  background: #fcfcfd !important; border-top: 1px solid var(--gm-line) !important; }
+#identityModal > div > div:first-child, #folderIdentityModal > div > div:first-child, #identityPreviewModal > div > div:first-child {
+  background: var(--gm-card) !important; border-bottom: 1px solid var(--gm-line) !important; }
