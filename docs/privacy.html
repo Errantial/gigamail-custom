@@ -25,6 +25,7 @@
   header { display: flex; align-items: center; justify-content: space-between; padding: .9rem clamp(1rem, 3vw, 2rem); border-bottom: 1px solid var(--line); }
   .brand { display: flex; align-items: center; gap: .6rem; font-family: var(--display); font-weight: 700; font-size: 1.05rem; color: var(--text); text-decoration: none; letter-spacing: -.02em; }
   .brand img { width: 30px; height: 30px; }
+  .brand img.wordmark { width: auto; height: 30px; }
   .brand span { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .pill { font-family: var(--display); font-size: .82rem; padding: .45rem .9rem; border-radius: 999px; border: 1px solid var(--line-2); color: var(--text); text-decoration: none; }
 
@@ -40,17 +41,17 @@
   .callout { border: 1px solid var(--line-2); border-left: 3px solid var(--amber); border-radius: 10px; padding: 1rem 1.2rem; background: rgba(255,180,84,.06); margin: 1.4rem 0; }
   footer { border-top: 1px solid var(--line); padding: 2rem clamp(1rem, 4vw, 2rem); color: var(--muted); font-size: .9rem; text-align: center; }
 </style>
-</head>
+<script type="module" src="/business/analytics.js"></script></head>
 <body>
 
 <header>
-  <a class="brand" href="/"><img src="brand/gigamail.ico" alt=""><span>GigaMail</span></a>
+  <a class="brand" href="/"><img class="wordmark" src="brand/gigamail-wordmark.png" alt="GigaMail" width="110" height="30"></a>
   <a class="pill" href="/">Back to site</a>
 </header>
 
 <main>
   <h1>Privacy Policy</h1>
-  <p class="updated mono">Last updated: 10 September 2026</p>
+  <p class="updated mono">Last updated: 12 October 2026</p>
 
   <p class="lede">GigaMail is software you install and run on your own
   computer. It has no servers, no accounts and no backend. We do not
@@ -123,6 +124,23 @@
   decided to. Each one stops and waits for a human approval given
   separately, behind your device's own authentication. The agent cannot
   grant that approval and cannot bypass it.</p>
+
+  <h2>This website</h2>
+  <p>gigamail.ai counts its visits with a small counter of our own. When
+  you open a page over HTTPS on gigamail.ai, the page sends one event to our
+  server with three things: that a visit happened, the domain of the site
+  you came from, and your browser's language code (which we read as an
+  approximate region). It sets no cookies, uses no local storage, and
+  carries no identifier of you or your device, so it cannot recognise you
+  on a later visit. If your browser sends Do Not Track or Global Privacy
+  Control, nothing is sent at all. Our server is hosted by Render; like any
+  web server, it sees the address your request comes from.</p>
+  <p>On the business page, the demo request form sends what you type in it
+  only when you submit it, and only to reach you about the demo.</p>
+  <p>Downloads are counted by GitHub, which hosts the installers, as a
+  number per file. Neither we nor that counter learn who downloaded them.</p>
+  <p>None of this concerns the GigaMail application, which sends nothing to
+  us.</p>
 
   <h2>Retention and deletion</h2>
   <p>Everything GigaMail stores lives in a directory on your computer.
