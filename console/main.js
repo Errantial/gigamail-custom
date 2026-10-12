@@ -265,6 +265,17 @@ function startPythonServer() {
   // parlare la finestra nuova con un backend vecchio, in silenzio.
   const startBackend = () => {
     console.log('[GIGAMAIL] Avvio backend console...');
+    // Da sorgente serve il venv del repo: senza, spawn falliva con un
+    // "Uncaught Exception" del main process che non diceva cosa fare.
+    if (!app.isPackaged && !fs.existsSync(pythonPath)) {
+      const root = path.join(__dirname, '..');
+      const pip = process.platform === 'win32' ? '.venv\\Scripts\\pip' : '.venv/bin/pip';
+      dialog.showErrorBox('GigaMail: Python environment missing',
+        `Running from the sources needs the repo virtualenv, not found at:\n${pythonPath}\n\n`
+        + `Create it once, from ${root}:\n\n`
+        + `  python -m venv .venv\n  ${pip} install -e ".[console,all]"\n\nthen run npm start again.`);
+      return;
+    }
     serverProcess = spawn(pythonPath, [
       '-s',   // mai il site-packages utente: solo cio' che l'installer porta
       '-X', 'utf8', '-c', 'from gigamail.http_api import main; main()',
@@ -282,6 +293,7 @@ function startPythonServer() {
     serverProcess.stdout?.on('data', (d) => console.log('[SERVER]', d.toString().trim()));
     serverProcess.stderr?.on('data', (d) => console.error('[SERVER ERR]', d.toString().trim()));
     serverProcess.on('exit', (code) => console.log('[SERVER] exit', code));
+    serverProcess.on('error', (e) => console.error('[SERVER] not started:', e.message));
     serverProcess.unref(); // non tenere vivo Electron per via del figlio
   };
 
