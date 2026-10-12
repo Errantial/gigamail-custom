@@ -405,8 +405,19 @@ function waitForBackend(maxMs = 20000) {
   });
 }
 
+// Icona da sorgente: l'app installata la prende dall'exe / dal bundle, ma
+// con `npm start` Windows e macOS mostravano quella di Electron.
+const DEV_ICON = app.isPackaged ? null : path.join(__dirname, '..', 'docs', 'brand',
+  process.platform === 'win32' ? 'gigamail.ico' : 'gigamail-logo-256.png');
+if (DEV_ICON) {
+  app.on('browser-window-created', (_e, win) => { try { win.setIcon(DEV_ICON); } catch {} });
+}
+
 // ── APP ───────────────────────────────────────────────────────────────────────
 app.whenReady().then(async () => {
+  if (DEV_ICON && process.platform === 'darwin' && app.dock) {
+    try { app.dock.setIcon(path.join(__dirname, '..', 'docs', 'brand', 'gigamail-logo-1024.png')); } catch {}
+  }
   const backendChosen = startPythonServer();
 
   // Whitelist esplicita: solo il microfono serve alle pagine (dettatura in
