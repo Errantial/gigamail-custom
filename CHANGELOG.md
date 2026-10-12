@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **The website counts its visits on every page, without cookies.** The
+  anonymous visit counter of the business page (one event per visit:
+  referring domain and browser language, no cookies, nothing sent under Do
+  Not Track or Global Privacy Control) now runs on every page of
+  gigamail.ai, and the Privacy Policy describes it. The Download buttons
+  now always point at the fixed-name installer: the app's updater uses the
+  versioned file, so the fixed-name file's download count on GitHub is the
+  website's own.
 - **Terms of Service on the website**, next to the Privacy Policy, both
   linked from the footer: the software under the AGPL-3.0, the agent you
   choose, your conduct, and the mailboxes we provide to testers.
