@@ -45,6 +45,11 @@ async function apiBlob(url, options = {}) {
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  // barra dell'agente nella scheda di destra
+  agentCommand:   (body) => apiJson(`${API}/agent/command`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
+  agentComplete:  (body) => apiJson(`${API}/agent/command/complete`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
+  approveRequest: (id)   => apiJson(`${API}/approvals/${encodeURIComponent(id)}/approve`, { method: 'POST' }),
+  rejectRequest:  (id)   => apiJson(`${API}/approvals/${encodeURIComponent(id)}/reject`, { method: 'POST' }),
   openExternal:   (url) => ipcRenderer.invoke('open-external', url),  // whitelist nel main
   onOpenMail:     (callback) => ipcRenderer.on('open-mail', (_, data) => callback(data)),
   onNewMail:      (callback) => ipcRenderer.on('new-mail',  (_, data) => callback(data)),

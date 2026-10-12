@@ -130,3 +130,17 @@ html[data-theme="dark"] .upcoming-section *, html[data-theme="dark"] .loading { 
 html[data-theme="dark"] [style*="background:#f" i], html[data-theme="dark"] [style*="background: #f" i],
 html[data-theme="dark"] [style*="background:#e" i], html[data-theme="dark"] [style*="background: #e" i] {
   background: var(--gm-card2) !important; }
+
+/* barra dell'agente */
+html[data-theme="dark"] .detail-col, html[data-theme="dark"] .agent-bar { background: var(--gm-card) !important; }
+html[data-theme="dark"] .agent-msg.agent { background: var(--gm-card2); }
+html[data-theme="dark"] .agent-msg.error { background: #3a1d24; color: #ffb3bd; }
+html[data-theme="dark"] .agent-msg.approval { background: #2e2615; border-color: #6b5320; }
+html[data-theme="dark"] .agent-appr-head { color: #f0b54a; }
+html[data-theme="dark"] .agent-msg.approval.approved { background: #16301f; border-color: #2f6b43; }
+html[data-theme="dark"] .agent-msg.approval.approved .agent-appr-head { color: #6fd394; }
+html[data-theme="dark"] .agent-msg.approval.rejected { background: var(--gm-fill); border-color: var(--gm-line); }
+html[data-theme="dark"] .agent-input { background: var(--gm-fill); }
+html[data-theme="dark"] .agent-input:focus-within { background: var(--gm-card2); }
+html[data-theme="dark"] .agent-btn.ghost { background: var(--gm-card2); }
+html[data-theme="dark"] #agentInput { background: transparent !important; border: none !important; box-shadow: none !important; color: var(--gm-ink) !important; }

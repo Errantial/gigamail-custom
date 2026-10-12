@@ -12,6 +12,12 @@
 (function () {
   const DICT = {
     it: {
+      agentbar_title: "Agente", agent_clear: "Pulisci", agent_ph: "Chiedi qualsiasi cosa all'agente…",
+      agent_this_mail: "Questa mail", agent_thinking: "L'agente sta lavorando…",
+      agent_waiting: "In attesa della tua approvazione", agent_approve: "Approva", agent_reject: "Rifiuta",
+      agent_approved: "Approvata", agent_executed: "Approvata ed eseguita", agent_rejected: "Rifiutata: non verrà eseguita",
+      agent_not_approved: "Non approvata", agent_done: "Fatto.",
+      agent_unavailable: "Nessun agente trovato. Installa Claude Code o Codex e riprova.",
       // finestra / toolbar comuni
       hide: "Nascondi", fullscreen: "Tutto schermo", close: "Chiudi",
       cancel: "Annulla", save: "Salva", create: "Crea", optional: "(opzionale)",
@@ -241,6 +247,12 @@
       suggested_attachments: "ALLEGATI SUGGERITI", add_selected: "AGGIUNGI SELEZIONATI",
     },
     en: {
+      agentbar_title: "Agent", agent_clear: "Clear", agent_ph: "Ask the agent anything…",
+      agent_this_mail: "This mail", agent_thinking: "The agent is working…",
+      agent_waiting: "Waiting for your approval", agent_approve: "Approve", agent_reject: "Reject",
+      agent_approved: "Approved", agent_executed: "Approved and run", agent_rejected: "Rejected: it will not run",
+      agent_not_approved: "Not approved", agent_done: "Done.",
+      agent_unavailable: "No agent found. Install Claude Code or Codex and try again.",
       suggested_attachments: "SUGGESTED ATTACHMENTS", add_selected: "ADD SELECTED",
       guard_title: "NO DRAFT: THIS MAIL GIVES THE ASSISTANT ORDERS",
       guard_generic: "text addressed to the assistant",
@@ -454,6 +466,12 @@
       ob_empty_body: "Connect a mailbox to begin: the agent will be able to read, search and draft replies.", ob_empty_cta: "Set up GigaMail",
     },
     zh: {
+      agentbar_title: "智能体", agent_clear: "清空", agent_ph: "向智能体提问任何问题…",
+      agent_this_mail: "这封邮件", agent_thinking: "智能体正在处理…",
+      agent_waiting: "等待你的批准", agent_approve: "批准", agent_reject: "拒绝",
+      agent_approved: "已批准", agent_executed: "已批准并执行", agent_rejected: "已拒绝：不会执行",
+      agent_not_approved: "未批准", agent_done: "完成。",
+      agent_unavailable: "未找到智能体。请安装 Claude Code 或 Codex 后重试。",
       // 翻译初稿（欢迎打磨：console/i18n.js，PR welcome）
       hide: "隐藏", fullscreen: "全屏", close: "关闭",
       cancel: "取消", save: "保存", create: "创建", optional: "（可选）",

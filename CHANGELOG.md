@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **Ask the agent from the console.** A text box at the bottom of the
+  reading card sends any request to the configured agent (Claude Code or
+  Codex), with the open mail attached as context; the chip can be removed
+  to ask about the whole mailbox. Answers appear above the box. When the
+  agent wants to send, delete or move something, the request shows up
+  there as an amber card: Approve asks for Windows Hello / Touch ID, then
+  the agent completes it; Reject drops it. New endpoints
+  `POST /agent/command` and `POST /agent/command/complete`; the second
+  refuses to run anything a human has not approved.
 - **New console look (branch `ui-refactor`).** Light grey shell with the
   panels as white cards, the GIGAMAIL wordmark at the top of the mail
   column, pink only as a solid accent (New mail, Send, the selected

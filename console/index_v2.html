@@ -68,7 +68,24 @@
         <div class="mail-list" id="mailList"></div>
         <button class="compose-btn" id="btnNewMail">✏  <span data-i18n="new_mail">Nuova mail</span></button>
       </div>
-      <div class="main-area" id="mailDetail"></div>
+      <div class="detail-col" id="detailCol">
+        <div class="main-area" id="mailDetail"></div>
+        <div class="agent-bar" id="agentBar">
+          <div class="agent-thread-head"><span data-i18n="agentbar_title">Agente</span>
+            <button class="agent-clear" id="agentClear" data-i18n="agent_clear">Pulisci</button></div>
+          <div class="agent-thread" id="agentThread"></div>
+          <div class="agent-input">
+            <div class="agent-chip" id="agentChip" hidden>
+              <span class="agent-chip-icon">✉</span><span id="agentChipText"></span>
+              <button class="agent-chip-x" id="agentChipX" aria-label="×">×</button>
+            </div>
+            <div class="agent-row">
+              <textarea id="agentInput" rows="1" data-i18n-ph="agent_ph" placeholder="Chiedi qualsiasi cosa all'agente…"></textarea>
+              <button class="agent-send" id="agentSend" aria-label="Invia">↑</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <!-- CALENDARIO -->
     <div class="view" id="view-calendar">
@@ -675,6 +692,7 @@
 <script src="renderer_automations.js" defer></script>
 <script src="popup_bridge.js"      defer></script>
 <script src="renderer_onboarding.js" defer></script>
+<script src="renderer_agent.js"    defer></script>
 <script>
 function makeDraggable(el,handle){
   let drag=false,sx,sy,ox,oy;
