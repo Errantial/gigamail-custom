@@ -22,6 +22,7 @@ from typing import Dict, List, Optional
 
 import requests
 
+from .calendar_dates import all_day_range
 from .google_auth import auth_headers, check
 
 API = 'https://www.googleapis.com/calendar/v3'
@@ -159,11 +160,21 @@ def _ensure_local(dt_str: str) -> str:
     return txt
 
 
+def _all_day_nodes(start, end, patch: bool = False) -> Dict:
+    """Google: {'date': ...} con la fine esclusiva. In una PATCH dateTime
+    a None toglie l'orario a un evento che l'aveva."""
+    primo, dopo = all_day_range(start, end)
+    vuoto = {'dateTime': None, 'timeZone': None} if patch else {}
+    return {'start': {'date': primo, **vuoto}, 'end': {'date': dopo, **vuoto}}
+
+
 def create_event(subject: str, start: str, end: str,
                  location: str = '', body: str = '',
                  attendees: List[str] = None,
-                 calendar_id: str = 'primary', email: str = None) -> Dict:
-    """Crea un evento. start/end in ora locale, es. '2026-04-01T10:00:00'."""
+                 calendar_id: str = 'primary', email: str = None,
+                 all_day: bool = False) -> Dict:
+    """Crea un evento. start/end in ora locale, es. '2026-04-01T10:00:00'.
+    Con all_day start/end sono il primo e l'ultimo giorno, compresi."""
     payload = {
         'summary': subject,
         'start': {'dateTime': _ensure_local(start), 'timeZone': TZ_NAME},
@@ -171,6 +182,8 @@ def create_event(subject: str, start: str, end: str,
         'location': location or '',
         'description': body or '',
     }
+    if all_day:
+        payload.update(_all_day_nodes(start, end))
     if attendees:
         payload['attendees'] = [{'email': a} for a in attendees]
 
@@ -200,6 +213,13 @@ def update_event(event_id: str, calendar_id: str = 'primary',
         payload['location'] = kwargs['location']
     if 'body' in kwargs:
         payload['description'] = kwargs['body']
+    if kwargs.get('all_day'):
+        payload.update(_all_day_nodes(kwargs.get('start'), kwargs.get('end'), patch=True))
+    elif 'all_day' in kwargs:
+        # da giorno intero a orario: la data va tolta, o Google rifiuta
+        for k in ('start', 'end'):
+            if k in payload:
+                payload[k]['date'] = None
 
     url = f'{API}/calendars/{calendar_id}/events/{event_id}'
     res = requests.patch(url, headers=auth_headers(email), json=payload,

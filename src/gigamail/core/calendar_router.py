@@ -157,10 +157,10 @@ def get_events(days_ahead: int = 7, days_back: int = 0) -> List[Dict]:
 
 def create_event(subject: str, start: str, end: str,
                  location: str = '', body: str = '',
-                 attendees: List[str] = None) -> Dict:
+                 attendees: List[str] = None, all_day: bool = False) -> Dict:
     return _backend().create_event(
         subject, start, end,
-        location=location, body=body, attendees=attendees,
+        location=location, body=body, attendees=attendees, all_day=all_day,
     )
 
 

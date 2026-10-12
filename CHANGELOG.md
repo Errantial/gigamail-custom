@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Calendar: all-day events, and a grid that fits.** The event form has an
+  *All day* box: start and end become dates, first and last day included,
+  and Microsoft 365 and Google receive a real all-day event. All-day events
+  show as solid chips on every day they cover, without "00:00". The month
+  grid no longer grows wider than the window when a title is long, and the
+  calendar window scrolls as one page with the month bar pinned at the top.
+  `create_event` (MCP and HTTP) takes `all_day`.
+- **Fix: calendar invitations from the console.** The event form sent the
+  invitees, but `POST /calendar` dropped them: the event was created
+  without attendees.
 - **Ask the agent from the console.** A text box at the bottom of the
   reading card sends any request to the configured agent (Claude Code or
   Codex), with the open mail attached as context; the chip can be removed

@@ -31,6 +31,7 @@
       error: "Errore", from_label: "Da",
       // calendario
       cal_title: "GIGA Calendario", cal_edit: "Modifica", cal_followup: "Follow up",
+      cal_all_day: "Tutto il giorno", cal_add_attendee: "Aggiungi",
       cal_delete: "Cancella", cal_upcoming: "Prossimi appuntamenti",
       cal_all: "Tutti", cal_today: "Oggi", cal_next7: "Prossimi 7 giorni",
       cal_new_event: "Nuovo evento", cal_edit_event: "Modifica evento", cal_event: "Evento",
@@ -273,6 +274,7 @@
       searching: "Searching…", no_answer: "(no answer)",
       error: "Error", from_label: "From",
       cal_title: "GIGA Calendar", cal_edit: "Edit", cal_followup: "Follow up",
+      cal_all_day: "All day", cal_add_attendee: "Add",
       cal_delete: "Delete", cal_upcoming: "Upcoming events",
       cal_all: "All", cal_today: "Today", cal_next7: "Next 7 days",
       cal_new_event: "New event", cal_edit_event: "Edit event", cal_event: "Event",
@@ -483,6 +485,7 @@
       searching: "搜索中…", no_answer: "（无回答）",
       error: "错误", from_label: "发件人",
       cal_title: "GIGA 日历", cal_edit: "编辑", cal_followup: "跟进",
+      cal_all_day: "全天", cal_add_attendee: "添加",
       cal_delete: "删除", cal_upcoming: "即将到来的日程",
       cal_all: "全部", cal_today: "今天", cal_next7: "未来 7 天",
       cal_new_event: "新建日程", cal_edit_event: "编辑日程", cal_event: "日程",

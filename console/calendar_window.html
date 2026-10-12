@@ -54,8 +54,10 @@
   .tb-btn.maximize:hover { background:rgba(34,197,94,0.15); color:#16a34a; }
 
   /* ── BODY ── */
+  /* un solo scorrimento per tutta la finestra: prima la griglia scorreva
+     in una striscia sotto i prossimi appuntamenti */
   .cal-body {
-    flex:1; display:flex; flex-direction:column; overflow:hidden;
+    flex:1; display:flex; flex-direction:column; overflow-y:auto; min-height:0;
     background:rgba(245,247,250,0.98); border-radius:0 0 7px 7px;
   }
 
@@ -71,7 +73,7 @@
   }
   .upcoming-list {
     display:flex; flex-direction:column; gap:6px;
-    max-height:230px; overflow-y:auto;
+    max-height:180px; overflow-y:auto;
     padding-right:4px;
   }
   .upcoming-list::-webkit-scrollbar { width:5px; }
@@ -102,6 +104,7 @@
     display:flex; align-items:center; gap:8px;
     padding:8px 14px; background:white;
     border-bottom:1px solid rgba(0,0,0,0.08); flex-shrink:0;
+    position:sticky; top:0; z-index:5;
   }
   .cal-nav-btn {
     width:28px; height:28px; border-radius:7px;
@@ -128,9 +131,9 @@
   .add-btn:hover { box-shadow:0 2px 8px rgba(0,0,0,0.07); }
 
   /* ── GRIGLIA CALENDARIO ── */
-  .cal-grid-wrap { flex:1; overflow-y:auto; padding:0 14px 14px; }
+  .cal-grid-wrap { flex:none; padding:0 14px 14px; }
   .cal-grid {
-    display:grid; grid-template-columns:repeat(7,1fr);
+    display:grid; grid-template-columns:repeat(7,minmax(0,1fr));
     gap:1px; background:rgba(0,0,0,0.1);
     border:1px solid rgba(0,0,0,0.14);
     border-radius:8px; overflow:hidden;
@@ -144,7 +147,7 @@
     letter-spacing:0.5px; text-transform:uppercase;
   }
   .cal-cell {
-    background:white; min-height:80px; padding:4px;
+    background:white; min-height:80px; padding:4px; min-width:0;
     display:flex; flex-direction:column; gap:2px;
     cursor:pointer; transition:background 0.1s;
   }
@@ -171,6 +174,10 @@
     box-shadow:0 1px 3px rgba(0,0,0,0.1);
   }
   .cal-event-chip:hover { background:#f3e6f0; box-shadow:0 2px 8px rgba(0,0,0,0.07); }
+  .cal-event-chip.all-day { background:var(--gm-pink, #e0409a) !important; color:#fff !important; }
+  .event-allday { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer;
+    color:rgba(0,0,0,0.82); user-select:none; }
+  .event-allday input { width:16px; height:16px; accent-color:var(--gm-pink, #e0409a); cursor:pointer; margin:0; }
   .cal-more { font-size:9px; color:rgba(0,0,0,0.55); padding:1px 4px; }
 
   /* ── MODAL EVENTO ── */
@@ -330,6 +337,7 @@
         <div class="event-label" data-i18n="title_label">Titolo</div>
         <input type="text" id="eventSubject" class="event-input" data-i18n-ph="event_title_ph" placeholder="Titolo evento…"/>
       </div>
+      <label class="event-allday"><input type="checkbox" id="eventAllDay"/><span data-i18n="cal_all_day">Tutto il giorno</span></label>
       <div class="event-field">
         <div class="event-label" data-i18n="start_label">Inizio</div>
         <input type="datetime-local" id="eventStart" class="event-input"/>
@@ -350,13 +358,13 @@
         <div class="event-label" data-i18n="invite_label">Invita</div>
         <div style="display:flex;gap:6px;align-items:center;">
           <input type="text" id="eventAttendeesInput" class="event-input" placeholder="email@esempio.com" style="flex:1"/>
-          <button class="btn" id="btnAddAttendee" style="padding:5px 12px;white-space:nowrap;flex-shrink:0;">+ Aggiungi</button>
+          <button class="btn" id="btnAddAttendee" style="padding:5px 12px;white-space:nowrap;flex-shrink:0;">+ <span data-i18n="cal_add_attendee">Aggiungi</span></button>
         </div>
         <div id="eventAttendeesList" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;min-height:0;"></div>
       </div>
     </div>
     <div class="event-ftr">
-      <button class="btn danger" id="btnDeleteEvent" style="display:none">🗑 Elimina</button>
+      <button class="btn danger" id="btnDeleteEvent" style="display:none">🗑 <span data-i18n="cal_delete">Elimina</span></button>
       <div style="flex:1"></div>
       <button class="btn" id="btnCancelEvent" data-i18n="cancel">Annulla</button>
       <button class="btn primary" id="btnSaveEvent" data-i18n="save">Salva</button>
@@ -446,6 +454,28 @@ function fmtDateLocal(dt) {
   }
 }
 
+// ── GIORNO INTERO ──
+// Graph e Google mandano la fine esclusiva (mezzanotte del giorno dopo):
+// in griglia e nel modulo si mostra l'ultimo giorno compreso.
+const pad2 = n => String(n).padStart(2, '0');
+function isoDay(d) { return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function evDay(node) { return String(node?.dateTime || node?.date || '').slice(0, 10); }
+function allDayLastDay(ev) {
+  const first = evDay(ev.start);
+  const end = evDay(ev.end);
+  if (!end) return first;
+  const d = new Date(end + 'T12:00:00');
+  d.setDate(d.getDate() - 1);
+  const last = isoDay(d);
+  return last < first ? first : last;
+}
+function fmtEventWhen(ev) {
+  if (!ev.isAllDay) return fmtDateTime(ev.start?.dateTime || ev.start?.date || '');
+  const fmt = day => new Date(day + 'T12:00:00').toLocaleDateString(LOCALE(), { day:'2-digit', month:'short' });
+  const first = evDay(ev.start), last = allDayLastDay(ev);
+  return (last !== first ? `${fmt(first)} – ${fmt(last)}` : fmt(first)) + ' · ' + T('cal_all_day', 'Tutto il giorno');
+}
+
 // ── PROSSIMI APPUNTAMENTI con filtro ──
 let _upcomingFilter = 'all'; // 'all' | 'today' | 'week'
 
@@ -457,6 +487,13 @@ function renderUpcoming() {
   const weekEnd    = new Date(todayStart.getTime() + 7*24*60*60*1000);
 
   let filtered = _events.filter(e => {
+    if (e.isAllDay) {
+      const from = new Date(evDay(e.start) + 'T00:00:00');
+      const to = new Date(allDayLastDay(e) + 'T23:59:59');
+      if (_upcomingFilter === 'today') return from < todayEnd && to >= todayStart;
+      if (_upcomingFilter === 'week')  return from < weekEnd  && to >= weekStart;
+      return to >= todayStart;
+    }
     const dt = new Date(e.start?.dateTime || e.start?.date || 0);
     if (_upcomingFilter === 'today') return dt >= todayStart && dt < todayEnd;
     if (_upcomingFilter === 'week')  return dt >= weekStart  && dt < weekEnd;
@@ -473,15 +510,15 @@ function renderUpcoming() {
     return;
   }
   list.innerHTML = filtered.map(e => {
-    const dt = e.start?.dateTime || e.start?.date || '';
-    const loc = e.location ? `📍 ${typeof e.location === 'object' ? e.location.displayName || '' : e.location}` : '';
+    const where = (typeof e.location === 'object' ? e.location?.displayName : e.location) || '';
+    const loc = where ? `📍 ${where}` : '';
     return `<div class="upcoming-item" data-id="${esc(e.id||'')}">
       <div class="upcoming-dot"></div>
       <div class="upcoming-info">
         <div class="upcoming-title">${esc(e.subject||e.title||'(senza titolo)')}</div>
         <div class="upcoming-meta">${esc(loc)}</div>
       </div>
-      <div class="upcoming-date">${esc(fmtDateTime(dt))}</div>
+      <div class="upcoming-date">${esc(fmtEventWhen(e))}</div>
     </div>`;
   }).join('');
 
@@ -542,10 +579,12 @@ function makeCell(day, month, otherMonth, isToday = false) {
   const realYear  = _currentYear + Math.floor(month / 12);
   const cellDate  = new Date(realYear, realMonth, day);
 
+  const key = isoDay(cellDate);
   const dayEvents = _events.filter(e => {
+    if (e.isAllDay) return key >= evDay(e.start) && key <= allDayLastDay(e);
     const dt = new Date(e.start?.dateTime || e.start?.date || 0);
     return dt.getFullYear() === realYear && dt.getMonth() === realMonth && dt.getDate() === day;
-  });
+  }).sort((a, b) => (b.isAllDay ? 1 : 0) - (a.isAllDay ? 1 : 0));
 
   const cell = document.createElement('div');
   cell.className = 'cal-cell' + (otherMonth ? ' other-month' : '') + (isToday ? ' today' : '');
@@ -557,8 +596,8 @@ function makeCell(day, month, otherMonth, isToday = false) {
 
   dayEvents.slice(0, 3).forEach(ev => {
     const chip = document.createElement('div');
-    chip.className = 'cal-event-chip';
-    const time = ev.start?.dateTime ? new Date(ev.start.dateTime).toLocaleTimeString(LOCALE(),{hour:'2-digit',minute:'2-digit'}) : '';
+    chip.className = 'cal-event-chip' + (ev.isAllDay ? ' all-day' : '');
+    const time = (!ev.isAllDay && ev.start?.dateTime) ? new Date(ev.start.dateTime).toLocaleTimeString(LOCALE(),{hour:'2-digit',minute:'2-digit'}) : '';
     chip.textContent = (time ? time + ' ' : '') + (ev.subject||ev.title||T('cal_event','Evento'));
     chip.addEventListener('click', (e) => { e.stopPropagation(); openEventModal(ev); });
     chip.addEventListener('contextmenu', (e) => {
@@ -622,9 +661,31 @@ function addAttendeeFromInput() {
   input.focus();
 }
 
+function setAllDay(on) {
+  document.getElementById('eventAllDay').checked = on;
+  const s = document.getElementById('eventStart');
+  const e = document.getElementById('eventEnd');
+  const sv = s.value, ev = e.value;
+  if (on) {
+    s.type = 'date'; e.type = 'date';
+    s.value = sv.slice(0, 10);
+    e.value = (ev || sv).slice(0, 10);
+  } else {
+    s.type = 'datetime-local'; e.type = 'datetime-local';
+    s.value = sv ? (sv.length > 10 ? sv : sv + 'T09:00') : '';
+    e.value = ev ? (ev.length > 10 ? ev : ev + 'T10:00') : '';
+  }
+}
+document.getElementById('eventAllDay')?.addEventListener('change', (ev) => setAllDay(ev.target.checked));
+
 document.getElementById('eventStart')?.addEventListener('change', () => {
   const start = document.getElementById('eventStart').value;
   if (!start) return;
+  if (document.getElementById('eventAllDay').checked) {
+    const end = document.getElementById('eventEnd');
+    if (!end.value || end.value < start) end.value = start;
+    return;
+  }
   const startDt = new Date(start);
   const endDt = new Date(startDt.getTime() + 60 * 60 * 1000);
   const pad = n => String(n).padStart(2, '0');
@@ -650,7 +711,11 @@ function openEventModal(ev = null, defaultDate = null) {
   document.getElementById('eventBody').value = _rawBody.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
   document.getElementById('btnDeleteEvent').style.display = ev?.id ? 'block' : 'none';
 
-  if (ev) {
+  setAllDay(!!ev?.isAllDay);
+  if (ev?.isAllDay) {
+    document.getElementById('eventStart').value = evDay(ev.start);
+    document.getElementById('eventEnd').value   = allDayLastDay(ev);
+  } else if (ev) {
     document.getElementById('eventStart').value = fmtDateLocal(ev.start?.dateTime || ev.start?.date);
     document.getElementById('eventEnd').value   = fmtDateLocal(ev.end?.dateTime   || ev.end?.date);
   } else if (defaultDate) {
@@ -699,10 +764,13 @@ document.getElementById('btnSaveEvent')?.addEventListener('click', async () => {
     return clean.length === 16 ? clean + ':00' : clean;
   }
 
+  const allDay = document.getElementById('eventAllDay').checked;
   const payload = {
     subject,
-    start:     toLocalISO(start),
-    end:       toLocalISO(end || start),
+    // giorno intero: primo e ultimo giorno, compresi; il backend converte
+    start:     allDay ? start : toLocalISO(start),
+    end:       allDay ? (end || start) : toLocalISO(end || start),
+    all_day:   allDay,
     location:  location || '',
     body:      body || '',
     attendees: _attendees,

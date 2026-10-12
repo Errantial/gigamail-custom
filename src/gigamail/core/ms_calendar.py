@@ -8,6 +8,7 @@ from typing import Dict, List
 import requests
 
 from .auth import get_token
+from .calendar_dates import all_day_range
 
 GRAPH_URL = 'https://graph.microsoft.com/v1.0'
 
@@ -37,7 +38,7 @@ def get_events(days_ahead: int = 7, days_back: int = 0) -> List[Dict]:
     params = {
         'startDateTime': start.strftime('%Y-%m-%dT%H:%M:%S'),
         'endDateTime':   end.strftime('%Y-%m-%dT%H:%M:%S'),
-        '$select': 'id,subject,start,end,location,attendees,bodyPreview,body',
+        '$select': 'id,subject,start,end,isAllDay,location,attendees,bodyPreview,body',
         '$orderby': 'start/dateTime',
         '$top': 200,
     }
@@ -64,10 +65,11 @@ def get_events(days_ahead: int = 7, days_back: int = 0) -> List[Dict]:
 
 def create_event(subject: str, start: str, end: str,
                  location: str = '', body: str = '',
-                 attendees: List[str] = None) -> Dict:
+                 attendees: List[str] = None, all_day: bool = False) -> Dict:
     """
     Crea un evento nel calendario.
-    start/end formato: '2025-04-01T10:00:00'
+    start/end formato: '2025-04-01T10:00:00'. Con all_day start/end sono
+    il primo e l'ultimo giorno, compresi.
     """
     def _ensure_local(dt_str: str) -> str:
         import re as _re
@@ -85,6 +87,8 @@ def create_event(subject: str, start: str, end: str,
         'location': {'displayName': location},
         'body': {'contentType': 'Text', 'content': body},
     }
+    if all_day:
+        payload.update(_all_day_nodes(start, end))
     if attendees:
         payload['attendees'] = [
             {'emailAddress': {'address': a}, 'type': 'required'}
@@ -94,6 +98,17 @@ def create_event(subject: str, start: str, end: str,
     res = requests.post(url, headers=_headers(), json=payload)
     res.raise_for_status()
     return res.json()
+
+
+def _all_day_nodes(start, end) -> Dict:
+    """Graph vuole isAllDay e mezzanotte -> mezzanotte del giorno dopo
+    l'ultimo, nel fuso dell'evento."""
+    primo, dopo = all_day_range(start, end)
+    return {
+        'isAllDay': True,
+        'start': {'dateTime': f'{primo}T00:00:00', 'timeZone': 'Europe/Rome'},
+        'end':   {'dateTime': f'{dopo}T00:00:00', 'timeZone': 'Europe/Rome'},
+    }
 
 
 def update_event(event_id: str, **kwargs) -> Dict:
@@ -118,6 +133,10 @@ def update_event(event_id: str, **kwargs) -> Dict:
         payload['location'] = {'displayName': kwargs['location']}
     if 'body' in kwargs:
         payload['body'] = {'contentType': 'Text', 'content': kwargs['body']}
+    if kwargs.get('all_day'):
+        payload.update(_all_day_nodes(kwargs.get('start'), kwargs.get('end')))
+    elif 'all_day' in kwargs:
+        payload['isAllDay'] = False
     res = requests.patch(url, headers=_headers(), json=payload)
     res.raise_for_status()
     return res.json()

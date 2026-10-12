@@ -1,6 +1,6 @@
 """Calendario: backend scelto da calendar_router (Microsoft Graph o Google)."""
 
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -52,6 +52,11 @@ class EventRequest(BaseModel):
     end: str
     body: str = ""
     location: str = ""
+    # la finestra calendario li mandava gia': senza il campo pydantic li
+    # scartava e l'invito non partiva
+    attendees: List[str] = []
+    # con all_day start/end sono il primo e l'ultimo giorno, compresi
+    all_day: bool = False
 
 
 @router.post("/calendar")

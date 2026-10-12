@@ -855,10 +855,11 @@ def create_event(
     end: Annotated[str, Field(description="End, ISO 8601 local time; must be after start.")],
     body: Annotated[str, Field(description="Optional description / notes.")] = "",
     location: Annotated[str, Field(description="Optional location text.")] = "",
+    all_day: Annotated[bool, Field(description="All-day event: start and end are the first and last day (YYYY-MM-DD), both included.")] = False,
     request_id: RequestId = None,
 ) -> dict:
     args = {"subject": subject, "start": start, "end": end,
-            "body": body, "location": location}
+            "body": body, "location": location, "all_day": all_day}
     if not request_id:
         args["destination"] = calendar_router.capture_destination()
     return policy.execute_dangerous(
@@ -868,6 +869,7 @@ def create_event(
             "create_event", a.get("destination") or {})(
             subject=a["subject"], start=a["start"], end=a["end"],
             body=a["body"], location=a["location"],
+            all_day=bool(a.get("all_day")),
         ),
     )
 
