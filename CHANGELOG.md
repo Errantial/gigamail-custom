@@ -9,6 +9,10 @@
   after the existing ones, `console/theme.css` for the main window and
   `console/theme-popup.css` for the separate windows: they change only
   the look, so removing them brings back the 0.5 style.
+- **Dark theme for the console.** A button in the icon bar cycles
+  between match system, light and dark; the choice is kept and every
+  open window follows it. Same cards and pink accent on a night-blue
+  background (`console/theme-dark.css`, active only in dark mode).
 ## v0.5.1 — 2026-10-09
 
 - **The Windows installer no longer asks for an administrator.** It

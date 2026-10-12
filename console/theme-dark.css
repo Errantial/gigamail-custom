@@ -1,0 +1,132 @@
+/* theme-dark.css — versione scura della console GigaMail 0.6.
+   Tutto e' sotto html[data-theme="dark"] (messo da theme_mode.js): col
+   tema chiaro questo file non fa nulla. Stesse schede e stesso rosa del
+   chiaro, su fondo blu notte. */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --gm-bg: #0b0e19; --gm-card: #141927; --gm-card2: #1a2032; --gm-fill: #20273b;
+  --gm-line: #2b3349; --gm-ink: #eceef6; --gm-muted: #a4abc3;
+  --gm-pink: #ee5fb0; --gm-pink-hi: #f47cc0; --gm-pink-dn: #d4469a;
+  --gm-tint: #2a1f3a; --gm-tint-line: #7a3f6f;
+  --gm-amber: #f0b552; --gm-amber-bg: #3a2c14; --gm-green: #4cc27a;
+  --gm-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  --tint: var(--gm-tint);
+  --text-primary: var(--gm-ink); --text-secondary: var(--gm-muted); --text-tertiary: var(--gm-muted); --text-muted: var(--gm-muted);
+  --border: var(--gm-line); --border-soft: var(--gm-line);
+}
+/* fondo e testo: ogni testo diventa chiaro, poi si rimettono i secondari e gli accenti */
+html[data-theme="dark"] body { background: var(--gm-bg) !important; color: var(--gm-ink); }
+html[data-theme="dark"] body * { color: var(--gm-ink); border-color: var(--gm-line); }
+html[data-theme="dark"] .app { background: var(--gm-bg); }
+
+/* superfici */
+html[data-theme="dark"] .sidebar, html[data-theme="dark"] .mail-list-panel, html[data-theme="dark"] #mailDetail,
+html[data-theme="dark"] .cal-wrap, html[data-theme="dark"] .auto-wrap, html[data-theme="dark"] .mkt-layout,
+html[data-theme="dark"] .modal, html[data-theme="dark"] .modal-hdr, html[data-theme="dark"] .mail-item,
+html[data-theme="dark"] .m-item, html[data-theme="dark"] .titlebar, html[data-theme="dark"] .ade-context-menu,
+html[data-theme="dark"] .ade-toast { background: var(--gm-card) !important; }
+html[data-theme="dark"] .mail-detail-content > div:first-child { background: var(--gm-card) !important; }
+html[data-theme="dark"] .modal-ftr, html[data-theme="dark"] .toolbar { background: var(--gm-card2) !important; }
+html[data-theme="dark"] .mail-item:hover, html[data-theme="dark"] .m-item:hover { background: var(--gm-card2) !important; }
+html[data-theme="dark"] .search-bar, html[data-theme="dark"] .tab, html[data-theme="dark"] .custom-folder-chip,
+html[data-theme="dark"] .instruction, html[data-theme="dark"] .ask-input, html[data-theme="dark"] .ai-input,
+html[data-theme="dark"] #btnPopOut { background: var(--gm-fill) !important; }
+html[data-theme="dark"] input, html[data-theme="dark"] textarea, html[data-theme="dark"] select,
+html[data-theme="dark"] .field-input, html[data-theme="dark"] .account-select, html[data-theme="dark"] .chip-btn,
+html[data-theme="dark"] .icon-btn-sm, html[data-theme="dark"] .btn, html[data-theme="dark"] .tool-btn,
+html[data-theme="dark"] .attach-chip, html[data-theme="dark"] .cal-nav-btn, html[data-theme="dark"] .cal-today-btn,
+html[data-theme="dark"] .filter-btn, html[data-theme="dark"] .fmt-tab, html[data-theme="dark"] .img-btn {
+  background: var(--gm-card2) !important; color: var(--gm-ink) !important; border-color: var(--gm-line) !important; }
+html[data-theme="dark"] input::placeholder, html[data-theme="dark"] textarea::placeholder { color: #7d849e !important; }
+html[data-theme="dark"] .mail-body, html[data-theme="dark"] .reply-header, html[data-theme="dark"] .fields,
+html[data-theme="dark"] .ask-input-bar, html[data-theme="dark"] .ask-messages { background: var(--gm-card) !important; }
+
+/* stili scritti in linea dal JS: fondi chiari -> scheda scura, testi neri -> chiari */
+html[data-theme="dark"] [style*="background:#fff" i], html[data-theme="dark"] [style*="background: #fff" i],
+html[data-theme="dark"] [style*="background:#FFFFFF" i], html[data-theme="dark"] [style*="background:rgba(255,255,255"],
+html[data-theme="dark"] [style*="background: rgba(255,255,255"], html[data-theme="dark"] [style*="background:#FAF8F5" i],
+html[data-theme="dark"] [style*="background:#fafafc" i], html[data-theme="dark"] [style*="background:#f3e6f0" i],
+html[data-theme="dark"] [style*="background:#faf3f7" i], html[data-theme="dark"] [style*="background:#f5f5f5" i],
+html[data-theme="dark"] [style*="background:#f7f7fa" i], html[data-theme="dark"] [style*="background:rgba(0,0,0,0.0"] {
+  background: var(--gm-card2) !important; }
+html[data-theme="dark"] [style*="color:rgba(0,0,0"], html[data-theme="dark"] [style*="color: rgba(0,0,0"],
+html[data-theme="dark"] [style*="color:#8A8280" i], html[data-theme="dark"] [style*="color:#666" i] { color: var(--gm-muted) !important; }
+html[data-theme="dark"] #dash-accounts > *, html[data-theme="dark"] #dash-calendar > *, html[data-theme="dark"] #dash-todo > * {
+  background: var(--gm-card2) !important; border-color: var(--gm-line) !important; }
+html[data-theme="dark"] #identityModal > div, html[data-theme="dark"] #folderIdentityModal > div,
+html[data-theme="dark"] #identityPreviewModal > div, html[data-theme="dark"] #replyModal > div { background: var(--gm-card) !important; }
+
+/* testi secondari */
+html[data-theme="dark"] .mail-preview, html[data-theme="dark"] .m-preview, html[data-theme="dark"] .mail-date,
+html[data-theme="dark"] .m-time, html[data-theme="dark"] .mail-detail-meta, html[data-theme="dark"] .panel-title > span:last-child,
+html[data-theme="dark"] .field-label, html[data-theme="dark"] .reply-label, html[data-theme="dark"] .hint,
+html[data-theme="dark"] .main-hint, html[data-theme="dark"] .ob-hero-sub, html[data-theme="dark"] .ob-muted,
+html[data-theme="dark"] .s-item, html[data-theme="dark"] .win-btn, html[data-theme="dark"] .tb-btn,
+html[data-theme="dark"] .tab, html[data-theme="dark"] .custom-folder-chip, html[data-theme="dark"] .mail-from,
+html[data-theme="dark"] .cal-day-header, html[data-theme="dark"] .event-label, html[data-theme="dark"] .ob-p {
+  color: var(--gm-muted) !important; }
+
+/* accenti rosa */
+html[data-theme="dark"] .compose-btn, html[data-theme="dark"] .reply-send-btn, html[data-theme="dark"] .btn-primary,
+html[data-theme="dark"] .send-btn, html[data-theme="dark"] .ask-send, html[data-theme="dark"] .gen-btn, html[data-theme="dark"] .add-btn {
+  background: var(--gm-pink) !important; color: #fff !important; box-shadow: 0 6px 16px rgba(238,95,176,0.25) !important; }
+html[data-theme="dark"] .compose-btn *, html[data-theme="dark"] .send-btn * { color: #fff !important; }
+html[data-theme="dark"] .compose-btn:hover, html[data-theme="dark"] .send-btn:hover, html[data-theme="dark"] .reply-send-btn:hover { background: var(--gm-pink-hi) !important; }
+html[data-theme="dark"] .s-item.active, html[data-theme="dark"] .tab.active, html[data-theme="dark"] .custom-folder-chip.active,
+html[data-theme="dark"] .custom-folder-chip:hover, html[data-theme="dark"] .ob-lang.active, html[data-theme="dark"] .fmt-tab.active,
+html[data-theme="dark"] .filter-btn.active, html[data-theme="dark"] .mail-item.selected, html[data-theme="dark"] .m-item.selected,
+html[data-theme="dark"] .ade-context-menu .ctx-item:hover, html[data-theme="dark"] .chip-btn:hover, html[data-theme="dark"] .btn:hover,
+html[data-theme="dark"] .tool-btn:hover, html[data-theme="dark"] .tool-btn.active {
+  background: var(--gm-tint) !important; border-color: var(--gm-tint-line) !important; }
+html[data-theme="dark"] .s-item.active, html[data-theme="dark"] .tab.active, html[data-theme="dark"] .custom-folder-chip.active,
+html[data-theme="dark"] .ob-lang.active, html[data-theme="dark"] .chip-btn:hover, html[data-theme="dark"] .btn:hover,
+html[data-theme="dark"] .tool-btn.ai, html[data-theme="dark"] .ctx-badge, html[data-theme="dark"] .local-draft-badge { color: var(--gm-pink) !important; }
+html[data-theme="dark"] .tool-btn.ai { border-color: var(--gm-pink) !important; }
+html[data-theme="dark"] .btn-danger, html[data-theme="dark"] .btn-danger * { color: #ff7b7b !important; }
+html[data-theme="dark"] .mail-item.unread .mail-sender::before, html[data-theme="dark"] .u-dot { background: var(--gm-pink) !important; }
+html[data-theme="dark"] .s-avatar { background: var(--gm-tint) !important; color: var(--gm-pink) !important; }
+html[data-theme="dark"] .s-tooltip { background: #eceef6 !important; color: #141927 !important; }
+
+/* calendario */
+html[data-theme="dark"] .cal-cell { background: var(--gm-card) !important; }
+html[data-theme="dark"] .cal-cell.other-month { background: #10141f !important; }
+html[data-theme="dark"] .cal-cell.today { background: var(--gm-tint) !important; }
+html[data-theme="dark"] .cal-cell.today .cal-day-num { color: #fff !important; }
+html[data-theme="dark"] .cal-day-header { background: var(--gm-fill) !important; }
+html[data-theme="dark"] .cal-event-chip { background: var(--gm-tint) !important; color: var(--gm-pink) !important; }
+
+/* barre di scorrimento */
+html[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #39415c !important; }
+
+/* testi principali che style_v2 scrive con selettori lunghi */
+html[data-theme="dark"] .mail-sender, html[data-theme="dark"] .mail-subject, html[data-theme="dark"] .m-sender,
+html[data-theme="dark"] .m-subject, html[data-theme="dark"] .panel-title, html[data-theme="dark"] .mail-detail-subject,
+html[data-theme="dark"] .modal-title, html[data-theme="dark"] .tb-title, html[data-theme="dark"] .mail-subject * {
+  color: var(--gm-ink) !important; }
+/* la barra di trascinamento della finestra principale resta trasparente */
+html[data-theme="dark"] #appTitlebar { background: transparent !important; }
+
+/* automazioni: le schede interne erano bianche semitrasparenti */
+html[data-theme="dark"] #view-automations .ai-card { background: var(--gm-card2) !important; border-color: var(--gm-line) !important; box-shadow: none !important; }
+html[data-theme="dark"] #view-automations .ai-card-title { color: var(--gm-ink) !important; }
+html[data-theme="dark"] #view-automations .ai-card-sub, html[data-theme="dark"] #view-automations .hint { color: var(--gm-muted) !important; }
+html[data-theme="dark"] #view-automations .ai-card-status.ok { color: var(--gm-green) !important; }
+html[data-theme="dark"] #view-automations .ai-card-status.err { color: #ff7b7b !important; }
+html[data-theme="dark"] .auto-log, html[data-theme="dark"] .code-editor, html[data-theme="dark"] .bulk-log { background: var(--gm-bg) !important; color: var(--gm-muted) !important; }
+/* dialoghi costruiti in JS: testata e piede scuri */
+html[data-theme="dark"] #identityModal > div > div:first-child, html[data-theme="dark"] #identityModal > div > div:last-child,
+html[data-theme="dark"] #folderIdentityModal > div > div:first-child, html[data-theme="dark"] #folderIdentityModal > div > div:last-child,
+html[data-theme="dark"] #identityPreviewModal > div > div:first-child, html[data-theme="dark"] #identityPreviewModal > div > div:last-child {
+  background: var(--gm-card2) !important; }
+html[data-theme="dark"] #identityModal input, html[data-theme="dark"] #identityModal textarea,
+html[data-theme="dark"] #folderIdentityModal input, html[data-theme="dark"] #folderIdentityModal textarea { background: var(--gm-card2) !important; }
+/* calendario: sezione prossimi appuntamenti e intestazioni */
+html[data-theme="dark"] .upcoming-section, html[data-theme="dark"] .cal-toolbar, html[data-theme="dark"] .cal-body,
+html[data-theme="dark"] .cal-grid-wrap { background: var(--gm-card) !important; }
+html[data-theme="dark"] .section-title, html[data-theme="dark"] .upcoming-meta, html[data-theme="dark"] .upcoming-date { color: var(--gm-muted) !important; }
+html[data-theme="dark"] .cal-month-label, html[data-theme="dark"] .upcoming-title, html[data-theme="dark"] .cal-day-num { color: var(--gm-ink) !important; }
+html[data-theme="dark"] .upcoming-section *, html[data-theme="dark"] .loading { color: var(--gm-muted); }
+/* qualunque fondo chiaro scritto in linea (#f…, #e…) diventa scuro */
+html[data-theme="dark"] [style*="background:#f" i], html[data-theme="dark"] [style*="background: #f" i],
+html[data-theme="dark"] [style*="background:#e" i], html[data-theme="dark"] [style*="background: #e" i] {
+  background: var(--gm-card2) !important; }
