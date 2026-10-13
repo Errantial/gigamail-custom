@@ -27,11 +27,18 @@ def _finto_win(monkeypatch, codice):
     monkeypatch.setattr(consent, "_run_winrt", lambda x: _Esito(codice))
 
 
+# I codici sono quelli di UserConsentVerificationResult, letti da winrt il
+# 2026-10-13: 0 Verified, 1 DeviceNotPresent, 2 NotConfiguredForUser,
+# 3 DisabledByPolicy, 4 DeviceBusy, 5 RetriesExhausted, 6 Canceled. Prima
+# la tabella era sfalsata di uno: "Annulla" nel dialogo diventava
+# "esito 6 non riconosciuto" e i tentativi esauriti "annullata".
 @pytest.mark.parametrize("codice,atteso", [
-    (5, "annullata"),
-    (1, "Hello"),          # nessun metodo configurato
-    (3, "occupato"),
-    (4, "tentativi"),
+    (6, "annullata"),
+    (5, "tentativi"),
+    (4, "occupato"),
+    (3, "criteri"),
+    (2, "non e' configurato"),
+    (1, "nessun dispositivo"),
 ])
 def test_ogni_rifiuto_ha_il_suo_motivo(monkeypatch, codice, atteso):
     """"Annullata dall'utente" e "su questo PC Hello non e' configurato"
