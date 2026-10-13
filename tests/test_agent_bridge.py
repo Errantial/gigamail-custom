@@ -181,8 +181,8 @@ def test_api_key_dropped_for_claude_when_logged_in(tmp_path, monkeypatch):
     the account's connectors: with a login present the key must not reach
     the child."""
     _as_claude_agent(monkeypatch)
-    _claude_login(tmp_path, monkeypatch, token="oauth-token-of-the-user")
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "api-key-for-tests")
+    _claude_login(tmp_path, monkeypatch, token="yes")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "set")
     monkeypatch.delenv("ANTHROPIC_BASE_URL", raising=False)
     assert agent_bridge.run("x") == "ABSENT"
 
@@ -191,36 +191,36 @@ def test_api_key_kept_without_claude_login(tmp_path, monkeypatch):
     """No login: the key is the only way the CLI can authenticate."""
     _as_claude_agent(monkeypatch)
     _claude_login(tmp_path, monkeypatch, token="")
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "api-key-for-tests")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "set")
     monkeypatch.delenv("ANTHROPIC_BASE_URL", raising=False)
-    assert agent_bridge.run("x") == "api-key-for-tests"
+    assert agent_bridge.run("x") == "set"
 
 
 def test_api_key_kept_when_credentials_file_missing(tmp_path, monkeypatch):
     _as_claude_agent(monkeypatch)
     monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(tmp_path / "nowhere"))
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "api-key-for-tests")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "set")
     monkeypatch.delenv("ANTHROPIC_BASE_URL", raising=False)
-    assert agent_bridge.run("x") == "api-key-for-tests"
+    assert agent_bridge.run("x") == "set"
 
 
 def test_api_key_kept_with_gateway_base_url(tmp_path, monkeypatch):
     """ANTHROPIC_BASE_URL means a gateway that authenticates with the key."""
     _as_claude_agent(monkeypatch)
-    _claude_login(tmp_path, monkeypatch, token="oauth-token-of-the-user")
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "api-key-for-tests")
+    _claude_login(tmp_path, monkeypatch, token="yes")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "set")
     monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://gateway.example.com")
-    assert agent_bridge.run("x") == "api-key-for-tests"
+    assert agent_bridge.run("x") == "set"
 
 
 def test_api_key_untouched_for_other_agents(tmp_path, monkeypatch):
     """Only Claude Code has this precedence rule: a custom command keeps
     its environment exactly as the user set it."""
     monkeypatch.setenv("ADE_AGENT_CMD", json.dumps([PY, "-c", _PRINT_KEY, "{prompt}"]))
-    _claude_login(tmp_path, monkeypatch, token="oauth-token-of-the-user")
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "api-key-for-tests")
+    _claude_login(tmp_path, monkeypatch, token="yes")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "set")
     monkeypatch.delenv("ANTHROPIC_BASE_URL", raising=False)
-    assert agent_bridge.run("x") == "api-key-for-tests"
+    assert agent_bridge.run("x") == "set"
 def _fake_claude_exe(path):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "wb") as f:
