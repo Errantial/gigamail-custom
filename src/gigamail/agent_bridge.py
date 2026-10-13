@@ -22,6 +22,7 @@ assente, il prompt viene appeso come ultimo argomento); {output} con un file
 temporaneo da cui leggere la risposta finale, per le CLI che su stdout
 stampano anche il resto (Codex).
 """
+import glob
 import json
 import os
 import shutil
@@ -39,22 +40,37 @@ def _found(exe: str) -> bool:
     return bool(exe) and (shutil.which(exe) is not None or os.path.exists(exe))
 
 
+def _version_key(name: str) -> list:
+    return [int(x) for x in name.split(".") if x.isdigit()]
+
+
 def _find_claude() -> str:
-    """Trova la CLI di Claude Code: PATH, oppure l'installazione versionata
-    piu' recente dell'app desktop (%APPDATA%/Claude/claude-code/<ver>/claude.exe)."""
+    """Find the Claude Code CLI: PATH first, otherwise the newest versioned
+    install bundled with the desktop app under %APPDATA%/Claude/claude-code.
+
+    Older desktop builds put the binary at <version>/claude.exe; current
+    ones nest it one level deeper, in a hash-named folder
+    (<version>/<hash>/claude.exe). Both layouts are searched, newest
+    version wins."""
     on_path = shutil.which("claude")
     if on_path:
         return on_path
     base = os.path.join(os.environ.get("APPDATA", ""), "Claude", "claude-code")
     try:
-        versions = [d for d in os.listdir(base)
-                    if os.path.exists(os.path.join(base, d, "claude.exe"))]
-        if versions:
-            newest = max(versions, key=lambda v: [int(x) for x in v.split(".") if x.isdigit()])
-            return os.path.join(base, newest, "claude.exe")
+        found = {}
+        for ver in os.listdir(base):
+            direct = os.path.join(base, ver, "claude.exe")
+            if os.path.isfile(direct):
+                found[ver] = direct
+                continue
+            nested = sorted(glob.glob(os.path.join(base, ver, "*", "claude.exe")))
+            if nested:
+                found[ver] = nested[0]
+        if found:
+            return found[max(found, key=_version_key)]
     except Exception:
         pass
-    return "claude"  # lasciamo che il chiamante segnali l'assenza
+    return "claude"  # let the caller report that it is missing
 
 
 def _find_codex() -> str:

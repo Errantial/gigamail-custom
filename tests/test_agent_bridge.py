@@ -221,3 +221,37 @@ def test_api_key_untouched_for_other_agents(tmp_path, monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-api-example")
     monkeypatch.delenv("ANTHROPIC_BASE_URL", raising=False)
     assert agent_bridge.run("x") == "sk-ant-api-example"
+def _fake_claude_exe(path):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "wb") as f:
+        f.write(b"MZ")
+
+
+def test_find_claude_desktop_layouts(monkeypatch, tmp_path):
+    """The desktop app's bundled CLI is found in both layouts: the old
+    <version>/claude.exe and the current <version>/<hash>/claude.exe, and the
+    newest version wins regardless of layout."""
+    monkeypatch.setattr(agent_bridge.shutil, "which", lambda name: None)
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    base = tmp_path / "Claude" / "claude-code"
+
+    # Nothing installed yet: the bare name is returned for the caller to report.
+    assert agent_bridge._find_claude() == "claude"
+
+    old = base / "2.1.100" / "claude.exe"
+    _fake_claude_exe(str(old))
+    assert agent_bridge._find_claude() == str(old)
+
+    nested = base / "2.1.295" / "abcdef012345" / "claude.exe"
+    _fake_claude_exe(str(nested))
+    assert agent_bridge._find_claude() == str(nested)
+
+    # A newer direct-layout version beats an older nested one (version
+    # order is numeric, not lexical: 2.1.1000 > 2.1.295).
+    newer_direct = base / "2.1.1000" / "claude.exe"
+    _fake_claude_exe(str(newer_direct))
+    assert agent_bridge._find_claude() == str(newer_direct)
+
+    # A version folder without any exe (e.g. a half-finished update) is skipped.
+    (base / "2.1.2000" / "0123456789ab").mkdir(parents=True)
+    assert agent_bridge._find_claude() == str(newer_direct)
