@@ -207,6 +207,48 @@ def _va_a_capo(prompt: str) -> bool:
     return "\n" in (prompt or "") or "\r" in (prompt or "")
 
 
+def _claude_config_dir() -> str:
+    """Where Claude Code keeps its own state: CLAUDE_CONFIG_DIR, else ~/.claude."""
+    return os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude")
+
+
+def _claude_login_present() -> bool:
+    """True when Claude Code holds a claude.ai login (a non-empty OAuth
+    access token in its credentials file). Any problem reading the file
+    counts as "no login": then nothing is taken away from the child."""
+    path = os.path.join(_claude_config_dir(), ".credentials.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        oauth = data.get("claudeAiOauth") if isinstance(data, dict) else None
+        return bool(isinstance(oauth, dict) and oauth.get("accessToken"))
+    except Exception:
+        return False
+
+
+def _env_for_child(cfg: dict) -> dict | None:
+    """Environment for the agent process, or None to inherit ours as is.
+
+    Claude Code gives ANTHROPIC_API_KEY precedence over the claude.ai
+    login: with the key in the user's environment the drafts are billed
+    per token on the API instead of the subscription, the account's
+    connectors are disabled, and the CLI prints a warning in place of the
+    draft. A user who keeps that key for other programs cannot remove it,
+    so when Claude Code is the agent and a claude.ai login exists the key
+    is dropped from the child's environment only. The key stays when
+    there is no login (it is then the only way to authenticate) and when
+    ANTHROPIC_BASE_URL points at a gateway that needs it."""
+    if _agent_of(cfg) != "claude":
+        return None
+    if "ANTHROPIC_API_KEY" not in os.environ or os.environ.get("ANTHROPIC_BASE_URL"):
+        return None
+    if not _claude_login_present():
+        return None
+    env = dict(os.environ)
+    del env["ANTHROPIC_API_KEY"]
+    return env
+
+
 def run(prompt: str, timeout: int | None = None) -> str:
     """Esegue l'agente headless con il prompt e restituisce il testo prodotto."""
     cfg = get_config()
@@ -264,6 +306,7 @@ def run(prompt: str, timeout: int | None = None) -> str:
             stdin=None if da_stdin is not None else subprocess.DEVNULL,
             timeout=timeout or cfg["timeout"],
             shell=False,
+            env=_env_for_child(cfg),
         )
     except subprocess.TimeoutExpired as e:
         if out_file:

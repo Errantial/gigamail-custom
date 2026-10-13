@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **An `ANTHROPIC_API_KEY` in the environment no longer hijacks the
+  drafter.** Claude Code gives that key precedence over the claude.ai
+  login: with the key set for other programs, GigaMail's drafts were
+  billed per token on the API instead of the subscription, the account's
+  connectors were off, and the agent answered with a warning instead of
+  the draft. When Claude Code is the agent and a claude.ai login exists,
+  the key is now dropped from the agent's environment only; it stays when
+  there is no login or when `ANTHROPIC_BASE_URL` points at a gateway.
 - **The website counts its visits on every page, without cookies.** The
   anonymous visit counter of the business page (one event per visit:
   referring domain and browser language, no cookies, nothing sent under Do
