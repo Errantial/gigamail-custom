@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Claude Code bundled with the desktop app is found again.** When
+  `claude` is not on the PATH, GigaMail looks for the CLI the Claude desktop
+  app installs under its own folder; current builds nest the binary one
+  level deeper (a hash-named folder inside the version folder), so the
+  fallback no longer matched and the console reported Claude Code missing.
+  Both layouts are now searched, newest version first.
+
 - **The website counts its visits on every page, without cookies.** The
   anonymous visit counter of the business page (one event per visit:
   referring domain and browser language, no cookies, nothing sent under Do
