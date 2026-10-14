@@ -1,4 +1,6 @@
 import {analyticsConfig} from './analytics-config.js';
+// Visit counter for the whole site (every page loads this module), as on
+// nerine.io: anonymous events to our backend.
 // Contatore visite in stile nerine.io: eventi anonimi al backend, niente
 // cookie, niente contatori locali, niente campi del form. Parte solo in HTTPS
 // sui domini di produzione e rispetta Do Not Track / Global Privacy Control.

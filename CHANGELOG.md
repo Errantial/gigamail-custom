@@ -32,6 +32,51 @@
   between match system, light and dark; the choice is kept and every
   open window follows it. Same cards and pink accent on a night-blue
   background (`console/theme-dark.css`, active only in dark mode).
+- **The Mac app for Intel is back.** v0.5.1 shipped only the Apple Silicon
+  dmg: `cryptography` 49 and later publish no macOS x86_64 wheel, and the
+  Intel build died compiling it (#21). The bundle now never compiles
+  `cryptography`: on Intel it takes 48.0.1, the newest release with an
+  Intel wheel, and on Apple Silicon the latest as before. Each release again
+  carries `GigaMail-<version>-x64.dmg` and its zip, and one `latest-mac.yml`
+  lists both architectures, so each Mac updates to its own.
+- **A video call already fixed no longer gets a second Zoom meeting.** A
+  new mail of ours with a new subject, sent from another account to a
+  client already confirmed at that time, looked like a new appointment:
+  GigaMail created a second meeting and queued a reply with its link for
+  approval. A confirmation for the same person at the same start time,
+  from any thread or account, now joins the appointment that already
+  exists; a later change of time or a cancellation from either thread
+  applies to both, and the after-appointment question is asked once. And
+  when the mail that confirms a video call already carries a meeting link
+  (Zoom, Google Meet, Teams, Webex, Whereby, Jitsi), that link goes into
+  the calendar event and no meeting is created nor any link mail queued;
+  GigaMail never moves or cancels a meeting it did not create.
+- **An `ANTHROPIC_API_KEY` in the environment no longer hijacks the
+  drafter.** Claude Code gives that key precedence over the claude.ai
+  login: with the key set for other programs, GigaMail's drafts were
+  billed per token on the API instead of the subscription, the account's
+  connectors were off, and the agent answered with a warning instead of
+  the draft. When Claude Code is the agent and a claude.ai login exists,
+  the key is now dropped from the agent's environment only; it stays when
+  there is no login or when `ANTHROPIC_BASE_URL` points at a gateway.
+- **Claude Code bundled with the desktop app is found again.** When
+  `claude` is not on the PATH, GigaMail looks for the CLI the Claude desktop
+  app installs under its own folder; current builds nest the binary one
+  level deeper (a hash-named folder inside the version folder), so the
+  fallback no longer matched and the console reported Claude Code missing.
+  Both layouts are now searched, newest version first.
+- **The website counts its visits on every page, without cookies.** The
+  anonymous visit counter of the business page (one event per visit:
+  referring domain and browser language, no cookies, nothing sent under Do
+  Not Track or Global Privacy Control) now runs on every page of
+  gigamail.ai, and the Privacy Policy describes it. The Download buttons
+  now always point at the fixed-name installer: the app's updater uses the
+  versioned file, so the fixed-name file's download count on GitHub is the
+  website's own.
+- **Terms of Service on the website**, next to the Privacy Policy, both
+  linked from the footer: the software under the AGPL-3.0, the agent you
+  choose, your conduct, and the mailboxes we provide to testers.
+
 ## v0.5.1 — 2026-10-09
 
 - **The Windows installer no longer asks for an administrator.** It

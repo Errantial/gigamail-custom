@@ -151,9 +151,14 @@ def _recent_events() -> Optional[set]:
 def ask_outcomes(tg, now: datetime) -> int:
     st = appointments.store()
     candidates = []
-    for r in st.aperti():
+    # Threads linked to one appointment share its event: one question.
+    events_taken = set()
+    for r in sorted(st.aperti(), key=lambda r: r.get("updated_at") or 0):
         if r.get("stato") != "confermato" or not r.get("event_id"):
             continue
+        if r["event_id"] in events_taken:
+            continue
+        events_taken.add(r["event_id"])
         try:
             start = datetime.fromisoformat(r["inizio"])
         except Exception:
