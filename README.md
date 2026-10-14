@@ -82,8 +82,9 @@ GigaMail ships through two channels:
   - **Windows 10/11**: [`GigaMail-Setup.exe`](https://github.com/adecubed/gigamail/releases/latest/download/GigaMail-Setup.exe), code-signed. The
     certificate is new, so on first launch Windows may still say
     "unrecognized app": click **More info**, then **Run anyway**.
-  - **macOS (Apple Silicon)**: [`GigaMail-arm64.dmg`](https://github.com/adecubed/gigamail/releases/latest/download/GigaMail-arm64.dmg), signed with
-    an Apple Developer ID and notarized by Apple.
+  - **macOS**: [`GigaMail-arm64.dmg`](https://github.com/adecubed/gigamail/releases/latest/download/GigaMail-arm64.dmg) for Apple Silicon,
+    [`GigaMail-x64.dmg`](https://github.com/adecubed/gigamail/releases/latest/download/GigaMail-x64.dmg) for Intel, both signed with an
+    Apple Developer ID and notarized by Apple.
 
   The SHA-256 digests are next to the files on the release page.
   To build it yourself: Node 22+, `console/prepare-python.ps1`
@@ -381,8 +382,9 @@ GigaMail si installa da due canali:
     certificato è nuovo: al primo avvio Windows può ancora dire "app non
     riconosciuta"; clicca **Ulteriori informazioni**, poi **Esegui
     comunque**.
-  - **macOS (Apple Silicon)**: [`GigaMail-arm64.dmg`](https://github.com/adecubed/gigamail/releases/latest/download/GigaMail-arm64.dmg), firmato con
-    Apple Developer ID e notarizzato da Apple.
+  - **macOS**: [`GigaMail-arm64.dmg`](https://github.com/adecubed/gigamail/releases/latest/download/GigaMail-arm64.dmg) per Apple Silicon,
+    [`GigaMail-x64.dmg`](https://github.com/adecubed/gigamail/releases/latest/download/GigaMail-x64.dmg) per Intel, firmati con Apple
+    Developer ID e notarizzati da Apple.
 
   I digest SHA-256 sono accanto ai file nella pagina della release. Per
   buildarla in casa: Node 22+, `console/prepare-python.ps1` (Windows) o
@@ -652,7 +654,8 @@ GigaMail 通过两个渠道发布：
   无需管理员密码，并会自动更新。
   - **Windows 10/11**：[`GigaMail-Setup.exe`](https://github.com/adecubed/gigamail/releases/latest/download/GigaMail-Setup.exe)，已代码签名。证书较新，
     首次启动时 Windows 可能仍提示"无法识别的应用"：点击 **更多信息**，再点 **仍要运行**。
-  - **macOS（Apple Silicon）**：[`GigaMail-arm64.dmg`](https://github.com/adecubed/gigamail/releases/latest/download/GigaMail-arm64.dmg)，以 Apple
+  - **macOS**：Apple Silicon 用 [`GigaMail-arm64.dmg`](https://github.com/adecubed/gigamail/releases/latest/download/GigaMail-arm64.dmg)，
+    Intel 用 [`GigaMail-x64.dmg`](https://github.com/adecubed/gigamail/releases/latest/download/GigaMail-x64.dmg)，均以 Apple
     Developer ID 签名并经 Apple 公证。
 
   SHA-256 摘要见发布页文件旁。自行构建：Node 22+，`console/prepare-python.ps1`
