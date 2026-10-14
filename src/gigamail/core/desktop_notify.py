@@ -15,6 +15,7 @@ canale che mostra apre la porta; solo l'umano la passa.
 
 GIGAMAIL_NOTIFY_DESKTOP=0 la spegne (default: attiva).
 """
+import logging
 import os
 import subprocess
 import sys
@@ -22,6 +23,7 @@ import threading
 from typing import List, Optional, Tuple
 
 _APP_ID = "GigaMail"
+_log = logging.getLogger(__name__)
 
 
 def enabled() -> bool:
@@ -485,8 +487,11 @@ def notify(title: str, body: str, background: bool = True,
                 _mac_notify(title, body)
             else:
                 _linux_notify(title, body)
-        except Exception:
-            pass  # best-effort
+        except Exception as e:
+            # Best-effort towards the caller, but not silent: the watcher's
+            # log is where "no toast came" gets its answer.
+            _log.warning("desktop notification failed: %s: %s",
+                         type(e).__name__, e)
 
     if background:
         # NON daemon: un processo breve (watch --once, CLI) deve poter

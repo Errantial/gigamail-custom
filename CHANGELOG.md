@@ -20,6 +20,12 @@
   tick started again from the newest mail and stopped at the first page
   already archived, so the older new mails left behind were never saved:
   the folder now resumes from where it stopped.
+- **The desktop toast is on record.** A toast lives as long as the request
+  it announces, fifteen minutes, so hours later nothing said whether one
+  had been sent: the audit log named only Telegram and the notify command,
+  and a toast that failed was swallowed in silence. The audit now carries
+  `approval_notified desktop` like the other channels, and a toast that
+  fails leaves a warning in the watcher's log with the reason.
 
 ## v0.5.2 — 2026-10-14
 
