@@ -34,7 +34,7 @@ jobs:
             runner: macos-15-intel    # Intel
             out: mac
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 40
+    timeout-minutes: 60
     env:
       # Without the Apple secrets, electron-builder must not look for an
       # identity in the keychain: afterpack.js ad-hoc signs the bundle. With
