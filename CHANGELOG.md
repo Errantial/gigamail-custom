@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **The Mac app for Intel is back.** v0.5.1 shipped only the Apple Silicon
+  dmg: `cryptography` 49 and later publish no macOS x86_64 wheel, and the
+  Intel build died compiling it (#21). The bundle now never compiles
+  `cryptography`: on Intel it takes 48.0.1, the newest release with an
+  Intel wheel, and on Apple Silicon the latest as before. Each release again
+  carries `GigaMail-<version>-x64.dmg` and its zip, and one `latest-mac.yml`
+  lists both architectures, so each Mac updates to its own.
 - **An `ANTHROPIC_API_KEY` in the environment no longer hijacks the
   drafter.** Claude Code gives that key precedence over the claude.ai
   login: with the key set for other programs, GigaMail's drafts were
