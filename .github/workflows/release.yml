@@ -223,7 +223,7 @@ jobs:
       matrix:
         arch: [arm64, x64]
     runs-on: macos-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     permissions:
       contents: write   # gh release upload
     env:
