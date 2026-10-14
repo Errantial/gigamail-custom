@@ -9,6 +9,18 @@
   Intel wheel, and on Apple Silicon the latest as before. Each release again
   carries `GigaMail-<version>-x64.dmg` and its zip, and one `latest-mac.yml`
   lists both architectures, so each Mac updates to its own.
+- **A video call already fixed no longer gets a second Zoom meeting.** A
+  new mail of ours with a new subject, sent from another account to a
+  client already confirmed at that time, looked like a new appointment:
+  GigaMail created a second meeting and queued a reply with its link for
+  approval. A confirmation for the same person at the same start time,
+  from any thread or account, now joins the appointment that already
+  exists; a later change of time or a cancellation from either thread
+  applies to both, and the after-appointment question is asked once. And
+  when the mail that confirms a video call already carries a meeting link
+  (Zoom, Google Meet, Teams, Webex, Whereby, Jitsi), that link goes into
+  the calendar event and no meeting is created nor any link mail queued;
+  GigaMail never moves or cancels a meeting it did not create.
 - **An `ANTHROPIC_API_KEY` in the environment no longer hijacks the
   drafter.** Claude Code gives that key precedence over the claude.ai
   login: with the key set for other programs, GigaMail's drafts were
