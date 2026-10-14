@@ -184,7 +184,37 @@
     return (doc.body ? doc.body.textContent : '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
   }
 
-  const MailRender = { sanitizeHtml, renderMailHtml, matchAttachment, htmlToText, BLANK_GIF, IFRAME_CSP };
+  /** Whether a mail the human just opened has to be marked read on the
+   *  server. The backend reads with BODY.PEEK (the agent and the watcher must
+   *  not hide a client's reply from the unread), so opening alone no longer
+   *  sets the flag: the console asks for it. `listUnread` is what the list
+   *  showed: true, false, or null when the mail did not come from a list
+   *  (IMAP does not report the flag when reading a single mail). */
+  function shouldMarkRead(msg, listUnread) {
+    if (msg && msg.isRead === true) return false;
+    if (msg && msg.isRead === false) return true;
+    return listUnread !== false;
+  }
+
+  /** The id and folder the server can mark. A mail opened from the archive
+   *  ("arch-..." ids, e.g. from a link of the agent) carries the provider's
+   *  id and folder; without them there is nothing to mark. */
+  function markReadTarget(msg, id, folder) {
+    const sid = String(id || '');
+    if (!sid.startsWith('arch-')) return sid ? { id: sid, folder: folder || null } : null;
+    if (!msg || !msg.provider_id) return null;
+    return { id: String(msg.provider_id), folder: msg.folder || folder || null };
+  }
+
+  function markReadUrl(api, target, accountId) {
+    const params = [];
+    if (accountId) params.push(`account_id=${encodeURIComponent(accountId)}`);
+    if (target.folder) params.push(`folder=${encodeURIComponent(target.folder)}`);
+    return `${api}/mail/${encodeURIComponent(target.id)}/read${params.length ? '?' + params.join('&') : ''}`;
+  }
+
+  const MailRender = { sanitizeHtml, renderMailHtml, matchAttachment, htmlToText, BLANK_GIF, IFRAME_CSP,
+    shouldMarkRead, markReadTarget, markReadUrl };
   if (typeof window !== 'undefined') window.MailRender = MailRender;
   if (typeof module !== 'undefined' && module.exports) module.exports = MailRender;
 })();

@@ -149,6 +149,16 @@ contextBridge.exposeInMainWorld('ademail', {
     return apiJson(url);
   },
 
+  // the human opened the mail: mark it read on the server (reading does not)
+  markRead: (id, accountId = null, folder = null) => {
+    let url = `${API}/mail/${encodeURIComponent(id)}/read`;
+    const params = [];
+    if (accountId) params.push(`account_id=${encodeURIComponent(accountId)}`);
+    if (folder) params.push(`folder=${encodeURIComponent(folder)}`);
+    if (params.length) url += `?${params.join('&')}`;
+    return apiJson(url, { method: 'POST' });
+  },
+
   getSummary: (id, accountId = null, folder = null) => {
     let url = `${API}/mail/${encodeURIComponent(id)}/summary`;
     const params = [];

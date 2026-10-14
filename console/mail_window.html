@@ -217,6 +217,16 @@ async function loadMail(id, folder, accountId, preloadedMsg = null) {
     if (params.length) url += '?' + params.join('&');
 
     const msg = preloadedMsg || await apiJson(url);
+    // Opened here by the human: mark it read on the server, reading does not
+    // (marking an already read mail again is harmless; the e2e test's
+    // preloaded mail is left alone).
+    if (!preloadedMsg && window.MailRender && MailRender.shouldMarkRead(msg, null)) {
+      const target = MailRender.markReadTarget(msg, id, folder);
+      if (target) {
+        fetch(MailRender.markReadUrl(API, target, accountId), { method: 'POST' })
+          .catch((e) => console.warn('[mark read]', (e && e.message) || e));
+      }
+    }
 
     const sender     = msg.from?.emailAddress?.address || '?';
     const senderName = msg.from?.emailAddress?.name || sender;

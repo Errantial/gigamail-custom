@@ -278,6 +278,19 @@ async function openLocalDraft(draftId) {
 // OPEN MAIL
 // ============================================================
 
+// The human opened the mail: mark it read on the server too, without waiting
+// for it. Reading alone does not (the backend peeks), so without this the
+// mail came back unread as soon as the list reloaded. A failure leaves the
+// mail as the server has it.
+function markOpenedRead(msg, id, folder, listUnread) {
+  const R = window.MailRender;
+  if (!R || !api.markRead || !R.shouldMarkRead(msg, listUnread)) return;
+  const target = R.markReadTarget(msg, id, folder);
+  if (!target) return;
+  Promise.resolve(api.markRead(target.id, activeAccountId, target.folder))
+    .catch((e) => console.warn('[mark read]', (e && e.message) || e));
+}
+
 async function openMail(id, overrideFolder = null) {
   overrideFolder = cleanFolder(overrideFolder);
   selectedMailId = id;
@@ -287,13 +300,15 @@ async function openMail(id, overrideFolder = null) {
   window._currentMailFolder = overrideFolder || null;
   window._activeAccountId   = activeAccountId;
   updateVoiceContext(id, 0);
+  // what the list showed for this mail; null when it is not in the list
+  let listUnread = null;
   document.querySelectorAll('.mail-item').forEach(el => {
     // Two accounts can hold a mail with the same id: in a merged view the
     // account has to match too.
     const same = el.dataset.id === id &&
       (!activeGroup || String(el.dataset.accountId) === String(activeAccountId));
     el.classList.toggle('selected', same);
-    if (same) el.classList.remove('unread');
+    if (same) { listUnread = el.classList.contains('unread'); el.classList.remove('unread'); }
   });
 
   const detail = byId('mailDetail');
@@ -305,6 +320,7 @@ async function openMail(id, overrideFolder = null) {
     // Usa cartella esplicita (da search results) o quella corrente
     const folderValue = overrideFolder || getCurrentFolderRequestValue();
     const msg = await api.readMail(id, activeAccountId, folderValue);
+    markOpenedRead(msg, id, folderValue, listUnread);
 
     const sender     = msg.from?.emailAddress?.address || '?';
     const senderName = msg.from?.emailAddress?.name || sender;

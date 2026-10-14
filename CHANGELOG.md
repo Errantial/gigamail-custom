@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **Fix: a mail you open in the console stays read.** Since the backend
+  reads mail without touching its flags (so that the agent and the watcher
+  do not hide a client's reply from your unread), opening a mail in the
+  console only removed the dot on screen: as soon as the list reloaded,
+  switching account for instance, the mail was unread again. Opening a mail,
+  in the reading pane or in its own window, now marks it read on the
+  server, in the right account and folder, also for a mail opened from a
+  link of the agent. The agent's and the watcher's reads still leave it
+  unread.
 - **The mails the agent mentions open with a click.** When the agent in the
   console lists mails, each subject is a link: a mail of the account on
   screen opens in the reading pane, a mail of another account in its own
