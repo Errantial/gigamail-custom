@@ -326,6 +326,7 @@ jobs:
   # "files" list, so the Release needs the two lists merged into one. Each
   # installer-mac job has already uploaded its own over the other's: this
   # one replaces it with the merge, and only runs when both dmgs exist.
+  # No checkout here: gh needs --repo to know which repository it is in.
   updater-manifest-mac:
     needs: installer-mac
     if: github.ref_type == 'tag' && github.event_name != 'release'
@@ -359,4 +360,4 @@ jobs:
           yaml.safe_dump(merged, open("latest-mac.yml", "w"), sort_keys=False)
           print(open("latest-mac.yml").read())
           EOF
-          gh release upload "${{ github.ref_name }}" latest-mac.yml --clobber
+          gh release upload "${{ github.ref_name }}" latest-mac.yml --clobber --repo "${{ github.repository }}"
