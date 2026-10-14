@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- **The console shows the requests waiting for you.** A draft the watcher
+  prepared from a rule, or a send the agent asked for, was visible on
+  Telegram, as a desktop toast and in `gigamail approvals list`, and nowhere
+  in the new console, which listed only the requests of its own agent bar.
+  Automations now opens with *Waiting for you*: who it goes to, the
+  subject, the text and attachments, where the address came from, how long
+  before it expires, with *Approve (Hello)* and *Reject*. A count on the
+  Automations icon appears from any view while something waits. After an
+  approval the console says who completes it: the watcher on its next
+  cycle for a rule's draft, the agent that asked for a tool request.
+  *Recently decided* lists the last 24 hours with the real outcome (sent,
+  send failed, rejected, expired undecided) and the channel that decided,
+  so "did it go out?" has an answer on screen. Backend: `GET
+  /approvals/recent`, `completed_by` on pending requests and on the
+  approval response.
 - **Sending from the console no longer asks Windows Hello.** Send, reply,
   reply all and forward clicked in a console window go out straight away:
   the Hello prompt could open behind the windows and leave the button on

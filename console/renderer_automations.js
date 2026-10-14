@@ -338,8 +338,74 @@
     }
   }
 
+  // ------------------------------------------------------------ pending approvals
+  // The requests the watcher's rules and the agent raise. Approving goes
+  // through the backend, which asks Windows Hello; the window only shows
+  // the outcome. The badge on the sidebar icon is refreshed from any view.
+  const L = (key, fallback) => (window.i18n && window.i18n.t ? window.i18n.t(key, fallback) : fallback);
+  const AV = () => window.ApprovalsView;
+
+  function setBadge(n) {
+    const b = $('pendingBadge');
+    if (!b) return;
+    const text = AV() ? AV().badgeText(n) : (n > 0 ? String(n) : '');
+    b.textContent = text;
+    b.hidden = !text;
+    b.title = L('pending_title', 'Richieste in attesa');
+  }
+
+  async function refreshPending() {
+    const box = $('pendingList');
+    const recentBox = $('recentList');
+    if (!box || !AV()) return;
+    try {
+      const [pending, recent] = await Promise.all([api('/approvals'), api('/approvals/recent?hours=24')]);
+      setBadge(pending.length);
+      box.innerHTML = pending.length
+        ? pending.map((r) => AV().pendingCard(r, L)).join('')
+        : `<div class="hint">${L('pending_none', 'Nessuna richiesta in attesa.')}</div>`;
+      if (recentBox) {
+        recentBox.innerHTML = recent.length
+          ? recent.map((r) => AV().recentCard(r, L)).join('')
+          : `<div class="hint">${L('recent_none', 'Niente nelle ultime 24 ore.')}</div>`;
+      }
+    } catch (e) {
+      box.innerHTML = `<div class="hint">${T('Errore', 'Error', '错误')}: ${escapeHtml(e.message)}</div>`;
+    }
+  }
+
+  async function pollBadge() {
+    try {
+      const pending = await api('/approvals');
+      setBadge(pending.length);
+    } catch (_) { /* no backend yet: the badge stays as it is */ }
+  }
+
+  async function onPendingAction(e) {
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    btn.disabled = true;
+    try {
+      if (btn.dataset.act === 'approve') {
+        toast(L('pending_confirm_hello', 'Conferma con Windows Hello…'));
+        const r = await api(`/approvals/${encodeURIComponent(id)}/approve`, { method: 'POST' });
+        toast(r.completed_by === 'watcher'
+          ? L('pending_approved_watcher', 'Approvata. Il watcher la invia al suo prossimo giro, entro un paio di minuti.')
+          : L('pending_approved_agent', "Approvata. La completa l'agente che l'ha chiesta."), 'ok');
+      } else if (btn.dataset.act === 'reject') {
+        await api(`/approvals/${encodeURIComponent(id)}/reject`, { method: 'POST' });
+        toast(L('pending_rejected_msg', 'Rifiutata: non parte nulla.'), 'ok');
+      }
+    } catch (err) {
+      toast(err.message, 'error');
+      btn.disabled = false;
+    }
+    refreshPending();
+  }
+
   async function refreshAll() {
-    await Promise.all([refreshRules(), refreshWatch(), refreshNotify(), fillAccounts()]);
+    await Promise.all([refreshPending(), refreshRules(), refreshWatch(), refreshNotify(), fillAccounts()]);
   }
 
   // ------------------------------------------------------------ bind
@@ -360,6 +426,13 @@
       }
     });
     $('rulesList')?.addEventListener('click', onRuleAction);
+    $('pendingList')?.addEventListener('click', onPendingAction);
+    // the badge follows the watcher from any view; the list only while shown
+    setTimeout(pollBadge, 4000);
+    setInterval(() => {
+      if ($('view-automations')?.classList.contains('active')) refreshPending();
+      else pollBadge();
+    }, 30000);
     $('btnCreateRule')?.addEventListener('click', onCreateRule);
     $('btnPickDocs')?.addEventListener('click', onPickDocs);
     $('ruleTriggerKind')?.addEventListener('change', onTriggerKindChange);
