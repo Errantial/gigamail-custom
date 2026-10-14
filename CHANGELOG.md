@@ -8,6 +8,12 @@
   window. The agent is asked to link only ids the tools returned, and only
   links to a mail become clickable: any other link in its answer stays
   plain text.
+- **The agent in the console answers in the language you write in.** Any
+  language, not only the three of the interface: a question in Italian
+  gets an Italian answer even with the console in English, and the
+  confirmation after an approval follows the request that opened it. The
+  interface's language decides only when the request does not show one
+  (a single word, a name, a number).
 - **Calendar: all-day events, and a grid that fits.** The event form has an
   *All day* box: start and end become dates, first and last day included,
   and Microsoft 365 and Google receive a real all-day event. All-day events

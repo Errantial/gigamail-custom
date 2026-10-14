@@ -92,7 +92,9 @@
       `<span class="agent-dots"><i></i><i></i><i></i></span> ${escHtml(L('agent_thinking', 'L\'agente sta lavorando…'))}`);
   }
 
-  function approvalCard(a) {
+  // `question` is the request that opened the approval: the confirmation
+  // after it comes back in the language the user wrote it in.
+  function approvalCard(a, question) {
     const el = addBubble('approval', `
       <div class="agent-appr-head">${escHtml(L('agent_waiting', 'In attesa della tua approvazione'))}</div>
       <div class="agent-appr-title">${escHtml(a.subject || a.tool)}</div>
@@ -121,7 +123,7 @@
       state('approved', L('agent_approved', 'Approvata'));
       const wait = addThinking();
       try {
-        const r = await window.electronAPI.agentComplete({ request_id: a.request_id, lang: lang() });
+        const r = await window.electronAPI.agentComplete({ request_id: a.request_id, lang: lang(), question: question || '' });
         wait.remove();
         if (r.status === 'executed') {
           el.querySelector('.agent-appr-head').textContent = L('agent_executed', 'Approvata ed eseguita');
@@ -172,7 +174,7 @@
       wait.remove();
       addBubble('agent', formatAnswer(r.answer || L('no_answer', '(nessuna risposta)')));
       history.push({ role: 'agent', text: r.answer || '' });
-      (r.approvals || []).forEach(approvalCard);
+      (r.approvals || []).forEach((a) => approvalCard(a, question));
     } catch (e) {
       wait.remove();
       const msg = String(e.message || e);

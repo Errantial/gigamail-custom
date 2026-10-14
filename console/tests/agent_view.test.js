@@ -104,6 +104,26 @@ test('click on a mail of another account opens its own window for that account',
   assert.deepEqual(calls.window, [{ id: '77', folder: 'INBOX', account_id: 6 }]);
 });
 
+test('the confirmation after an approval carries the request it came from', async () => {
+  const { w } = load();
+  const sent = [];
+  w.electronAPI.agentCommand = async () => ({
+    answer: 'Waiting for you.', approvals: [{ request_id: 'req_1', tool: 'reply_mail', subject: 'Re: Visit' }] });
+  w.electronAPI.approveRequest = async () => ({ ok: true });
+  w.electronAPI.agentComplete = async (body) => { sent.push({ ...body }); return { answer: 'Hecho.', status: 'executed' }; };
+  await ready(w);
+  const ta = w.document.getElementById('agentInput');
+  ta.value = 'responde a Anna que vale';
+  ta.dispatchEvent(new w.Event('input'));
+  w.document.getElementById('agentSend').click();
+  await new Promise((r) => setTimeout(r, 20));
+  w.document.querySelector('[data-act="approve"]').click();
+  await new Promise((r) => setTimeout(r, 20));
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].request_id, 'req_1');
+  assert.equal(sent[0].question, 'responde a Anna que vale');
+});
+
 test('in a merged view of several accounts the mail opens in its own window', async () => {
   const { w, calls } = load({ activeAccount: 6, group: 'g1' });
   await ready(w);
