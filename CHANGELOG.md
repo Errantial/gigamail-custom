@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.5.2 — 2026-10-14
+
 - **The Mac app for Intel is back.** v0.5.1 shipped only the Apple Silicon
   dmg: `cryptography` 49 and later publish no macOS x86_64 wheel, and the
   Intel build died compiling it (#21). The bundle now never compiles
