@@ -14,6 +14,14 @@
   confirmation after an approval follows the request that opened it. The
   interface's language decides only when the request does not show one
   (a single word, a name, a number).
+- **The whole console follows the language switch.** Buttons, placeholders,
+  messages, confirmations and empty states that stayed in Italian with the
+  console in English or Chinese now change with it, in the main window and
+  in the mail, reply, new mail, calendar and other windows. The right-click
+  menu, the notifications, the file dialogs and the window titles, which the
+  app shows by itself, follow the chosen language too. A key missing from
+  the dictionary now shows the text written in the code instead of the key
+  name, and a test fails when the console uses a key the dictionary lacks.
 - **Calendar: all-day events, and a grid that fits.** The event form has an
   *All day* box: start and end become dates, first and last day included,
   and Microsoft 365 and Google receive a real all-day event. All-day events

@@ -45,6 +45,8 @@ async function apiBlob(url, options = {}) {
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  // the language the page applied: the main process shows its own texts in it
+  setLang:        (lang) => ipcRenderer.send('set-lang', lang),
   // barra dell'agente nella scheda di destra
   agentCommand:   (body) => apiJson(`${API}/agent/command`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
   agentComplete:  (body) => apiJson(`${API}/agent/command/complete`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),

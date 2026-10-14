@@ -261,9 +261,9 @@
 <div class="titlebar">
   <div class="tb-title">✉ GIGA Marketing Mail</div>
   <div class="tb-buttons">
-    <button class="tb-btn minimize" id="btnMin">▽</button>
-    <button class="tb-btn maximize" id="btnMax">□</button>
-    <button class="tb-btn close"   id="btnClose">✕</button>
+    <button class="tb-btn minimize" id="btnMin" data-i18n-title="hide" title="Nascondi">▽</button>
+    <button class="tb-btn maximize" id="btnMax" data-i18n-title="fullscreen" title="Tutto schermo">□</button>
+    <button class="tb-btn close"   id="btnClose" data-i18n-title="close" title="Chiudi">✕</button>
   </div>
 </div>
 
@@ -306,7 +306,7 @@
     </div>
 
     <div class="mkt-section">
-      <div id="bulkVarsHint" class="hint blue" data-i18n="vars_hint">Variabili: {nome}, {email}</div>
+      <div id="bulkVarsHint" class="hint blue"><span data-i18n="win_variables">Variabili:</span> {nome}, {email}</div>
     </div>
 
     <div class="mkt-section" style="gap:8px;margin-top:auto">
@@ -321,7 +321,7 @@
   <div class="mkt-right">
     <div class="ai-row">
       <textarea id="bulkInstruction" class="ai-input" rows="2" data-i18n-ph="bulk_instruction_ph" placeholder="Descrivi la mail da generare con AI…"></textarea>
-      <button class="gen-btn" id="btnBulkGenerate">⚡ Genera</button>
+      <button class="gen-btn" id="btnBulkGenerate">⚡ <span data-i18n="win_generate">Genera</span></button>
     </div>
     <div id="bulkGenerateStatus" class="hint" style="flex-shrink:0"></div>
 
@@ -331,7 +331,7 @@
       <button class="img-btn" id="btnLoadFolder">📁 <span data-i18n="load_folder">Carica cartella</span></button>
     </div>
     <div id="bulkEditorHtml" class="editor-wrap">
-      <div class="drop-overlay" id="dropOverlay">📎 Rilascia per inserire</div>
+      <div class="drop-overlay" id="dropOverlay">📎 <span data-i18n="win_drop_to_insert">Rilascia per inserire</span></div>
       <textarea id="bulkBodyHtml" class="code-editor" placeholder="<html>…"></textarea>
     </div>
     <div id="bulkEditorPlain" class="editor-wrap" style="display:none">
@@ -353,13 +353,13 @@
 <div class="img-picker" id="imgPicker">
   <div class="img-picker-box">
     <div class="img-picker-hdr">
-      <span>📁 Scegli immagine</span>
-      <button class="img-btn" id="btnPickerClose" style="padding:3px 8px">✕</button>
+      <span>📁 <span data-i18n="win_choose_image">Scegli immagine</span></span>
+      <button class="img-btn" id="btnPickerClose" style="padding:3px 8px" data-i18n-title="close" title="Chiudi">✕</button>
     </div>
     <div class="img-grid" id="imgGrid"></div>
     <div class="img-picker-ftr">
       <div class="ai-status" id="aiImgStatus"></div>
-      <button class="img-btn" id="btnAiPick">✦ AI sceglie</button>
+      <button class="img-btn" id="btnAiPick">✦ <span data-i18n="win_ai_picks">AI sceglie</span></button>
       <button class="compose-btn" id="btnInsertImg" style="width:auto;padding:6px 14px" data-i18n="insert" disabled>Inserisci</button>
     </div>
   </div>
@@ -369,6 +369,7 @@
 
 <script>
 const API = window.GIGAMAIL_API || 'http://127.0.0.1:8002';
+function T(key, it){ return (window.i18n && window.i18n.t) ? window.i18n.t(key, it) : it; }
 let _bulkRecipients = [];
 let _bulkPollingInterval = null;
 
@@ -396,19 +397,19 @@ document.getElementById('bulkFileInput')?.addEventListener('change', async (e) =
   const file = e.target.files?.[0];
   if (!file) return;
   const info = document.getElementById('bulkFileInfo');
-  if (info) info.textContent = 'Caricamento...';
+  if (info) info.textContent = T('loading', 'Caricamento…');
   try {
     const fd = new FormData();
     fd.append('file', file);
     const r = await fetch(`${API}/mail/bulk/upload`, { method:'POST', body:fd });
     const result = await r.json();
     _bulkRecipients = result.recipients || [];
-    if (info) info.innerHTML = `<span style="color:#1A7F4B">✓ ${result.count} destinatari caricati</span><br>Colonne: ${result.columns.join(', ')}`;
+    if (info) info.innerHTML = `<span style="color:#1A7F4B">✓ ${result.count} ${T('win_recipients_loaded', 'destinatari caricati')}</span><br>${T('win_columns', 'Colonne')}: ${result.columns.join(', ')}`;
     const hint = document.getElementById('bulkVarsHint');
-    if (hint) hint.textContent = 'Variabili: ' + result.columns.map(c => '{'+c+'}').join(', ');
+    if (hint) hint.textContent = T('win_variables', 'Variabili:') + ' ' + result.columns.map(c => '{'+c+'}').join(', ');
     document.getElementById('btnBulkStart').disabled = false;
   } catch(err) {
-    if (info) info.innerHTML = `<span style="color:#C0392B">✗ Errore: ${err.message}</span>`;
+    if (info) info.innerHTML = `<span style="color:#C0392B">✗ ${T('error', 'Errore')}: ${err.message}</span>`;
   }
   e.target.value = '';
 });
@@ -416,10 +417,10 @@ document.getElementById('bulkFileInput')?.addEventListener('change', async (e) =
 // ── GENERA AI ──
 document.getElementById('btnBulkGenerate')?.addEventListener('click', async () => {
   const instruction = document.getElementById('bulkInstruction')?.value?.trim();
-  if (!instruction) { alert('Scrivi prima le istruzioni per il LLM'); return; }
+  if (!instruction) { alert(T('bulk_write_instructions', 'Scrivi prima le istruzioni per il LLM')); return; }
   const status = document.getElementById('bulkGenerateStatus');
   const btn = document.getElementById('btnBulkGenerate');
-  if (status) status.textContent = 'Generazione in corso...';
+  if (status) status.textContent = T('bulk_generating', 'Generazione in corso...');
   if (btn) btn.disabled = true;
   try {
     const subjectHint = document.getElementById('bulkSubject')?.value?.trim() || '';
@@ -431,15 +432,15 @@ document.getElementById('btnBulkGenerate')?.addEventListener('click', async () =
     const result = await r.json();
     if (result.subject) {
       const curr = document.getElementById('bulkSubject')?.value?.trim();
-      if (!curr || confirm(`Sostituire oggetto con:\n"${result.subject}"?`)) {
+      if (!curr || confirm(`${T('win_replace_subject_confirm', 'Sostituire oggetto con:')}\n"${result.subject}"?`)) {
         document.getElementById('bulkSubject').value = result.subject;
       }
     }
     if (result.html) document.getElementById('bulkBodyHtml').value = result.html;
     if (result.plain) document.getElementById('bulkBodyPlain').value = result.plain;
-    if (status) status.textContent = '✓ Generato — controlla prima di inviare';
+    if (status) status.textContent = '✓ ' + T('bulk_generated_ok', 'Generato — controlla e modifica prima di inviare');
   } catch(err) {
-    if (status) status.textContent = '✗ Errore: ' + err.message;
+    if (status) status.textContent = '✗ ' + T('error', 'Errore') + ': ' + err.message;
   } finally {
     if (btn) btn.disabled = false;
   }
@@ -449,7 +450,7 @@ document.getElementById('btnBulkGenerate')?.addEventListener('click', async () =
 document.getElementById('btnBulkPreview')?.addEventListener('click', () => {
   if (!_bulkRecipients.length) { alert(window.i18n?window.i18n.t('load_recipients_first'):'Carica prima un file con i destinatari'); return; }
   const first = _bulkRecipients[0];
-  const subject = document.getElementById('bulkSubject')?.value || '(nessun oggetto)';
+  const subject = document.getElementById('bulkSubject')?.value || T('no_subject', '(nessun oggetto)');
   const html = document.getElementById('bulkBodyHtml')?.value || '';
   const plain = document.getElementById('bulkBodyPlain')?.value || '';
   const applyVars = (t) => {
@@ -460,7 +461,7 @@ document.getElementById('btnBulkPreview')?.addEventListener('click', () => {
   const previewHtml = html ? applyVars(html) : `<pre style="white-space:pre-wrap">${esc(applyVars(plain))}</pre>`;
   const fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Preview</title></head><body>
     <div style="padding:16px;background:#eee;font-family:sans-serif;font-size:12px">
-      <b>Oggetto:</b> ${esc(applyVars(subject))} &nbsp;|&nbsp; <b>A:</b> ${esc(first.email||'')} &nbsp;|&nbsp; ${_bulkRecipients.length} destinatari
+      <b>${T('subject_label', 'Oggetto:')}</b> ${esc(applyVars(subject))} &nbsp;|&nbsp; <b>${T('to_label', 'A:')}</b> ${esc(first.email||'')} &nbsp;|&nbsp; ${T('win_n_recipients', '{n} destinatari').replace('{n}', _bulkRecipients.length)}
     </div>${previewHtml}</body></html>`;
   const blob = new Blob([fullHtml], { type:'text/html' });
   window.open(URL.createObjectURL(blob), '_blank', 'width=800,height=640,scrollbars=yes');
@@ -468,13 +469,13 @@ document.getElementById('btnBulkPreview')?.addEventListener('click', () => {
 
 // ── AVVIA INVIO ──
 document.getElementById('btnBulkStart')?.addEventListener('click', async () => {
-  if (!_bulkRecipients.length) { alert('Carica prima un file'); return; }
+  if (!_bulkRecipients.length) { alert(T('load_recipients_first', 'Carica prima un file con i destinatari')); return; }
   const subject = document.getElementById('bulkSubject')?.value?.trim();
-  if (!subject) { alert('Inserisci l\'oggetto'); return; }
+  if (!subject) { alert(T('insert_subject', 'Inserisci l\'oggetto della mail')); return; }
   const bodyHtml = document.getElementById('bulkBodyHtml')?.value?.trim() || '';
   const bodyPlain = document.getElementById('bulkBodyPlain')?.value?.trim() || '';
-  if (!bodyHtml && !bodyPlain) { alert('Scrivi il corpo della mail'); return; }
-  if (!confirm(`Avviare invio a ${_bulkRecipients.length} destinatari?\n\nOggetto: ${subject}`)) return;
+  if (!bodyHtml && !bodyPlain) { alert(T('write_body', 'Scrivi il corpo della mail')); return; }
+  if (!confirm(`${T('win_start_send_confirm', 'Avviare invio a {n} destinatari?').replace('{n}', _bulkRecipients.length)}\n\n${T('subject_label', 'Oggetto:')} ${subject}`)) return;
   try {
     const r = await fetch(`${API}/mail/bulk/start`, {
       method:'POST',
@@ -489,14 +490,14 @@ document.getElementById('btnBulkStart')?.addEventListener('click', async () => {
     if (!r.ok) throw new Error(await r.text());
     setBulkSendingUI(true);
     startBulkPolling();
-  } catch(err) { alert('Errore avvio: ' + err.message); }
+  } catch(err) { alert(T('win_start_error', 'Errore avvio') + ': ' + err.message); }
 });
 
 // ── FERMA INVIO ──
 document.getElementById('btnBulkStop')?.addEventListener('click', async () => {
   try {
     await fetch(`${API}/mail/bulk/stop`, { method:'POST' });
-  } catch(err) { alert('Errore stop: ' + err.message); }
+  } catch(err) { alert(T('win_stop_error', 'Errore stop') + ': ' + err.message); }
 });
 
 function setBulkSendingUI(sending) {
@@ -531,7 +532,7 @@ async function refreshBulkStatus() {
     const count = document.getElementById('bulkProgressCount');
     const log   = document.getElementById('bulkLog');
     if (bar)   bar.style.width = pct + '%';
-    if (label) label.textContent = data.status === 'running' ? `Invio in corso… ${pct}%` : `Completato`;
+    if (label) label.textContent = data.status === 'running' ? `${T('win_sending_progress', 'Invio in corso…')} ${pct}%` : T('completed_ok', 'Completato');
     if (count) count.textContent = `${sent}/${total}`;
     if (log && data.log) { log.textContent = (data.log||[]).slice(-20).join('\n'); log.scrollTop = log.scrollHeight; }
   } catch {}
@@ -597,7 +598,7 @@ document.getElementById('folderInput')?.addEventListener('change', async (e) => 
   _loadedImages = [];
   _selectedImgIdx = null;
   const grid = document.getElementById('imgGrid');
-  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:20px;color:rgba(0,0,0,0.55)">Caricamento immagini…</div>';
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:20px;color:rgba(0,0,0,0.55)">' + esc(T('win_loading_images', 'Caricamento immagini…')) + '</div>';
   document.getElementById('imgPicker').classList.add('visible');
   document.getElementById('aiImgStatus').textContent = '';
   document.getElementById('btnInsertImg').disabled = true;

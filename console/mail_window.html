@@ -162,6 +162,10 @@
 const API = window.GIGAMAIL_API || 'http://127.0.0.1:8002';
 const featuresReady = Features.load(API);
 
+// Visible text follows the UI language (i18n.js loads after this script,
+// so the helper looks it up at call time).
+function T(key, it){ return (window.i18n && window.i18n.t) ? window.i18n.t(key, it) : it; }
+
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -217,6 +221,8 @@ async function loadMail(id, folder, accountId, preloadedMsg = null) {
     const sender     = msg.from?.emailAddress?.address || '?';
     const senderName = msg.from?.emailAddress?.name || sender;
     const subject    = msg.subject || '(nessun oggetto)';
+    // What the window shows; `subject` above is what reply/forward receive.
+    const subjectLabel = msg.subject || T('no_subject', '(nessun oggetto)');
     const rawHtml    = msg.body?.content || '';
     const bodyType   = (msg.body?.contentType||'').toLowerCase();
     // Stesso criterio della finestra principale: il tipo dichiarato vince,
@@ -228,15 +234,18 @@ async function loadMail(id, folder, accountId, preloadedMsg = null) {
     const attachments = msg.attachments || [];
 
     // Titolo finestra
-    document.title = subject;
-    document.getElementById('winTitle').textContent = subject;
+    document.title = subjectLabel;
+    const winTitle = document.getElementById('winTitle');
+    // Without this, applyLang() below puts "GigaMail" back over the subject.
+    winTitle.removeAttribute('data-i18n');
+    winTitle.textContent = subjectLabel;
 
     // Costruisci UI
     let html = '';
 
     // Header
     html += `<div class="mail-header">
-      <div class="mail-subject">${esc(subject)}</div>
+      <div class="mail-subject">${esc(subjectLabel)}</div>
       <div class="mail-from">${window.i18n?window.i18n.t("from_label"):"Da"}: <strong>${esc(senderName)}</strong> &lt;${esc(sender)}&gt; — ${esc(fmtDate(msg.receivedDateTime||msg.sentDateTime))}</div>
       <div class="mail-actions">
         <button class="btn" id="btnAscolta" data-requires="/mail/{message_id}/tts">◉ <span data-i18n="listen_cap">Ascolta</span></button>
@@ -257,7 +266,7 @@ async function loadMail(id, folder, accountId, preloadedMsg = null) {
     // Allegati
     if (attachments.length) {
       const chips = attachments.map((a, idx) => {
-        return `<div class="attach-chip" data-att-index="${idx}" title="Click: apri • Tasto destro: opzioni">📎 ${esc(a.name)} (${Math.round((a.size||0)/1024)}KB)</div>`;
+        return `<div class="attach-chip" data-att-index="${idx}" title="${esc(T('attach_opts_title', 'Click: apri • Tasto destro: opzioni'))}">📎 ${esc(a.name)} (${Math.round((a.size||0)/1024)}KB)</div>`;
       }).join('');
       html += `<div class="attachments">${chips}</div>`;
     }
@@ -296,16 +305,16 @@ async function loadMail(id, folder, accountId, preloadedMsg = null) {
       try {
         const bytes = await fetchAttachmentBytes(att);
         const res = await window.mailWindowAPI?.openAttachment(att.name, bytes);
-        if (res && !res.ok && !res.canceled) alert('Impossibile aprire: ' + (res.error || 'errore'));
-      } catch (e) { alert('Errore apertura allegato: ' + e.message); }
+        if (res && !res.ok && !res.canceled) alert(T('mv_cannot_open', 'Impossibile aprire') + ': ' + (res.error || T('mv_error_lower', 'errore')));
+      } catch (e) { alert(T('mv_attachment_open_error', 'Errore apertura allegato') + ': ' + e.message); }
     }
 
     async function saveAttachmentAs(att) {
       try {
         const bytes = await fetchAttachmentBytes(att);
         const res = await window.mailWindowAPI?.saveAttachmentAs(att.name, bytes);
-        if (res && !res.ok && !res.canceled) alert('Impossibile salvare: ' + (res.error || 'errore'));
-      } catch (e) { alert('Errore salvataggio allegato: ' + e.message); }
+        if (res && !res.ok && !res.canceled) alert(T('mv_cannot_save', 'Impossibile salvare') + ': ' + (res.error || T('mv_error_lower', 'errore')));
+      } catch (e) { alert(T('mv_attachment_save_error', 'Errore salvataggio allegato') + ': ' + e.message); }
     }
 
     document.querySelectorAll('.attach-chip[data-att-index]').forEach(chip => {
@@ -325,8 +334,8 @@ async function loadMail(id, folder, accountId, preloadedMsg = null) {
       menu.className = 'attach-menu';
       menu.id = 'attachMenu';
       menu.innerHTML = `
-        <div class="attach-menu-item" data-act="open">📂 Apri</div>
-        <div class="attach-menu-item" data-act="save">💾 Salva con nome…</div>`;
+        <div class="attach-menu-item" data-act="open">📂 ${esc(T('mv_att_open', 'Apri'))}</div>
+        <div class="attach-menu-item" data-act="save">💾 ${esc(T('mv_att_save_as', 'Salva con nome…'))}</div>`;
       document.body.appendChild(menu);
       const rect = menu.getBoundingClientRect();
       const px = (x + rect.width  > window.innerWidth)  ? x - rect.width  : x;
@@ -370,7 +379,7 @@ async function loadMail(id, folder, accountId, preloadedMsg = null) {
       const div = document.createElement('div');
       div.className = 'mail-body-text';
       // Testo semplice: escapato PRIMA dei <br>, e' contenuto della rete.
-      div.innerHTML = esc(bodyText||'(messaggio vuoto)').replace(/\n/g,'<br>');
+      div.innerHTML = esc(bodyText||T('mv_empty_message', '(messaggio vuoto)')).replace(/\n/g,'<br>');
       bodyWrap.appendChild(div);
     }
 
@@ -387,7 +396,7 @@ async function loadMail(id, folder, accountId, preloadedMsg = null) {
         audio.pause(); audio.currentTime = 0;
         btn.textContent = '◉ ' + (window.i18n?window.i18n.t('listen_cap'):'Ascolta'); isPlaying = false;
       } else {
-        audio.play(); btn.textContent = '◻ Stop'; isPlaying = true;
+        audio.play(); btn.textContent = '◻ ' + T('mv_stop', 'Stop'); isPlaying = true;
       }
     });
     audio.onended = () => {
@@ -414,7 +423,7 @@ async function loadMail(id, folder, accountId, preloadedMsg = null) {
           textEl.textContent = data.summary || data.text || '';
           summaryEl.style.display = 'flex';
         }
-      } catch(e) { btn.textContent = 'Errore'; }
+      } catch(e) { btn.textContent = T('error', 'Errore'); }
       btn.textContent = '📋 ' + (window.i18n?window.i18n.t('summarize_cap'):'Riassumi');
     });
 

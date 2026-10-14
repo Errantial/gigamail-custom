@@ -1,4 +1,4 @@
-function T(key, it){ return (window.i18n && window.i18n.t) ? window.i18n.t(key) : it; }
+function T(key, it){ return (window.i18n && window.i18n.t) ? window.i18n.t(key, it) : it; }
 // renderer_identity.js — Identity modals (account e cartella)
 // Caricato prima di renderer.js in index_v2.html
 
@@ -49,7 +49,7 @@ async function openFolderIdentityModal(accountId, folderId, folderLabel) {
         </div>
       </div>
       <div style="padding:12px 20px;border-top:1px solid #E2DDD6;background:#FAF8F5;display:flex;gap:10px;justify-content:space-between;flex-shrink:0;">
-        <button class="btn btn-secondary" id="btnDeleteFolderIdentity" style="color:#C0392B;border-color:#C0392B;">🗑 RIMUOVI</button>
+        <button class="btn btn-secondary" id="btnDeleteFolderIdentity" style="color:#C0392B;border-color:#C0392B;">🗑 ${T('id_remove','RIMUOVI')}</button>
         <div style="display:flex;gap:10px;">
           <button class="btn btn-secondary" id="btnCancelFolderIdentity">${T('cancel_upper','ANNULLA')}</button>
           <button class="btn btn-primary" id="btnSaveFolderIdentity" style="background:#8A5CE6;border-color:#8A5CE6;">${T('save_upper','SALVA')}</button>
@@ -67,14 +67,14 @@ async function openFolderIdentityModal(accountId, folderId, folderLabel) {
   document.getElementById('btnDeleteFolderIdentity')?.addEventListener('click', async () => {
     try {
       await api.deleteFolderIdentity(accountId, folderId);
-      showToast('Identity cartella rimossa');
+      showToast(T('id_folder_removed','Identity cartella rimossa'));
       close();
-    } catch(e) { showToast('Errore: ' + e.message); }
+    } catch(e) { showToast(T('error','Errore') + ': ' + e.message); }
   });
 
   document.getElementById('btnSaveFolderIdentity')?.addEventListener('click', async () => {
     const btn = document.getElementById('btnSaveFolderIdentity');
-    if (btn) { btn.disabled = true; btn.textContent = 'Salvataggio...'; }
+    if (btn) { btn.disabled = true; btn.textContent = T('id_saving','Salvataggio...'); }
     try {
       await api.setFolderIdentity(accountId, folderId, {
         who_am_i:  document.getElementById('fiWhoAmI')?.value?.trim() || '',
@@ -83,10 +83,10 @@ async function openFolderIdentityModal(accountId, folderId, folderLabel) {
         key_info:  document.getElementById('fiKeyInfo')?.value?.trim() || '',
         file_paths: [],
       });
-      showToast('Identity cartella salvata!');
+      showToast(T('id_folder_saved','Identity cartella salvata!'));
       close();
     } catch(err) {
-      showToast('Errore: ' + err.message);
+      showToast(T('error','Errore') + ': ' + err.message);
       if (btn) { btn.disabled = false; btn.textContent = T('save_upper','SALVA'); }
     }
   });
@@ -137,7 +137,7 @@ async function openIdentityModal(accountId, accountName) {
         </div>
         <div>
           <label class="field-label">${T('key_info','INFORMAZIONI CHIAVE')} <span style="font-weight:400;color:#8A8280">${T('key_info_sub','(prezzi, orari, contatti...)')}</span></label>
-          <textarea id="idKeyInfo" rows="5" placeholder="Es: Bilocali 250-300k€, trilocali 350-400k€. Tel: 02.123456."
+          <textarea id="idKeyInfo" rows="5" placeholder="${T('id_key_info_ph','Es: Bilocali 250-300k€, trilocali 350-400k€. Tel: 02.123456.')}"
             style="width:100%;margin-top:5px;resize:vertical;background:#F4F2EE;border:1px solid #E2DDD6;border-radius:2px;padding:8px 10px;font-size:13px;outline:none;box-sizing:border-box;font-family:inherit;">${esc(identity.key_info||'')}</textarea>
         </div>
         <div>
@@ -150,7 +150,7 @@ async function openIdentityModal(accountId, accountName) {
           <div style="display:flex;gap:8px;margin-top:5px;">
             <input id="idUrlInput" type="text" placeholder="${T('url_ph','https://... oppure incolla testo con URL')}"
               style="flex:1;background:#F4F2EE;border:1px solid #E2DDD6;border-radius:2px;padding:8px 10px;font-size:12px;outline:none;font-family:var(--mono);box-sizing:border-box;"/>
-            <button class="btn btn-secondary" id="btnExtractUrl" style="white-space:nowrap;">🔍 ESTRAI</button>
+            <button class="btn btn-secondary" id="btnExtractUrl" style="white-space:nowrap;">🔍 ${T('id_extract','ESTRAI')}</button>
           </div>
           <div id="idExtractStatus" style="font-size:11px;color:#8A8280;margin-top:4px;font-family:var(--mono);min-height:16px;"></div>
         </div>
@@ -158,13 +158,13 @@ async function openIdentityModal(accountId, accountName) {
           <label class="field-label">${T('useful_files','FILE UTILI')} <span style="font-weight:400;color:#8A8280">${T('useful_files_sub','(.txt .md .csv — es. listino prezzi)')}</span></label>
           <div id="idFileList" style="display:flex;flex-direction:column;gap:6px;margin:6px 0;"></div>
           <div id="idDropZone" style="border:2px dashed #C8C3BC;border-radius:4px;padding:14px;text-align:center;color:#8A8280;font-size:11px;font-family:var(--mono);cursor:pointer;transition:border-color 0.15s,background 0.15s;margin-bottom:6px;">
-            📂 TRASCINA FILE O CARTELLE QUI oppure clicca per sfogliare<br><span style="font-size:10px;opacity:0.7">.txt .md .csv .xlsx .pdf .docx</span>
+            📂 ${T('id_drop_files','TRASCINA FILE O CARTELLE QUI oppure clicca per sfogliare')}<br><span style="font-size:10px;opacity:0.7">.txt .md .csv .xlsx .pdf .docx</span>
             <input id="idFilePickerInput" type="file" multiple accept=".txt,.md,.csv,.xlsx,.xls,.pdf,.docx" style="display:none" webkitdirectory="false"/>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <input id="idFileInput" type="text" placeholder="C:\\Progetti\\Residenze\\listino.txt o cartella"
+            <input id="idFileInput" type="text" placeholder="${T('id_file_path_ph','C:\\Progetti\\Residenze\\listino.txt o cartella')}"
               style="flex:1;min-width:200px;background:#F4F2EE;border:1px solid #E2DDD6;border-radius:2px;padding:8px 10px;font-size:12px;outline:none;font-family:var(--mono);"/>
-            <button class="btn btn-secondary" id="btnPickFolder" title="Seleziona cartella">📁 ${T('folder_word','CARTELLA')}</button>
+            <button class="btn btn-secondary" id="btnPickFolder" title="${T('id_select_folder','Seleziona cartella')}">📁 ${T('folder_word','CARTELLA')}</button>
             <button class="btn btn-secondary" id="btnAddFilePath">+ FILE</button>
           </div>
         </div>
@@ -359,8 +359,8 @@ async function openIdentityModal(accountId, accountName) {
       const text = document.getElementById('idUrlInput')?.value?.trim();
       if (!text) return;
       btnExtract.disabled = true;
-      btnExtract.textContent = '⏳ Estrazione...';
-      if (extractStatus) extractStatus.textContent = 'Analisi in corso...';
+      btnExtract.textContent = '⏳ ' + T('id_extracting','Estrazione...');
+      if (extractStatus) extractStatus.textContent = T('id_analyzing','Analisi in corso...');
       try {
         const res = await fetch(`${window.GIGAMAIL_API}/identity/extract_from_url`, {
           method: 'POST',
@@ -378,20 +378,20 @@ async function openIdentityModal(accountId, accountName) {
           if (confirmed.what_i_do) document.getElementById('idWhatIDo').value = confirmed.what_i_do;
           if (confirmed.tone)      document.getElementById('idTone').value    = confirmed.tone;
           if (confirmed.key_info)  document.getElementById('idKeyInfo').value = confirmed.key_info;
-          if (extractStatus) extractStatus.textContent = '✓ Campi popolati — verifica e salva.';
+          if (extractStatus) extractStatus.textContent = '✓ ' + T('id_fields_filled','Campi popolati — verifica e salva.');
         });
       } catch(e) {
-        if (extractStatus) extractStatus.textContent = '✗ Errore: ' + e.message;
+        if (extractStatus) extractStatus.textContent = '✗ ' + T('error','Errore') + ': ' + e.message;
       } finally {
         btnExtract.disabled = false;
-        btnExtract.textContent = '🔍 ESTRAI';
+        btnExtract.textContent = '🔍 ' + T('id_extract','ESTRAI');
       }
     });
   }
 
   document.getElementById('btnSaveIdentity')?.addEventListener('click', async () => {
     const btn = document.getElementById('btnSaveIdentity');
-    if (btn) { btn.disabled = true; btn.textContent = 'Salvataggio...'; }
+    if (btn) { btn.disabled = true; btn.textContent = T('id_saving','Salvataggio...'); }
     try {
       await api.setIdentity(accountId, {
         who_am_i:  document.getElementById('idWhoAmI')?.value?.trim() || '',
@@ -401,10 +401,10 @@ async function openIdentityModal(accountId, accountName) {
         file_paths: filePaths,
       });
       await api.setSignature(accountId, document.getElementById('idSignature')?.value || '');
-      showToast('Identità salvata!');
+      showToast(T('id_saved','Identità salvata!'));
       close();
     } catch(err) {
-      showToast('Errore: ' + err.message);
+      showToast(T('error','Errore') + ': ' + err.message);
       if (btn) { btn.disabled = false; btn.textContent = T('save_upper','SALVA'); }
     }
   });
@@ -423,7 +423,7 @@ function _showIdentityPreview(data, onConfirm) {
     <div style="background:#FFFFFF;border:1px solid #E2DDD6;border-top:3px solid #2B5CE6;border-radius:4px;width:min(560px,94vw);max-height:85vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(43,92,230,0.18);overflow:hidden;">
       <div style="padding:12px 20px;border-bottom:1px solid #E2DDD6;background:#FAF8F5;flex-shrink:0;">
         <div style="font-size:10px;font-weight:600;letter-spacing:2px;color:#8A8280;font-family:var(--mono)">${T('preview_identity','PREVIEW IDENTITY ESTRATTA')}</div>
-        <div style="font-size:11px;color:#8A8280;margin-top:2px;">Modifica se necessario, poi conferma per applicare ai campi.</div>
+        <div style="font-size:11px;color:#8A8280;margin-top:2px;">${T('id_preview_hint','Modifica se necessario, poi conferma per applicare ai campi.')}</div>
       </div>
       <div style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px;">
         <div>
@@ -449,7 +449,7 @@ function _showIdentityPreview(data, onConfirm) {
       </div>
       <div style="padding:12px 20px;border-top:1px solid #E2DDD6;background:#FAF8F5;display:flex;gap:10px;justify-content:flex-end;flex-shrink:0;">
         <button class="btn btn-secondary" id="btnPreviewCancel">${T('cancel_upper','ANNULLA')}</button>
-        <button class="btn btn-primary" id="btnPreviewApply" style="background:#2B5CE6;border-color:#2B5CE6;">✓ APPLICA</button>
+        <button class="btn btn-primary" id="btnPreviewApply" style="background:#2B5CE6;border-color:#2B5CE6;">✓ ${T('id_apply','APPLICA')}</button>
       </div>
     </div>`;
 

@@ -1,4 +1,4 @@
-function T(key, it){ return (window.i18n && window.i18n.t) ? window.i18n.t(key) : it; }
+function T(key, it){ return (window.i18n && window.i18n.t) ? window.i18n.t(key, it) : it; }
 // renderer_bulk.js — Bulk mail (invio massivo)
 // Caricato prima di renderer.js in index_v2.html
 
@@ -19,7 +19,7 @@ async function generateBulkCopy() {
       if (byId('bulkSubject')) byId('bulkSubject').value = result.subject;
     } else if (result.subject) {
       // Proponi oggetto se già c'è qualcosa
-      if (confirm(`Sostituire oggetto con:\n"${result.subject}"?`)) {
+      if (confirm(`${T('cmp_bulk_replace_subject', 'Sostituire oggetto con:')}\n"${result.subject}"?`)) {
         if (byId('bulkSubject')) byId('bulkSubject').value = result.subject;
       }
     }
@@ -72,16 +72,16 @@ async function handleBulkFileUpload(e) {
   try {
     const result = await api.bulkUpload(file);
     _bulkRecipients = result.recipients || [];
-    if (info) info.innerHTML = `<span style="color:#1A7F4B;">✓ ${result.count} destinatari caricati</span><br>Colonne: ${result.columns.join(', ')}`;
+    if (info) info.innerHTML = `<span style="color:#1A7F4B;">✓ ${result.count} ${T('cmp_bulk_recipients_loaded', 'destinatari caricati')}</span><br>${T('cmp_bulk_columns', 'Colonne')}: ${result.columns.join(', ')}`;
     // Aggiorna hint variabili
     const hint = byId('bulkVarsHint');
-    if (hint) hint.textContent = 'Variabili disponibili: ' + result.columns.map(c => '{' + c + '}').join(', ');
+    if (hint) hint.textContent = T('cmp_bulk_vars_available', 'Variabili disponibili') + ': ' + result.columns.map(c => '{' + c + '}').join(', ');
     // Abilita avvio
     const btnStart = byId('btnBulkStart');
     if (btnStart) btnStart.disabled = false;
     e.target.value = '';
   } catch(err) {
-    if (info) info.innerHTML = `<span style="color:#C0392B;">✗ Errore: ${err.message}</span>`;
+    if (info) info.innerHTML = `<span style="color:#C0392B;">✗ ${T('error', 'Errore')}: ${err.message}</span>`;
   }
 }
 
@@ -102,14 +102,14 @@ function showBulkPreview() {
 
   const previewHtml = html ? applyVars(html) : `<pre style="font-family:inherit;white-space:pre-wrap">${esc(applyVars(plain))}</pre>`;
   const fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-    <title>Preview — ${esc(applyVars(subject))}</title>
+    <title>${T('preview', 'Preview')} — ${esc(applyVars(subject))}</title>
     <style>body{font-family:Arial,sans-serif;background:#FAF8F5;margin:0;padding:0}
     .hdr{padding:16px 24px;background:#fff;border-bottom:2px solid #2B5CE6}
     .hdr h3{margin:0 0 4px;font-size:16px;color:#1A1614}
     .hdr p{margin:0;font-size:11px;color:#8A8280;font-family:monospace}
     .body{padding:24px}</style></head><body>
     <div class="hdr"><h3>${esc(applyVars(subject))}</h3>
-    <p>A: ${esc(first.email || '')} | Preview destinatario 1 di ${_bulkRecipients.length}</p></div>
+    <p>${T('to_label', 'A:')} ${esc(first.email || '')} | ${T('cmp_bulk_preview_of', 'Preview destinatario 1 di {total}').replace('{total}', _bulkRecipients.length)}</p></div>
     <div class="body">${previewHtml}</div></body></html>`;
 
   const blob = new Blob([fullHtml], { type: 'text/html' });
@@ -127,7 +127,8 @@ async function startBulkSend() {
   const sleepMin = parseInt(byId('bulkSleepMin')?.value || '20');
   const sleepMax = parseInt(byId('bulkSleepMax')?.value || '40');
 
-  if (!confirm(`Avviare invio a ${_bulkRecipients.length} destinatari?\n\nOggetto: ${subject}\n\nL'invio girerà in background. Puoi chiudere questa finestra.`)) return;
+  const startPrompt = T('cmp_bulk_start_confirm', 'Avviare invio a {n} destinatari?').replace('{n}', _bulkRecipients.length);
+  if (!confirm(`${startPrompt}\n\n${T('subject_word', 'Oggetto')}: ${subject}\n\n${T('cmp_bulk_background', "L'invio girerà in background. Puoi chiudere questa finestra.")}`)) return;
 
   try {
     await api.bulkStart({
@@ -195,7 +196,7 @@ async function refreshBulkStatus() {
         if (s.running) label.textContent = s.current_email ? `${T('sending_to','Invio a')}: ${s.current_email}` : T('in_progress','In corso...');
         else label.textContent = s.error ? `✗ ${T('error','Errore')}: ${s.error}` : '✓ ' + T('completed_ok','Completato');
       }
-      if (count) count.textContent = `${s.sent}/${s.total} inviati | ${s.failed} falliti | ${s.skipped} saltati`;
+      if (count) count.textContent = `${s.sent}/${s.total} ${T('cmp_bulk_sent', 'inviati')} | ${s.failed} ${T('cmp_bulk_failed', 'falliti')} | ${s.skipped} ${T('cmp_bulk_skipped', 'saltati')}`;
 
       // Log
       const logEl = byId('bulkLog');

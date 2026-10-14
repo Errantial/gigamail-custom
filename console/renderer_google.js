@@ -11,6 +11,8 @@ const GoogleView = (() => {
 
   const api = () => window.ademail;
   const el = (id) => document.getElementById(id);
+  // Local translation helper, so the module also works loaded on its own.
+  const T = (key, it) => ((window.i18n && window.i18n.t) ? window.i18n.t(key, it) : it);
 
   let pollTimer = null;
 
@@ -32,7 +34,7 @@ const GoogleView = (() => {
     try {
       s = await api().googleStatus();
     } catch (e) {
-      say('Console non raggiungibile.', 'err');
+      say(T('app_console_unreachable', 'Console non raggiungibile.'), 'err');
       return;
     }
 
@@ -43,39 +45,36 @@ const GoogleView = (() => {
       // Build senza progetto Google Cloud: dirlo, invece di mostrare un
       // bottone che fallisce.
       corpo.innerHTML = `
-        <p style="margin:0 0 8px">Google non e' disponibile in questa versione
-        di GigaMail: manca il client OAuth.</p>`;
+        <p style="margin:0 0 8px">${T('app_google_unavailable', "Google non e' disponibile in questa versione di GigaMail: manca il client OAuth.")}</p>`;
       return;
     }
 
     const righe = (s.identities || []).map(i => `
       <div style="display:flex;align-items:center;gap:8px;padding:6px 0">
         <span style="flex:1">${i.email}</span>
-        <button class="chip-btn" data-google-logout="${i.email}">Scollega</button>
+        <button class="chip-btn" data-google-logout="${i.email}">${T('app_disconnect', 'Scollega')}</button>
       </div>`).join('');
 
     corpo.innerHTML = `
       <p style="margin:0 0 10px;line-height:1.45">
-        Autorizza GigaMail a leggere e scrivere il tuo <b>calendario</b> e a
-        gestire i <b>file che crea lui</b> su Drive.
-        Non tocca la posta: per collegare Gmail usa "Aggiungi account".
+        ${T('app_google_intro', 'Autorizza GigaMail a leggere e scrivere il tuo <b>calendario</b> e a gestire i <b>file che crea lui</b> su Drive. Non tocca la posta: per collegare Gmail usa "Aggiungi account".')}
       </p>
-      ${s.connected ? righe : '<p style="margin:0 0 10px">Nessun account Google collegato.</p>'}
+      ${s.connected ? righe : '<p style="margin:0 0 10px">' + T('app_google_none', 'Nessun account Google collegato.') + '</p>'}
       <div style="display:flex;gap:8px;margin-top:10px">
         <button class="chip-btn" id="btnGoogleConnect">
-          ${s.connected ? 'Collega un altro account' : 'Collega Google'}
+          ${s.connected ? T('app_google_connect_another', 'Collega un altro account') : T('app_google_connect', 'Collega Google')}
         </button>
       </div>
       <div style="height:1px;background:rgba(0,0,0,0.08);margin:14px 0"></div>
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="flex:1">Calendario servito da</span>
+        <span style="flex:1">${T('app_calendar_served_by', 'Calendario servito da')}</span>
         <select id="googleCalProvider" class="field-input" style="width:auto">
           <option value="microsoft" ${s.calendar_provider === 'microsoft' ? 'selected' : ''}>Microsoft</option>
           <option value="google" ${s.calendar_provider === 'google' ? 'selected' : ''}>Google</option>
         </select>
       </div>
       <p style="margin:8px 0 0;font-size:11px;opacity:0.7">
-        Collegare Google non sposta il calendario da solo: la scelta e' questa qui.
+        ${T('app_google_calendar_hint', "Collegare Google non sposta il calendario da solo: la scelta e' questa qui.")}
       </p>
       <div id="googleStatus" class="hint" style="margin-top:10px"></div>`;
 
@@ -92,11 +91,11 @@ const GoogleView = (() => {
     try {
       dati = await api().googleLogin();
     } catch (e) {
-      say('Impossibile avviare il login Google.', 'err');
+      say(T('app_google_login_start_failed', 'Impossibile avviare il login Google.'), 'err');
       return;
     }
     window.open(dati.auth_url, '_blank');
-    say('Autorizza nel browser, poi torna qui...');
+    say(T('app_authorize_in_browser', 'Autorizza nel browser, poi torna qui...'));
 
     // Il redirect arriva a un listener locale nel backend: qui si chiede
     // solo se e' gia' arrivato. Niente attesa bloccante.
@@ -105,7 +104,7 @@ const GoogleView = (() => {
       tentativi += 1;
       if (tentativi > 150) {           // 2 min e mezzo
         stopPoll();
-        say('Tempo scaduto: nessuna autorizzazione ricevuta.', 'err');
+        say(T('app_auth_timeout', 'Tempo scaduto: nessuna autorizzazione ricevuta.'), 'err');
         return;
       }
       try {
@@ -113,32 +112,32 @@ const GoogleView = (() => {
         if (esito.status === 'ok') {
           stopPoll();
           await render();
-          say(`Collegato: ${esito.email}`, 'ok');
+          say(`${T('app_connected', 'Collegato')}: ${esito.email}`, 'ok');
         }
       } catch (e) {
         stopPoll();
-        say('Login non riuscito.', 'err');
+        say(T('app_login_failed', 'Login non riuscito.'), 'err');
       }
     }, 1000);
   }
 
   async function scollega(email) {
-    if (!confirm(`Scollegare ${email}? Il token viene revocato presso Google.`)) return;
+    if (!confirm(T('app_google_confirm_disconnect', 'Scollegare {email}? Il token viene revocato presso Google.').replace('{email}', () => email))) return;
     try {
       await api().googleLogout(email);
       await render();
-      say('Account scollegato.', 'ok');
+      say(T('app_account_disconnected', 'Account scollegato.'), 'ok');
     } catch (e) {
-      say('Scollegamento non riuscito.', 'err');
+      say(T('app_disconnect_failed', 'Scollegamento non riuscito.'), 'err');
     }
   }
 
   async function cambiaProvider(e) {
     try {
       const r = await api().setCalendarProvider(e.target.value);
-      say(`Calendario ora su ${r.provider}.`, 'ok');
+      say(T('app_calendar_now_on', 'Calendario ora su {provider}.').replace('{provider}', () => r.provider), 'ok');
     } catch (err) {
-      say('Cambio non riuscito: controlla che l account sia collegato.', 'err');
+      say(T('app_calendar_switch_failed', "Cambio non riuscito: controlla che l'account sia collegato."), 'err');
       await render();
     }
   }

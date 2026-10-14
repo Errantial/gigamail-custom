@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const Database = require('better-sqlite3');
 const { restartReason, pidFromNetstat, pidFromLsof } = require('./backend_reuse');
 const appPaths = require('./app_paths');
+const { mt, setLang } = require('./main_i18n');
 
 let mainWindow;
 // Finestre di composizione come figlie della principale: Windows le tiene
@@ -84,13 +85,13 @@ app.on('web-contents-created', (_e, contents) => {
 
     const template = [];
     if (isEditable) {
-      template.push({ role: 'cut', enabled: editFlags.canCut, label: 'Taglia' });
+      template.push({ role: 'cut', enabled: editFlags.canCut, label: mt('menu_cut') });
     }
-    template.push({ role: 'copy', enabled: editFlags.canCopy || hasSelection, label: 'Copia' });
+    template.push({ role: 'copy', enabled: editFlags.canCopy || hasSelection, label: mt('menu_copy') });
     if (isEditable) {
-      template.push({ role: 'paste', enabled: editFlags.canPaste, label: 'Incolla' });
+      template.push({ role: 'paste', enabled: editFlags.canPaste, label: mt('menu_paste') });
       template.push({ type: 'separator' });
-      template.push({ role: 'selectAll', label: 'Seleziona tutto' });
+      template.push({ role: 'selectAll', label: mt('menu_select_all') });
     }
 
     if (template.length) {
@@ -178,7 +179,7 @@ function showMailNotification(accountName, count) {
   if (!Notification.isSupported()) return;
   const notif = new Notification({
     title: `GigaMail — ${accountName}`,
-    body: `${count} nuov${count === 1 ? 'a mail' : 'e mail'}`,
+    body: mt(count === 1 ? 'new_mail_one' : 'new_mail_many', { count }),
     silent: false,
   });
   notif.on('click', () => {
@@ -202,8 +203,8 @@ async function checkFollowups() {
     for (const item of due) {
       if (!Notification.isSupported()) continue;
       const notif = new Notification({
-        title: 'Follow-up necessario',
-        body: `${item.subject || 'Mail senza oggetto'} → ${item.to_addr || ''}`,
+        title: mt('followup_title'),
+        body: `${item.subject || mt('no_subject')} → ${item.to_addr || ''}`,
         silent: false,
       });
       notif.on('click', () => {
@@ -555,8 +556,8 @@ const COMPACT_WIDTH = 350;
 ipcMain.handle('pick-files', async () => {
   const r = await dialog.showOpenDialog(mainWindow, {
     properties: ['openFile', 'multiSelections'],
-    filters: [{ name: 'Documenti', extensions: ['pdf', 'docx', 'xlsx', 'txt', 'md', 'csv'] },
-              { name: 'Tutti i file', extensions: ['*'] }],
+    filters: [{ name: mt('files_documents'), extensions: ['pdf', 'docx', 'xlsx', 'txt', 'md', 'csv'] },
+              { name: mt('files_all'), extensions: ['*'] }],
   });
   return r.canceled ? [] : r.filePaths;
 });
@@ -579,6 +580,10 @@ ipcMain.handle('toggle-compact', () => {
 
 // ── FINESTRE MAIL FIGLIE ──────────────────────────────────────────────────────
 const mailWindows = new Map(); // id -> BrowserWindow
+
+// The main window tells which language it applied: notifications, menus and
+// dialogs shown from here follow it.
+ipcMain.on('set-lang', (_event, lang) => { setLang(lang); });
 
 ipcMain.on('open-mail-window', (event, data) => {
   const key = `${data.account_id}:${data.id}`;
@@ -642,7 +647,7 @@ ipcMain.on('mail-window-open-reply', (event, data) => {
     frame: false,
     transparent: true,
     backgroundColor: '#00000000',
-    title: 'Nuova risposta',
+    title: mt('title_reply'),
     parent: childParent(),   // resta sopra la principale: non finisce dietro
     webPreferences: {
       additionalArguments: [`--gigamail-api=${API}`],  // ADE_CONSOLE_PORT fino ai renderer
@@ -676,7 +681,7 @@ ipcMain.on('open-new-mail-window', (event, data) => {
     minWidth: 480, minHeight: 500,
     frame: false, transparent: false, backgroundColor: '#EBF2FA',
     resizable: true,
-    title: 'Nuova mail',
+    title: mt('title_new_mail'),
     parent: childParent(),
     webPreferences: {
       additionalArguments: [`--gigamail-api=${API}`],  // ADE_CONSOLE_PORT fino ai renderer
@@ -707,7 +712,7 @@ ipcMain.on('open-reply-window', (event, data) => {
     minWidth: 420, minHeight: 400,
     frame: false, transparent: false, backgroundColor: '#EBF2FA',
     resizable: true,
-    title: 'Nuova risposta',
+    title: mt('title_reply'),
     parent: childParent(),   // resta sopra la principale: non finisce dietro
     webPreferences: {
       additionalArguments: [`--gigamail-api=${API}`],  // ADE_CONSOLE_PORT fino ai renderer
@@ -766,7 +771,7 @@ ipcMain.on('open-calendar-window', () => {
   calendarWindow = new BrowserWindow({
     width: 900, height: 700, minWidth: 700, minHeight: 500,
     frame: false, transparent: true, backgroundColor: '#00000000',
-    title: 'ADE Calendario',
+    title: mt('title_calendar'),
     webPreferences: {
       additionalArguments: [`--gigamail-api=${API}`],  // ADE_CONSOLE_PORT fino ai renderer
       preload: path.join(__dirname, 'preload_calendar.js'),
@@ -792,7 +797,7 @@ ipcMain.on('open-marketing-window', () => {
   marketingWindow = new BrowserWindow({
     width: 1000, height: 680, minWidth: 700, minHeight: 500,
     frame: false, transparent: true, backgroundColor: '#00000000',
-    title: 'ADE Marketing',
+    title: mt('title_marketing'),
     webPreferences: {
       additionalArguments: [`--gigamail-api=${API}`],  // ADE_CONSOLE_PORT fino ai renderer
       preload: path.join(__dirname, 'preload_marketing.js'),
@@ -823,7 +828,7 @@ ipcMain.on('open-ask-window', (event, data) => {
     x: main.x + Math.floor((main.width - 760) / 2),
     y: main.y + Math.floor((main.height - 720) / 2),
     frame: false, transparent: true, backgroundColor: '#00000000',
-    title: 'Chiedi alle mail',
+    title: mt('title_ask'),
     webPreferences: {
       additionalArguments: [`--gigamail-api=${API}`],  // ADE_CONSOLE_PORT fino ai renderer
       preload: path.join(__dirname, 'preload_ask.js'),
@@ -854,7 +859,7 @@ autoUpdater.on('update-downloaded', (info) => {
   if (Notification.isSupported()) {
     new Notification({
       title: 'GigaMail',
-      body: `Aggiornamento ${info?.version || ''} pronto: si installa alla prossima chiusura.`,
+      body: mt('update_ready', { version: info?.version || '' }),
       silent: true,
     }).show();
   }

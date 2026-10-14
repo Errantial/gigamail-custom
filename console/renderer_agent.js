@@ -2,7 +2,7 @@
 // chiede qualsiasi cosa all'agente. Le domande tornano come risposta; le
 // azioni pericolose tornano come richieste da approvare qui, nella scheda.
 (function () {
-  const L = (key, it) => (window.i18n && window.i18n.t) ? window.i18n.t(key) : it;
+  const L = (key, it) => (window.i18n && window.i18n.t) ? window.i18n.t(key, it) : it;
   const lang = () => (window.i18n && window.i18n.lang) || 'it';
   const $ = (id) => document.getElementById(id);
   const escHtml = (s) => String(s == null ? '' : s)
@@ -203,6 +203,7 @@
       if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); send(); }
     });
     $('agentSend').addEventListener('click', send);
+    $('agentSend').setAttribute('aria-label', L('send', 'Invia'));
     $('agentClear').addEventListener('click', clearThread);
     $('agentThread').addEventListener('click', (ev) => {
       const link = ev.target.closest && ev.target.closest('.agent-mail-link');

@@ -1,4 +1,4 @@
-function T(key, it){ return (window.i18n && window.i18n.t) ? window.i18n.t(key) : it; }
+function T(key, it){ return (window.i18n && window.i18n.t) ? window.i18n.t(key, it) : it; }
 function LOCALE(){ return (window.i18n && window.i18n.locale) || 'it-IT'; }
 // renderer_utils.js — Utility, toast, folder, dashboard, DOM helpers
 // Caricato prima di renderer.js in index_v2.html
@@ -15,7 +15,7 @@ function showToast(message, type = 'info', duration = 3500) {
   }
 
   const icons = { success: '✓', error: '✕', warning: '⚠', info: '◉' };
-  const labels = { success: 'OK', error: 'ERRORE', warning: 'ATTENZIONE', info: 'ADE MAIL' };
+  const labels = { success: 'OK', error: T('app_toast_error', 'ERRORE'), warning: T('app_toast_warning', 'ATTENZIONE'), info: 'ADE MAIL' };
 
   const toast = document.createElement('div');
   toast.className = `ade-toast toast-${type}`;
@@ -62,8 +62,8 @@ function showMailAlert(mailData) {
     'animation:slideInRight 0.25s ease',
   ].join(';');
 
-  const senderLabel = mailData.senderName || mailData.sender || 'Mittente sconosciuto';
-  const subjectLabel = mailData.subject || '(nessun oggetto)';
+  const senderLabel = mailData.senderName || mailData.sender || T('app_unknown_sender', 'Mittente sconosciuto');
+  const subjectLabel = mailData.subject || T('no_subject', '(nessun oggetto)');
 
   container.innerHTML = `
     <style>
@@ -83,10 +83,10 @@ function showMailAlert(mailData) {
            title="${esc(subjectLabel)}">${esc(subjectLabel)}</div>
       <div style="display:flex;gap:8px;margin-top:4px;">
         <button id="btnMailAlertDraft" style="flex:1;background:#2B5CE6;border:none;border-radius:2px;color:#fff;font-size:10px;font-weight:700;letter-spacing:1.5px;padding:7px 10px;cursor:pointer;">
-          &#9889; CREA BOZZA
+          &#9889; ${T('app_create_draft_upper', 'CREA BOZZA')}
         </button>
         <button id="btnMailAlertOpen" style="flex:1;background:#F4F2EE;border:1px solid #E2DDD6;border-radius:2px;color:#1A1614;font-size:10px;font-weight:700;letter-spacing:1.5px;padding:7px 10px;cursor:pointer;">
-          APRI
+          ${T('app_open_upper', 'APRI')}
         </button>
       </div>
     </div>`;
@@ -144,7 +144,7 @@ function showMailAlert(mailData) {
         await generateDraft();
       }, 300);
     } catch(e) {
-      showToast('Errore apertura bozza: ' + e.message, 'error');
+      showToast(T('app_draft_open_error', 'Errore apertura bozza') + ': ' + e.message, 'error');
     }
   });
 }
@@ -373,7 +373,7 @@ function renderCustomFolders() {
       const folderId = btn.getAttribute('data-folder-delete-id') || '';
       const label = btn.getAttribute('data-folder-delete-label') || folderId;
       if (!folderId) return;
-      if (!confirm(`Eliminare la cartella "${label}"?`)) return;
+      if (!confirm(T('app_confirm_delete_folder', 'Eliminare la cartella "{name}"?').replace('{name}', () => label))) return;
       try {
         await api.deleteMailFolder(folderId, activeAccountId);
         if (currentFolder === `custom:${folderId}`) {
@@ -385,7 +385,7 @@ function renderCustomFolders() {
         }
         await loadMailFolders(false);
       } catch (e) {
-        showToast(`Errore eliminazione cartella: ${e}`);
+        showToast(`${T('app_folder_delete_error', 'Errore eliminazione cartella')}: ${e}`);
       }
     });
   });
@@ -462,7 +462,7 @@ async function loadMailFolders(selectFirst = false) {
     return folders;
   } catch (e) {
     renderCustomFolders();
-    if (status) status.textContent = `Errore cartelle: ${e}`;
+    if (status) status.textContent = `${T('app_folders_error', 'Errore cartelle')}: ${e}`;
     throw e;
   }
 }
@@ -513,19 +513,19 @@ async function saveFolder() {
     .map(item => item.trim())
     .filter(Boolean);
   if (!name) {
-    if (status) status.textContent = 'Inserisci un nome cartella.';
+    if (status) status.textContent = T('app_folder_name_required', 'Inserisci un nome cartella.');
     return;
   }
-  if (status) status.textContent = 'Creazione in corso...';
+  if (status) status.textContent = T('app_creating', 'Creazione in corso...');
   try {
     const result = await api.createMailFolder(name, keywords, activeAccountId);
-    const suffix = keywords.length ? ` | keywords: ${keywords.join(', ')}` : '';
-    if (status) status.textContent = `Cartella creata: ${result.displayName || result.name || name}${suffix}`;
+    const suffix = keywords.length ? ` | ${T('app_keywords', 'keywords')}: ${keywords.join(', ')}` : '';
+    if (status) status.textContent = `${T('app_folder_created', 'Cartella creata')}: ${result.displayName || result.name || name}${suffix}`;
     await loadMailFolders(true);
     renderCustomFolders();
     setTimeout(() => setHidden('folderPanel', true), 500);
   } catch (e) {
-    if (status) status.textContent = `Errore creazione: ${e}`;
+    if (status) status.textContent = `${T('app_create_error', 'Errore creazione')}: ${e}`;
   }
 }
 
@@ -549,31 +549,31 @@ async function moveSelectedMail() {
   const folderId = getMoveTargetFolderId();
   const status = byId('moveMailStatus');
   if (!selectedMailId) {
-    if (status) status.textContent = 'Nessuna mail selezionata.';
+    if (status) status.textContent = T('app_no_mail_selected', 'Nessuna mail selezionata.');
     return;
   }
   if (!folderId) {
-    if (status) status.textContent = 'Seleziona una cartella di destinazione.';
+    if (status) status.textContent = T('app_pick_target_folder', 'Seleziona una cartella di destinazione.');
     return;
   }
   if (String(folderId).toLowerCase() === String(currentFolder || '').toLowerCase()) {
-    if (status) status.textContent = 'La mail e\' gia\' in questa cartella: scegline un\'altra.';
+    if (status) status.textContent = T('app_mail_already_in_folder', "La mail e' gia' in questa cartella: scegline un'altra.");
     return;
   }
   const bottone = byId('btnConfirmMoveMail');
   if (bottone) bottone.disabled = true;
-  if (status) status.textContent = 'Spostamento in corso...';
+  if (status) status.textContent = T('app_moving', 'Spostamento in corso...');
   try {
     const esito = await api.moveMailToFolder(selectedMailId, folderId, activeAccountId, currentFolder);
     if (esito && esito.success === false) {
-      throw new Error('il server di posta non ha spostato la mail');
+      throw new Error(T('app_move_not_done', 'il server di posta non ha spostato la mail'));
     }
     document.querySelector(`[data-id="${selectedMailId}"]`)?.remove();
     resetMailDetail();
     setHidden('moveMailPanel', true);
     await refreshCurrentFolder();
   } catch (e) {
-    if (status) status.textContent = `Errore spostamento: ${e && e.message ? e.message : e}`;
+    if (status) status.textContent = `${T('app_move_error', 'Errore spostamento')}: ${e && e.message ? e.message : e}`;
   } finally {
     if (bottone) bottone.disabled = false;
   }
@@ -597,13 +597,13 @@ async function ensureMailSummary(id, accountId, detailRoot = null, folder = null
   setSummaryBoxState(box, T('loading','Caricamento…'), true);
   try {
     const sumData = await api.getSummary(id, accountId, folder);
-    const summary = sumData?.summary || 'Riassunto non disponibile.';
+    const summary = sumData?.summary || T('app_summary_unavailable', 'Riassunto non disponibile.');
     const actions = sumData?.actions || [];
     mailSummaryCache.set(cacheKey, summary);
     setSummaryBoxState(box, summary, false, actions);
     return summary;
   } catch {
-    setSummaryBoxState(box, 'Riassunto non disponibile.', false);
+    setSummaryBoxState(box, T('app_summary_unavailable', 'Riassunto non disponibile.'), false);
     return '';
   }
 }
@@ -634,7 +634,7 @@ function setSummaryBoxState(target, text, isLoading = false, actions = []) {
     `</div>`;
   }
 
-  target.innerHTML = `<span style="font-weight:700;letter-spacing:.5px;opacity:.6;font-size:10px">📋 ANALISI</span><br>${formatted}${actionsHtml}`;
+  target.innerHTML = `<span style="font-weight:700;letter-spacing:.5px;opacity:.6;font-size:10px">📋 ${T('app_analysis_upper', 'ANALISI')}</span><br>${formatted}${actionsHtml}`;
 
   // Click su bottone azione → apre reply window con quell'istruzione
   target.querySelectorAll('.summary-action-btn').forEach(btn => {
@@ -669,7 +669,7 @@ async function loadFolderSuggestion(id, detailRoot = null) {
     box.classList.remove('hidden');
     box.innerHTML = `
       <div class="mail-suggestion-title">${T('folder_suggestion','SUGGERIMENTO CARTELLA')}</div>
-      <div>Potresti spostarla in <strong>${esc(suggestion.displayName)}</strong>.<br>Segnali: ${esc(suggestion.reason || 'storico')}.</div>
+      <div>${T('app_suggest_move_to', 'Potresti spostarla in')} <strong>${esc(suggestion.displayName)}</strong>.<br>${T('app_suggest_signals', 'Segnali')}: ${esc(suggestion.reason || T('app_suggest_history', 'storico'))}.</div>
       <div class="mail-suggestion-actions">
         <button class="btn btn-secondary" id="btnAcceptSuggestion">${T('yes_move','SÌ, SPOSTA')}</button>
         <button class="btn btn-secondary" id="btnDismissSuggestion">${T('no','NO')}</button>
@@ -682,7 +682,7 @@ async function loadFolderSuggestion(id, detailRoot = null) {
         await refreshCurrentFolder();
         await loadMailFolders(false);
       } catch (e) {
-        showToast(`Errore spostamento suggerito: ${e}`);
+        showToast(`${T('app_suggested_move_error', 'Errore spostamento suggerito')}: ${e}`);
       }
     });
     byId('btnDismissSuggestion')?.addEventListener('click', () => {
@@ -882,7 +882,7 @@ async function renderDashboard() {
     const evRows = upcoming.length ? upcoming.map(e =>
       `<div onclick="window.electronAPI?.openCalendarWindow?.()" style="display:flex;align-items:center;gap:8px;padding:6px 9px;background:rgba(0,0,0,0.04);border-radius:8px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='rgba(0,0,0,0.08)'" onmouseout="this.style.background='rgba(0,0,0,0.04)'">
         <div style="width:7px;height:7px;border-radius:50%;background:linear-gradient(135deg,#eeb9dd,#b0c7f4);border:1px solid rgba(0,0,0,0.2);flex-shrink:0;"></div>
-        <div style="font-size:11px;color:rgba(0,0,0,0.82);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.subject||e.title||'Evento'}</div>
+        <div style="font-size:11px;color:rgba(0,0,0,0.82);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.subject||e.title||T('cal_event','Evento')}</div>
         <div style="font-size:10px;color:rgba(0,0,0,0.55);white-space:nowrap;">${fmtEvDate(e.start?.dateTime||e.start?.date)}</div>
       </div>`
     ).join('') : '<div style="font-size:11px;color:rgba(0,0,0,0.55);text-align:center;padding:8px 0;">'+T('no_upcoming','Nessun appuntamento in arrivo')+'</div>';
@@ -1020,7 +1020,7 @@ async function refreshCurrentFolder() {
     return mails;
   } catch (e) {
     console.error('refreshCurrentFolder:', e);
-    renderMailListStatus(`Errore apertura cartella ${currentFolder}: ${String(e)}`);
+    renderMailListStatus(`${T('app_folder_open_error', 'Errore apertura cartella')} ${currentFolder}: ${String(e)}`);
     setText('statMail', '!');
     throw e;
   }

@@ -35,6 +35,9 @@ let voiceRequestAbortController = null;
 let currentVoiceAudio = null;
 let vadStopOnlyMode = false;
 
+// Visible text follows the UI language (same global helper as renderer_utils.js).
+function T(key, it){ return (window.i18n && window.i18n.t) ? window.i18n.t(key, it) : it; }
+
 // ── Contesto mail ────────────────────────────────────────────
 function updateVoiceContext(mailId, mailIndex) {
   voiceContext = { mail_id: mailId, mail_index: mailIndex, pending_send: false };
@@ -54,22 +57,22 @@ function setVoiceState(state) {
     if (state === 'listening') {
       btn.classList.add('voice-listening', 'active');
       if (!isSidebar) btn.textContent = '🎙 ADE';
-      btn.title = 'Ascolto attivo — di\' un comando';
+      btn.title = T('mv_voice_listening_title', 'Ascolto attivo — di\' un comando');
     } else if (state === 'speaking') {
       btn.classList.add('voice-processing', 'active');
       if (!isSidebar) btn.textContent = '● REC';
-      btn.title = 'Registrazione...';
+      btn.title = T('mv_voice_recording', 'Registrazione...');
     } else if (state === 'processing') {
       btn.classList.add('voice-processing', 'active');
       if (!isSidebar) btn.textContent = '⚡ ADE';
-      btn.title = 'Elaborazione...';
+      btn.title = T('mv_voice_processing', 'Elaborazione...');
     } else if (state === 'error') {
       btn.classList.add('voice-error');
       if (!isSidebar) btn.textContent = '✕ MIC';
-      btn.title = 'Errore microfono';
+      btn.title = T('mv_mic_error', 'Errore microfono');
     } else if (state === 'off') {
       if (!isSidebar) btn.textContent = '🎙 OFF';
-      btn.title = 'Comando vocale — clicca per attivare';
+      btn.title = T('mv_voice_off_title', 'Comando vocale — clicca per attivare');
     }
   });
 }
@@ -157,14 +160,14 @@ async function handleVoiceUIAction(action) {
         setTimeout(() => byId('btnAscolta')?.click(), 250);
       }
       if (statusEl) {
-        const senderLabel = target.from?.emailAddress?.name || target.from?.emailAddress?.address || 'mail trovata';
-        statusEl.textContent = `Apro: ${senderLabel}`;
+        const senderLabel = target.from?.emailAddress?.name || target.from?.emailAddress?.address || T('mv_mail_found', 'mail trovata');
+        statusEl.textContent = `${T('mv_opening', 'Apro')}: ${senderLabel}`;
         setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2500);
       }
     } else if (statusEl) {
       statusEl.textContent = sender
-        ? `Non ho trovato una mail chiara per "${sender}".`
-        : 'Non ho trovato la mail richiesta.';
+        ? T('mv_no_clear_mail_for', 'Non ho trovato una mail chiara per "{q}".').replace('{q}', () => sender)
+        : T('mv_mail_not_found', 'Non ho trovato la mail richiesta.');
       setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 3000);
     }
   } else if (type === 'read_mail') {
@@ -450,7 +453,7 @@ async function processVoiceBlob(blob, options = {}) {
     console.log('[VOICE] isStop:', isVoiceStopCommand(cleanedText));
     if (isVoiceStopCommand(cleanedText)) {
       if (statusEl) {
-        statusEl.textContent = 'Voce fermata';
+        statusEl.textContent = T('mv_voice_stopped', 'Voce fermata');
         setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 1500);
       }
       // Ferma sempre tutto — sia audio che VAD
@@ -468,7 +471,7 @@ async function processVoiceBlob(blob, options = {}) {
 
     if (options.stopOnly) {
       if (statusEl) {
-        statusEl.textContent = 'Di\' "stop" per interrompere la lettura.';
+        statusEl.textContent = T('mv_say_stop', 'Di\' "stop" per interrompere la lettura.');
         setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 1500);
       }
       return;
@@ -517,7 +520,7 @@ async function processVoiceBlob(blob, options = {}) {
       return;
     }
     console.error('[VOICE] processVoiceBlob:', e);
-    if (statusEl) { statusEl.textContent = 'Errore voce'; setTimeout(() => { statusEl.textContent = ''; }, 3000); }
+    if (statusEl) { statusEl.textContent = T('mv_voice_error', 'Errore voce'); setTimeout(() => { statusEl.textContent = ''; }, 3000); }
   } finally {
     voiceRequestAbortController = null;
     voiceProcessing = false;
@@ -664,7 +667,7 @@ function bindVoice() {
       if (vadActive) stopVoice();
       else startVoice();
     });
-    btn.title = 'Ascolto always-on — di\' "ade ..." per un comando';
+    btn.title = T('mv_voice_always_on_title', 'Ascolto always-on — di\' "ade ..." per un comando');
   }
 
   // Bottone sidebar

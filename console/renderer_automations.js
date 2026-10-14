@@ -53,41 +53,41 @@
   // ------------------------------------------------------------ rules
   function fmtDays(expiresAt) {
     const d = Math.floor((expiresAt * 1000 - Date.now()) / 86400000);
-    return d < 0 ? T('scaduta', 'expired') : T(`scade tra ${d}g`, `expires in ${d}d`);
+    return d < 0 ? T('scaduta', 'expired', '已过期') : T(`scade tra ${d}g`, `expires in ${d}d`, `${d} 天后过期`);
   }
 
   function ruleCard(r) {
     const trig = r.trigger_kind === 'folder'
-      ? T('cartella ', 'folder ') + r.trigger_values[0]
+      ? T('cartella ', 'folder ', '文件夹 ') + r.trigger_values[0]
       : r.trigger_values.join(', ');
-    const state = r.state === 'active' ? T('attiva', 'active')
-      : r.state === 'paused' ? T('in pausa', 'paused') : T('scaduta', 'expired');
+    const state = r.state === 'active' ? T('attiva', 'active', '启用')
+      : r.state === 'paused' ? T('in pausa', 'paused', '已暂停') : T('scaduta', 'expired', '已过期');
     const cls = r.state === 'active' ? 'ok' : 'err';
     const docs = (r.doc_paths || []).map((p) => p.split(/[\\/]/).pop()).join(', ');
     const modeTag = r.mode === 'auto'
       ? `<span class="ai-tag" style="background:rgba(220,38,38,0.1);border-color:rgba(220,38,38,0.3);color:#dc2626">AUTO</span>`
       : `<span class="ai-tag">SEMI</span>`;
     const actBtn = r.state === 'paused'
-      ? `<button class="chip-btn" data-act="resume" data-id="${r.rule_id}">▶ ${T('Riattiva (Hello)', 'Resume (Hello)')}</button>`
+      ? `<button class="chip-btn" data-act="resume" data-id="${r.rule_id}">▶ ${T('Riattiva (Hello)', 'Resume (Hello)', '恢复 (Hello)')}</button>`
       : r.state === 'active'
-        ? `<button class="chip-btn" data-act="pause" data-id="${r.rule_id}">⏸ ${T('Pausa', 'Pause')}</button>`
+        ? `<button class="chip-btn" data-act="pause" data-id="${r.rule_id}">⏸ ${T('Pausa', 'Pause', '暂停')}</button>`
         : '';
     return `
       <div class="ai-card" data-rule="${r.rule_id}">
         <div class="ai-card-head">
           <div class="ai-card-titles">
             <div class="ai-card-title">${modeTag} ${escapeHtml(trig)}</div>
-            <div class="ai-card-sub">${escapeHtml(r.reply_style || T('(nessuno stile)', '(no style)'))}
+            <div class="ai-card-sub">${escapeHtml(r.reply_style || T('(nessuno stile)', '(no style)', '(无风格)'))}
               ${docs ? ' · 📎 ' + escapeHtml(docs) : ''}</div>
-            <div class="ai-card-sub">${T('cap', 'cap')} ${r.daily_cap}/${T('g', 'd')} · cooldown ${r.cooldown_hours}h ·
-              ${T('oggi', 'today')}: ${r.sent_today} · ${fmtDays(r.expires_at)}
+            <div class="ai-card-sub">${T('cap', 'cap', '上限')} ${r.daily_cap}/${T('g', 'd', '天')} · ${T('cooldown', 'cooldown', '冷却')} ${r.cooldown_hours}h ·
+              ${T('oggi', 'today', '今天')}: ${r.sent_today} · ${fmtDays(r.expires_at)}
               ${r.pause_reason ? ' · ' + escapeHtml(r.pause_reason) : ''}</div>
           </div>
         </div>
         <div class="ai-card-row">
           <span class="ai-card-status ${cls}">${state}</span>
           <span style="flex:1"></span>
-          <button class="chip-btn" data-act="activity" data-id="${r.rule_id}">📋 ${T('Attività', 'Activity')}</button>
+          <button class="chip-btn" data-act="activity" data-id="${r.rule_id}">📋 ${T('Attività', 'Activity', '活动')}</button>
           ${actBtn}
           <button class="chip-btn danger" data-act="delete" data-id="${r.rule_id}">🗑</button>
         </div>
@@ -109,9 +109,10 @@
       box.innerHTML = rules.length
         ? rules.map(ruleCard).join('')
         : `<div class="hint">${T('Nessuna regola. Creane una qui sotto: la conferma finale è Windows Hello.',
-                                 'No rules yet. Create one below: the final confirmation is Windows Hello.')}</div>`;
+                                 'No rules yet. Create one below: the final confirmation is Windows Hello.',
+                                 '还没有规则。在下方创建一条：最终确认由 Windows Hello 完成。')}</div>`;
     } catch (e) {
-      box.innerHTML = `<div class="hint">${T('Errore', 'Error')}: ${escapeHtml(e.message)}</div>`;
+      box.innerHTML = `<div class="hint">${T('Errore', 'Error', '错误')}: ${escapeHtml(e.message)}</div>`;
     }
   }
 
@@ -124,10 +125,10 @@
       if (act === 'pause') {
         await api(`/rules/${id}/pause`, { method: 'POST' });
       } else if (act === 'resume') {
-        toast(T('Conferma con Windows Hello…', 'Confirm with Windows Hello…'));
+        toast(T('Conferma con Windows Hello…', 'Confirm with Windows Hello…', '请用 Windows Hello 确认…'));
         await api(`/rules/${id}/resume`, { method: 'POST' });
       } else if (act === 'delete') {
-        if (!confirm(T('Eliminare la regola?', 'Delete the rule?'))) return;
+        if (!confirm(T('Eliminare la regola?', 'Delete the rule?', '删除此规则？'))) return;
         await api(`/rules/${id}`, { method: 'DELETE' });
       } else if (act === 'activity') {
         const el = $(`act-${id}`);
@@ -135,7 +136,7 @@
         const rows = await api(`/rules/${id}/activity`);
         el.textContent = rows.length
           ? rows.map((r) => `${new Date(r.ts * 1000).toLocaleString()}  ${r.sender}  →  ${r.status}${r.reason ? ' (' + r.reason + ')' : ''}${r.request_id ? '  ' + r.request_id : ''}`).join('\n')
-          : T('Nessuna mail gestita finora.', 'No mail handled yet.');
+          : T('Nessuna mail gestita finora.', 'No mail handled yet.', '尚未处理任何邮件。');
         el.style.display = 'block';
         return;
       }
@@ -164,21 +165,21 @@
       expiry_days: parseFloat($('ruleExpiry').value) || 30,
     };
     if (!values.length || !values[0]) {
-      toast(T('Indica almeno un mittente o una cartella.', 'Enter at least one sender or a folder.'), 'error');
+      toast(T('Indica almeno un mittente o una cartella.', 'Enter at least one sender or a folder.', '请至少填写一个发件人或一个文件夹。'), 'error');
       return;
     }
     const btn = $('btnCreateRule');
     btn.disabled = true;
-    $('ruleFormStatus').textContent = T('Conferma con Windows Hello…', 'Confirm with Windows Hello…');
+    $('ruleFormStatus').textContent = T('Conferma con Windows Hello…', 'Confirm with Windows Hello…', '请用 Windows Hello 确认…');
     try {
       const r = await api('/rules', { method: 'POST', body: JSON.stringify(body) });
-      $('ruleFormStatus').textContent = T(`Regola creata: ${r.rule_id}`, `Rule created: ${r.rule_id}`);
+      $('ruleFormStatus').textContent = T(`Regola creata: ${r.rule_id}`, `Rule created: ${r.rule_id}`, `规则已创建：${r.rule_id}`);
       pickedDocs = [];
       renderDocs();
       $('ruleTriggerValues').value = '';
       await refreshRules();
     } catch (e) {
-      $('ruleFormStatus').textContent = T('Non creata: ', 'Not created: ') + e.message;
+      $('ruleFormStatus').textContent = T('Non creata: ', 'Not created: ', '未创建：') + e.message;
     } finally {
       btn.disabled = false;
     }
@@ -193,7 +194,8 @@
       ? pickedDocs.map((p, i) => `<span class="ai-tag" style="margin:2px">${escapeHtml(p.split(/[\\/]/).pop())}
           <a href="#" data-rm="${i}" style="margin-left:4px;text-decoration:none">✕</a></span>`).join('')
       : `<span class="hint">${T('Nessun documento: la bozza userà solo l\'identità dell\'account.',
-                                 'No documents: the draft will only use the account identity.')}</span>`;
+                                 'No documents: the draft will only use the account identity.',
+                                 '没有文档：草稿只会使用账户身份。')}</span>`;
     el.querySelectorAll('a[data-rm]').forEach((a) => a.addEventListener('click', (ev) => {
       ev.preventDefault();
       pickedDocs.splice(parseInt(a.dataset.rm, 10), 1);
@@ -206,7 +208,7 @@
       const paths = await window.electronAPI.pickFiles();
       (paths || []).forEach((p) => { if (!pickedDocs.includes(p)) pickedDocs.push(p); });
     } else {
-      const p = prompt(T('Percorso completo del documento:', 'Full path of the document:'));
+      const p = prompt(T('Percorso completo del documento:', 'Full path of the document:', '文档的完整路径：'));
       if (p) pickedDocs.push(p.trim());
     }
     renderDocs();
@@ -224,8 +226,8 @@
   function onTriggerKindChange() {
     const kind = $('ruleTriggerKind').value;
     $('ruleTriggerValues').placeholder = kind === 'senders'
-      ? T('indirizzi separati da virgola', 'comma-separated addresses')
-      : T('nome cartella, es. INBOX.Leads', 'folder name, e.g. INBOX.Leads');
+      ? T('indirizzi separati da virgola', 'comma-separated addresses', '用逗号分隔的地址')
+      : T('nome cartella, es. INBOX.Leads', 'folder name, e.g. INBOX.Leads', '文件夹名称，例如 INBOX.Leads');
     $('ruleFolderWarn').style.display = kind === 'folder' ? 'block' : 'none';
   }
 
@@ -242,13 +244,14 @@
       el.className = 'ai-card-status ' + (st.running ? 'ok' : 'err');
       el.textContent = st.running
         ? T(`attivo (pid ${st.pid}, ogni ${st.interval}s, ultimo giro ${st.last_tick_age_seconds ?? '?'}s fa)`,
-            `running (pid ${st.pid}, every ${st.interval}s, last tick ${st.last_tick_age_seconds ?? '?'}s ago)`)
-        : T('fermo — le regole non vengono applicate', 'stopped — rules are not applied');
+            `running (pid ${st.pid}, every ${st.interval}s, last tick ${st.last_tick_age_seconds ?? '?'}s ago)`,
+            `运行中 (pid ${st.pid}，每 ${st.interval} 秒，上次轮询 ${st.last_tick_age_seconds ?? '?'} 秒前)`)
+        : T('fermo — le regole non vengono applicate', 'stopped — rules are not applied', '已停止 — 规则不会生效');
       $('btnWatchStart').style.display = st.running ? 'none' : '';
       $('btnWatchStop').style.display = st.running ? '' : 'none';
-      $('watchRulesCount').textContent = T(`${st.active_rules} regole attive`, `${st.active_rules} active rules`);
+      $('watchRulesCount').textContent = T(`${st.active_rules} regole attive`, `${st.active_rules} active rules`, `${st.active_rules} 条启用的规则`);
       const log = await api('/watch/log?lines=25');
-      $('watchLog').textContent = log.join('\n') || T('(nessun log)', '(no log)');
+      $('watchLog').textContent = log.join('\n') || T('(nessun log)', '(no log)', '(无日志)');
     } catch (e) {
       el.className = 'ai-card-status err';
       el.textContent = e.message;
@@ -266,31 +269,33 @@
         (ag.agents || []).forEach((a) => {
           const o = document.createElement('option');
           o.value = a.id;
-          o.textContent = a.found ? a.label : `${a.label} — ${T('non trovato', 'not found')}`;
+          o.textContent = a.found ? a.label : `${a.label} — ${T('non trovato', 'not found', '未找到')}`;
           sel.appendChild(o);
         });
         if (ag.agent) sel.value = ag.agent;
       }
       set('agentStatus', ag.available ? 'ok' : 'err',
-        ag.available ? T(`pronto: ${ag.command}`, `ready: ${ag.command}`)
+        ag.available ? T(`pronto: ${ag.command}`, `ready: ${ag.command}`, `就绪：${ag.command}`)
                      : T('agente non trovato: installa Claude Code o Codex CLI, o configura agent.json',
-                         'agent not found: install Claude Code or Codex CLI, or configure agent.json'));
+                         'agent not found: install Claude Code or Codex CLI, or configure agent.json',
+                         '未找到代理：请安装 Claude Code 或 Codex CLI，或配置 agent.json'));
       set('consentStatus', st.consent_backend ? 'ok' : 'err',
         st.consent_backend || (
-          T('nessun backend, approvazioni bloccate', 'no backend, approvals fail closed')
+          T('nessun backend, approvazioni bloccate', 'no backend, approvals fail closed', '无后端，审批被阻止')
           + (st.consent_reason ? `: ${st.consent_reason}` : '')));
       const d = st.desktop || {};
       set('desktopStatus', d.buttons ? 'ok' : (d.enabled ? 'warn' : 'err'),
-        !d.enabled ? T('disattivate (GIGAMAIL_NOTIFY_DESKTOP=0)', 'disabled (GIGAMAIL_NOTIFY_DESKTOP=0)')
-          : d.buttons ? T('attive, bottoni cliccabili', 'on, clickable buttons')
-                      : T('attive, senza bottoni (serve la registrazione)', 'on, no buttons (registration needed)'));
+        !d.enabled ? T('disattivate (GIGAMAIL_NOTIFY_DESKTOP=0)', 'disabled (GIGAMAIL_NOTIFY_DESKTOP=0)', '已关闭 (GIGAMAIL_NOTIFY_DESKTOP=0)')
+          : d.buttons ? T('attive, bottoni cliccabili', 'on, clickable buttons', '已开启，按钮可点击')
+                      : T('attive, senza bottoni (serve la registrazione)', 'on, no buttons (registration needed)', '已开启，无按钮（需要注册）'));
       $('btnDesktopSetup').style.display = (d.enabled && !d.buttons && d.platform === 'nt') ? '' : 'none';
       const tg = st.telegram || {};
       set('telegramStatus', tg.configured ? 'ok' : 'err',
         tg.configured
           ? T(`chat ${tg.chat_id} — approvazione ${tg.approve ? 'ABILITATA' : 'non abilitata (solo avvisi, rifiuto, modifica)'}`,
-              `chat ${tg.chat_id} — approval ${tg.approve ? 'ENABLED' : 'not enabled (notify, reject, edit only)'}`)
-          : T('non configurato', 'not configured'));
+              `chat ${tg.chat_id} — approval ${tg.approve ? 'ENABLED' : 'not enabled (notify, reject, edit only)'}`,
+              `chat ${tg.chat_id} — 审批${tg.approve ? '已启用' : '未启用（仅通知、拒绝、修改）'}`)
+          : T('non configurato', 'not configured', '未配置'));
     } catch (e) {
       set('agentStatus', 'err', e.message);
     }
@@ -304,11 +309,11 @@
   }
 
   async function onDesktopSetup() {
-    $('desktopStatus').textContent = T('Conferma il prompt UAC di Windows…', 'Confirm the Windows UAC prompt…');
+    $('desktopStatus').textContent = T('Conferma il prompt UAC di Windows…', 'Confirm the Windows UAC prompt…', '请确认 Windows UAC 提示…');
     try {
       const r = await api('/notify/desktop-setup', { method: 'POST' });
-      toast(r.buttons ? T('Bottoni toast attivi.', 'Toast buttons enabled.')
-                      : T('Registrazione non riuscita (UAC negato?).', 'Registration failed (UAC denied?).'),
+      toast(r.buttons ? T('Bottoni toast attivi.', 'Toast buttons enabled.', '通知按钮已启用。')
+                      : T('Registrazione non riuscita (UAC negato?).', 'Registration failed (UAC denied?).', '注册失败（UAC 被拒绝？）。'),
             r.buttons ? 'ok' : 'error');
     } catch (e) {
       toast(e.message, 'error');

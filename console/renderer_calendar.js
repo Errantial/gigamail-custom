@@ -19,7 +19,7 @@ const CalendarView = (() => {
     const loc   = event.location?.displayName || '';
     return `
       <div class="event-item" data-id="${esc(event.id)}">
-        <div class="event-subject">${esc(event.subject || '(senza titolo)')}</div>
+        <div class="event-subject">${esc(event.subject || T('win_untitled', '(senza titolo)'))}</div>
         <div class="event-time">${esc(start)}</div>
         ${loc ? `<div class="event-location">📍 ${esc(loc)}</div>` : ''}
       </div>`;
@@ -35,7 +35,7 @@ const CalendarView = (() => {
     return `
     <div class="modal" style="max-width:440px">
       <div class="modal-hdr">
-        <span class="modal-title">${esc(event.subject || '(senza titolo)')}</span>
+        <span class="modal-title">${esc(event.subject || T('win_untitled', '(senza titolo)'))}</span>
         <button class="icon-btn" data-act="close" title="${T('close','Chiudi')}">✕</button>
       </div>
       <div class="modal-body">
@@ -146,17 +146,17 @@ function bindCalendarEvents() {
     const location  = byId('eventLocation')?.value || '';
     const body      = byId('eventBody')?.value || '';
     const attendees = (byId('eventAttendees')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
-    if (!subject || !start || !end) { setText('eventStatus', '✕ Compila titolo, inizio e fine'); return; }
+    if (!subject || !start || !end) { setText('eventStatus', T('win_event_fill_required', '✕ Compila titolo, inizio e fine')); return; }
     try {
-      if (id) { await api.updateEvent(id, {subject, start, end, location, body, attendees}); setText('eventStatus', '✓ Evento aggiornato'); }
-      else    { await api.createEvent({subject, start, end, location, body, attendees}); setText('eventStatus', '✓ Evento creato'); }
+      if (id) { await api.updateEvent(id, {subject, start, end, location, body, attendees}); setText('eventStatus', T('win_event_updated', '✓ Evento aggiornato')); }
+      else    { await api.createEvent({subject, start, end, location, body, attendees}); setText('eventStatus', T('win_event_created', '✓ Evento creato')); }
       await loadEvents();
-    } catch (e) { setText('eventStatus', `✕ Errore: ${e}`); }
+    } catch (e) { setText('eventStatus', `✕ ${T('error', 'Errore')}: ${e}`); }
   });
 
   on('btnDeleteEvent', 'click', async () => {
     const id = byId('eventId')?.value || '';
-    if (!id || !confirm('Eliminare questo evento?')) return;
+    if (!id || !confirm(T('win_event_delete_confirm', 'Eliminare questo evento?'))) return;
     try {
       const r = await fetch(`${window.GIGAMAIL_API}/calendar/${encodeURIComponent(id)}`, { method: 'DELETE' });
       let data = {};
@@ -164,10 +164,10 @@ function bindCalendarEvents() {
       if (!r.ok || data.success === false) {
         const msg = data.error || `HTTP ${r.status}`;
         console.error('[CALENDAR DELETE] fallita:', id, data);
-        setText('eventStatus', `✕ Eliminazione fallita: ${msg}`);
+        setText('eventStatus', `✕ ${T('win_event_delete_failed', 'Eliminazione fallita')}: ${msg}`);
         return;
       }
-      setText('eventStatus', '✓ Evento eliminato');
+      setText('eventStatus', T('win_event_deleted', '✓ Evento eliminato'));
       byId('btnClearEvent')?.click();
       await loadEvents();
     }
@@ -176,6 +176,6 @@ function bindCalendarEvents() {
 
   on('btnSpeakToday', 'click', async () => {
     try { const audio = new Audio(api.getCalendarTtsUrl()); await audio.play(); }
-    catch (e) { showToast(`Errore TTS: ${e}`); }
+    catch (e) { showToast(`${T('win_tts_error', 'Errore TTS')}: ${e}`); }
   });
 }
