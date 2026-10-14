@@ -113,9 +113,23 @@ OpenClaw and Hermes all hold a shell — so "out of band from MCP" was not
 - The CLI flag `--yes` is gone. It was the shortcut an agent would use.
 - The console's session token alone no longer approves anything. The token
   lives in a file a process can read; the OS prompt is what it cannot pass.
-- Sending mail from the console also requires a fresh OS verification:
-  the payload and destination are captured before the prompt, and a
-  cancelled verification sends nothing and keeps the compose window open.
+- Sending mail through the console's HTTP API requires a fresh OS
+  verification, unless the request is a click in the console itself: the
+  payload and destination are captured before the prompt, and a cancelled
+  verification sends nothing and keeps the compose window open. Since v0.6.0
+  a send clicked in a console window (send, reply, reply all, forward)
+  carries a **click secret** instead: the console's main process makes it at
+  every launch, keeps it in memory only, hands it to the backend it starts
+  over stdin (never on disk, never in the environment) and adds it only to
+  requests from its own `file://` pages. The token file does not contain it,
+  so an agent or a script holding the console token still meets the OS
+  prompt. What it does not stop: a program running as you that reads
+  another process's memory, or drives the console's window. A backend left
+  running by an earlier launch does not know the new secret, and the
+  console replaces it on start. The user can keep the OS prompt for
+  console sends too (Automations, off by default); only a request carrying
+  the click secret can change that choice, and it never relaxes anything
+  for other callers.
   Tidying from the console (deleting messages or folders, moving messages,
   spam and not-spam, creating, updating or deleting calendar events) does
   **not** open the OS prompt since v0.5.1: a prompt per click made the

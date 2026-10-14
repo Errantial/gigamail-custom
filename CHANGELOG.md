@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **Sending from the console no longer asks Windows Hello.** Send, reply,
+  reply all and forward clicked in a console window go out straight away:
+  the Hello prompt could open behind the windows and leave the button on
+  "Sending…" with nothing to say why. The console proves the click with a
+  secret it makes at every launch and keeps in memory only, handed to its
+  backend over stdin and added only to its own windows' requests. The
+  console token file does not contain it, so the agent or a script holding
+  the token still meets the OS prompt, and the agent's own requests still
+  need your approval. A backend left running by an earlier launch is
+  replaced on start. Audited as "console click". Optional: Automations >
+  *Ask for verification for sends from the console too* keeps the prompt
+  for your own sends as well (off by default; only the console window can
+  change it). See SECURITY.md.
 - **Fix: a mail you open in the console stays read.** Since the backend
   reads mail without touching its flags (so that the agent and the watcher
   do not hide a client's reply from your unread), opening a mail in the

@@ -8,6 +8,8 @@ from fastapi import HTTPException
 from gigamail import consent, policy
 from gigamail.core import accounts as core_accounts
 
+from . import console_click
+
 
 def _active_id() -> Optional[int]:
     a = core_accounts.get_active_account()
@@ -30,16 +32,23 @@ def _audit_result(tool, payload, outcome, **kwargs):
         logging.getLogger(__name__).exception("Cannot record console action outcome")
 
 
-def _human_action(tool: str, args: dict, reason: str, execute: Callable):
+def _human_action(tool: str, args: dict, reason: str, execute: Callable, request=None):
     """A console token authenticates a process, not a human at the screen.
 
     Keep the existing synchronous UI contract, but require OS consent for
     each dangerous action and execute only the payload captured beforehand.
     The consent test override must never turn a dry run into a real write.
+    A request that carries the console's click secret (console_click) is a
+    person clicking in the console: it runs without the OS prompt, unless
+    the user chose to keep the prompt for console sends too, and is audited
+    as such.
     """
     payload = deepcopy(args)
     if "account_id" in payload and payload["account_id"] is None:
         raise HTTPException(400, "Nessun account attivo")
+    if (request is not None and console_click.is_console_click(request.headers)
+            and not console_click.send_requires_hello()):
+        return _run_action(tool, payload, execute, how="console click")
     try:
         approved = consent.require_human(f"GigaMail: {reason}")
     except consent.ConsentUnavailable as e:

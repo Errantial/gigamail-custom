@@ -517,6 +517,9 @@
       win_unknown: "sconosciuto",
       win_pick_date_time: "Seleziona data e ora",
       win_date_in_past: "Data nel passato",
+      // added by the console localization sweep
+      win_console_send_hello: "Chiedi la verifica anche per gli invii dalla console",
+      win_console_send_hello_hint: "Spenta: invia, rispondi e inoltra partono al clic. Le richieste dell'agente passano sempre dalla tua approvazione.",
     },
     en: {
       agentbar_title: "Agent", agent_clear: "Clear", agent_ph: "Ask the agent anything…",
@@ -1008,6 +1011,9 @@
       win_unknown: "unknown",
       win_pick_date_time: "Pick a date and time",
       win_date_in_past: "That date is in the past",
+      // added by the console localization sweep
+      win_console_send_hello: "Ask for verification for sends from the console too",
+      win_console_send_hello_hint: "Off: send, reply and forward go out on click. The agent's requests always need your approval.",
     },
     zh: {
       agentbar_title: "智能体", agent_clear: "清空", agent_ph: "向智能体提问任何问题…",
@@ -1490,6 +1496,9 @@
       win_unknown: "未知",
       win_pick_date_time: "请选择日期和时间",
       win_date_in_past: "该日期已过去",
+      // added by the console localization sweep
+      win_console_send_hello: "从控制台发送时也要求验证",
+      win_console_send_hello_hint: "关闭时：发送、回复和转发点击即发出。代理的请求始终需要你的批准。",
     },
   };
 

@@ -40,6 +40,12 @@ function loadOrCreateToken() {
   return token;
 }
 const API_TOKEN = loadOrCreateToken();
+// Click secret: proves a request comes from a window of this console, so a
+// send clicked here needs no Windows Hello. Made at every launch, kept in
+// memory only, handed to the backend on stdin and added only to requests of
+// our own windows. The token file above is readable by any process of the
+// user, an agent included; this secret is not (http_api/console_click.py).
+const HUMAN_SECRET = crypto.randomBytes(32).toString('hex');
 
 // ── Uscite verso il sistema ────────────────────────────────────────────────
 // Solo http/https/mailto possono lasciare l'app. Qualunque altro schema
@@ -289,8 +295,11 @@ function startPythonServer() {
         PYTHONNOUSERSITE: '1',
         ADE_CONSOLE_TOKEN: API_TOKEN,
         ADE_CONSOLE_PORT: String(API_PORT),
+        ADE_CONSOLE_HUMAN_STDIN: '1',   // the click secret comes on stdin, below
       },
     });
+    try { serverProcess.stdin.end(HUMAN_SECRET + String.fromCharCode(10)); }
+    catch (e) { console.error('[GIGAMAIL] click secret not passed: every send will ask Windows Hello', e.message); }
     serverProcess.stdout?.on('data', (d) => console.log('[SERVER]', d.toString().trim()));
     serverProcess.stderr?.on('data', (d) => console.error('[SERVER ERR]', d.toString().trim()));
     serverProcess.on('exit', (code) => console.log('[SERVER] exit', code));
@@ -320,7 +329,8 @@ function startPythonServer() {
           start();
           return;
         }
-        const why = restartReason(health, app.getVersion(), realDir(srcDir));
+        const why = restartReason(health, app.getVersion(), realDir(srcDir))
+          || (await backendKnowsClicks() ? '' : "it does not know this console's click secret");
         if (!why) {
           console.log(`[GIGAMAIL] Backend console gia' attivo su porta ${API_PORT}`);
           resolve();
@@ -340,6 +350,22 @@ function startPythonServer() {
     req.on('error', start);
     req.setTimeout(1000, () => req.destroy(new Error('timeout')));
     req.end();
+  });
+}
+
+/** Whether the backend on the port knows this launch's click secret. A
+ *  backend left running by an earlier launch does not: kept, it would ask
+ *  Windows Hello for every send. Any doubt (old backend, no answer) is no. */
+function backendKnowsClicks() {
+  return new Promise((resolve) => {
+    const req = http.get(`${API}/console/human`,
+      { timeout: 1000, headers: { 'X-ADE-Token': API_TOKEN, 'X-ADE-Human': HUMAN_SECRET } }, (res) => {
+        let body = '';
+        res.on('data', (d) => { body += d; });
+        res.on('end', () => { try { resolve(res.statusCode === 200 && JSON.parse(body).known === true); } catch (_) { resolve(false); } });
+      });
+    req.on('error', () => resolve(false));
+    req.on('timeout', () => { req.destroy(); resolve(false); });
   });
 }
 
@@ -454,6 +480,11 @@ app.whenReady().then(async () => {
     const u = details.url;
     if (u.startsWith(`http://127.0.0.1:${API_PORT}/`) || u.startsWith(`http://localhost:${API_PORT}/`)) {
       details.requestHeaders['X-ADE-Token'] = API_TOKEN;
+      // only pages of the console itself (file://) carry the click secret
+      const wc = details.webContents;
+      if (wc && !wc.isDestroyed() && String(wc.getURL()).startsWith('file:')) {
+        details.requestHeaders['X-ADE-Human'] = HUMAN_SECRET;
+      }
     }
     callback({ requestHeaders: details.requestHeaders });
   });

@@ -283,6 +283,8 @@
         st.consent_backend || (
           T('nessun backend, approvazioni bloccate', 'no backend, approvals fail closed', '无后端，审批被阻止')
           + (st.consent_reason ? `: ${st.consent_reason}` : '')));
+      const sendHello = $('consoleSendHello');
+      if (sendHello) sendHello.checked = !!st.console_send_hello;
       const d = st.desktop || {};
       set('desktopStatus', d.buttons ? 'ok' : (d.enabled ? 'warn' : 'err'),
         !d.enabled ? T('disattivate (GIGAMAIL_NOTIFY_DESKTOP=0)', 'disabled (GIGAMAIL_NOTIFY_DESKTOP=0)', '已关闭 (GIGAMAIL_NOTIFY_DESKTOP=0)')
@@ -321,6 +323,21 @@
     refreshNotify();
   }
 
+  // The user's choice: sends clicked in the console go straight away, or
+  // ask the OS verification like the agent's requests.
+  async function onConsoleSendHello(ev) {
+    const want = ev.target.checked;
+    try {
+      const r = await api('/console/send-hello', { method: 'POST', body: JSON.stringify({ enabled: want }) });
+      ev.target.checked = !!r.console_send_hello;
+      toast(want ? T('Gli invii dalla console chiederanno la verifica.', 'Sends from the console will ask for verification.', '从控制台发送将需要验证。')
+                 : T('Gli invii dalla console partono al clic.', 'Sends from the console go out on click.', '从控制台发送将直接发出。'), 'ok');
+    } catch (e) {
+      ev.target.checked = !want;
+      toast(e.message, 'error');
+    }
+  }
+
   async function refreshAll() {
     await Promise.all([refreshRules(), refreshWatch(), refreshNotify(), fillAccounts()]);
   }
@@ -357,6 +374,7 @@
     });
     $('btnWatchRefresh')?.addEventListener('click', refreshWatch);
     $('btnDesktopSetup')?.addEventListener('click', onDesktopSetup);
+    $('consoleSendHello')?.addEventListener('change', onConsoleSendHello);
     $('btnNotifyRefresh')?.addEventListener('click', refreshNotify);
     // Rotella: scorre .auto-body ovunque sia il puntatore nella vista
     // (non solo sopra la barra), anche quando il target e' un campo.
