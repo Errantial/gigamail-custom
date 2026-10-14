@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **The mails the agent mentions open with a click.** When the agent in the
+  console lists mails, each subject is a link: a mail of the account on
+  screen opens in the reading pane, a mail of another account in its own
+  window. The agent is asked to link only ids the tools returned, and only
+  links to a mail become clickable: any other link in its answer stays
+  plain text.
 - **Calendar: all-day events, and a grid that fits.** The event form has an
   *All day* box: start and end become dates, first and last day included,
   and Microsoft 365 and Google receive a real all-day event. All-day events

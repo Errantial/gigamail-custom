@@ -183,6 +183,9 @@ body { background: var(--gm-bg); color: var(--gm-ink); }
 .agent-msg-ctx { font-size: 11px; opacity: .85; margin-top: 3px; }
 .agent-msg-ctx::before { content: "✉ "; }
 .agent-msg.agent { align-self: flex-start; background: var(--gm-fill); border-bottom-left-radius: 5px; }
+.agent-mail-link { color: var(--gm-pink); font-weight: 600; text-decoration: underline;
+  text-underline-offset: 2px; cursor: pointer; }
+.agent-mail-link:hover { text-decoration-thickness: 2px; }
 .agent-msg.thinking { color: var(--gm-muted); display: flex; align-items: center; gap: 8px; }
 .agent-msg.error { background: #fdecec; color: #a32020; }
 .agent-dots { display: inline-flex; gap: 3px; }

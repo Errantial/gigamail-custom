@@ -13,11 +13,45 @@
   let busy = false;
   let useMail = true;        // il chip "questa mail" e' attivo
 
-  // testo dell'agente: escape, poi solo grassetto e a capo
+  // A mail the agent mentions comes as a markdown link with this scheme
+  // (the prompt asks for it): [subject](gigamail://mail/<account>/<id>?folder=<f>).
+  // The text is escaped first, so the link is matched on escaped text and
+  // only this scheme becomes clickable: an http link written by the agent
+  // (or by a mail it read) stays plain text.
+  const MAIL_LINK = /\[([^\]\n]+)\]\(gigamail:\/\/mail\/(\d+)\/([^)\s?]+)(?:\?folder=([^)\s]*))?\)/g;
+
+  // agent text: escape, then mail links, bold and line breaks only
   function formatAnswer(text) {
     return escHtml(text)
+      .replace(MAIL_LINK, (_m, label, account, id, folder) =>
+        `<a href="#" class="agent-mail-link" data-account="${account}" data-id="${id}"` +
+        ` data-folder="${folder || ''}">${label}</a>`)
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/\n/g, '<br>');
+  }
+
+  // What a clicked mail link opens: the reading pane when the mail is in the
+  // account on screen, its own window otherwise (the pane reads from the
+  // active account only).
+  function mailLinkTarget(el) {
+    const account = parseInt(el.dataset.account, 10);
+    const id = el.dataset.id || '';
+    if (!account || !id) return null;
+    let folder = el.dataset.folder || '';
+    try { folder = decodeURIComponent(folder); } catch { /* keep it as written */ }
+    const active = (typeof activeAccountId !== 'undefined') ? activeAccountId : null;
+    const merged = (typeof activeGroup !== 'undefined') && activeGroup;
+    const inPane = !merged && String(active) === String(account) && typeof window.openMail === 'function';
+    return { account, id, folder: folder || null, inPane };
+  }
+
+  function openMailLink(el) {
+    const t = mailLinkTarget(el);
+    if (!t) return;
+    if (t.inPane) window.openMail(t.id, t.folder);
+    else if (window.electronAPI && window.electronAPI.openMailWindow) {
+      window.electronAPI.openMailWindow({ id: t.id, folder: t.folder, account_id: t.account });
+    }
   }
 
   function openMail() {
@@ -168,6 +202,12 @@
     });
     $('agentSend').addEventListener('click', send);
     $('agentClear').addEventListener('click', clearThread);
+    $('agentThread').addEventListener('click', (ev) => {
+      const link = ev.target.closest && ev.target.closest('.agent-mail-link');
+      if (!link) return;
+      ev.preventDefault();
+      openMailLink(link);
+    });
     $('agentChipX').addEventListener('click', () => { useMail = false; refreshChip(); });
     // nuova mail aperta: il chip torna attivo e mostra il suo oggetto
     let lastId = null;
@@ -178,6 +218,8 @@
     refreshChip();
     autoGrow();
   }
+
+  window.AgentView = { formatAnswer, mailLinkTarget };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();

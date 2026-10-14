@@ -39,6 +39,18 @@ def test_la_domanda_porta_contesto_e_regole(client, monkeypatch):
     assert "User: ciao" in p and "Agent: ciao!" in p
 
 
+def test_mails_in_the_answer_come_as_links_the_console_opens(client, monkeypatch):
+    """The console turns gigamail://mail/<account>/<id> links into mails
+    you can click: the prompt has to ask for them, with real ids only."""
+    visti = []
+    monkeypatch.setattr(agent_bridge, "run", lambda p, timeout=None: visti.append(p) or "ok")
+    r = client.post("/agent/command", json={"question": "any mail from the bank?", "account_id": 3})
+    assert r.status_code == 200
+    p = visti[0]
+    assert "gigamail://mail/ACCOUNT_ID/MESSAGE_ID?folder=FOLDER" in p
+    assert "Never invent an id" in p
+
+
 def test_le_richieste_aperte_durante_il_giro_tornano_alla_console(client, monkeypatch):
     vecchia = policy.store().create("send_mail", {"to": "x@example.com"}, {"subject": "Vecchia"})
 

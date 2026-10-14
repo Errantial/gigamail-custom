@@ -424,7 +424,14 @@ def _prompt_comando(req: AgentCommandRequest, aid: Optional[int]) -> str:
         "user's mail, calendar and documents.",
         "Rules:",
         f"- Answer in {_lingua(req.lang)}, concisely: a few sentences or a short list.",
-        "- When you mention a mail, give its subject and sender.",
+        "- When you mention a mail, give its subject and sender, and write the "
+        "subject as a link the console opens: "
+        "[subject](gigamail://mail/ACCOUNT_ID/MESSAGE_ID?folder=FOLDER). "
+        "ACCOUNT_ID is the account you read it from (the active account when "
+        "you did not pass one), MESSAGE_ID is the id exactly as the tool "
+        "returned it, FOLDER is the folder the tool reported, percent-encoded "
+        "(leave out ?folder= when you do not know it). Never invent an id: "
+        "without one, write the subject as plain text.",
         "- Sending, replying, forwarding, deleting and moving mail need the "
         "user's approval. Call the tool normally: it returns approval_required "
         "and a request_id. You cannot approve it. Stop there and say in one "
