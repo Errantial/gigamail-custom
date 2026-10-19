@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## v0.5.3 — 2026-10-19
+
+- **The Google client ships in the package, from CI.** `google_config.json`
+  is committed empty, so every downloaded copy answered that Google was
+  not configured: calendar and Drive only ever worked on the maintainer's
+  machine, where the credentials sit in a local file. The release
+  workflow now fills it from two repository secrets,
+  `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`, in every job
+  that builds something users install (wheel, Windows installer, macOS
+  dmg), and fails the release when they are missing, half-set or swapped
+  instead of shipping the feature switched off. The secret never enters
+  git: a desktop client's secret is not confidential, but the scanner and
+  the history do not care. `scripts/inject_google_client.py`, with tests.
+
 - **A slow mail server no longer freezes the watcher.** The archive step of
   a tick had no time limit: an IMAP server that kept a FETCH open, sending
   a few bytes now and then, held the watcher for as long as it liked. The
