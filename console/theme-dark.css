@@ -147,3 +147,4 @@ html[data-theme="dark"] #agentInput { background: transparent !important; border
 html[data-theme="dark"] .cal-event-chip.all-day { background: var(--gm-pink) !important; color: #fff !important; border-color: var(--gm-pink) !important; }
 html[data-theme="dark"] .agent-msg.approval.not-run { background: #2e2615; border-color: #6b5320; }
 html[data-theme="dark"] .agent-msg.approval.not-run .agent-appr-head { color: #f0b54a; }
+html[data-theme="dark"] .agent-send.stop { background: var(--gm-ink); color: var(--gm-bg); }

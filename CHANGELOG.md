@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **The agent bar remembers, and can be stopped.** The conversation in the
+  agent bar, approval cards included, is kept on this computer and comes
+  back after a restart; the agent gets its last turns as context, so "and
+  him?" still works the next morning. *Clear* wipes it. While the agent
+  works the send button turns into **Stop**: it ends the agent's process
+  and its children, not only the wait in the window; requests the agent
+  had already opened stay on screen for you to approve or reject. Backend:
+  `run_id` on `/agent/command` and `/agent/command/complete`,
+  `POST /agent/command/cancel`.
 - **Fix: after an approval in the agent bar, the agent could not finish.**
   The console started Claude Code allowing only the MCP server's old name,
   `ade-mail`; a server registered as `gigamail`, by hand or by the plugin,

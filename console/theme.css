@@ -231,3 +231,6 @@ body { background: var(--gm-bg); color: var(--gm-ink); }
 .agent-send:disabled { background: var(--gm-line); color: var(--gm-muted); cursor: default; }
 .agent-msg.approval.not-run { background: var(--gm-amber-bg); border-color: #efd3a3; }
 .agent-msg.approval.not-run .agent-appr-head { color: var(--gm-amber); }
+.agent-send.stop { background: var(--gm-ink); color: #fff; font-size: 12px; }
+.agent-send.stop:hover { background: #3a3a44; }
+.agent-msg.note { align-self: flex-start; background: transparent; color: var(--gm-muted); font-style: italic; padding: 2px 4px; }

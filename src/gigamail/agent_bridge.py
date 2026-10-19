@@ -28,12 +28,90 @@ import os
 import shutil
 import subprocess
 import tempfile
+import threading
 
 DEFAULT_TIMEOUT = 180
 
 
 class AgentUnavailable(Exception):
     pass
+
+
+class AgentCancelled(AgentUnavailable):
+    """The user pressed Stop in the console: the agent's process was ended."""
+
+
+# Runs started with a run_id, so that the console's Stop can end them. The
+# agent spawns its own children (claude.cmd -> node, MCP server): the whole
+# tree goes.
+_RUNNING: dict = {}
+_CANCELLED: set = set()
+_LOCK = threading.Lock()
+
+
+def _kill_tree(proc) -> None:
+    try:
+        if os.name == "nt":
+            subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                           capture_output=True, timeout=10)
+        else:
+            import signal
+            os.killpg(proc.pid, signal.SIGTERM)
+    except Exception:
+        try:
+            proc.kill()
+        except Exception:
+            pass
+
+
+def cancel(run_id: str) -> bool:
+    """End the run started with this id. False when nothing is running
+    under it (already finished, or never started)."""
+    with _LOCK:
+        # Recorded even before the process exists: a Stop pressed while the
+        # run is still starting ends it as soon as it is spawned.
+        if len(_CANCELLED) > 100:
+            _CANCELLED.clear()
+        _CANCELLED.add(run_id)
+        proc = _RUNNING.get(run_id)
+    if proc is None:
+        return False
+    _kill_tree(proc)
+    return True
+
+
+def _spawn(cmd, stdin_bytes, timeout, env, run_id):
+    """(returncode, stdout, stderr). Without a run_id, subprocess.run as
+    always; with one, the process is registered so cancel() can end it."""
+    if not run_id:
+        p = subprocess.run(cmd, capture_output=True, input=stdin_bytes,
+                           stdin=None if stdin_bytes is not None else subprocess.DEVNULL,
+                           timeout=timeout, shell=False, env=env)
+        return p.returncode, p.stdout, p.stderr
+    kw = {"start_new_session": True} if os.name != "nt" else {}
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            stdin=subprocess.PIPE if stdin_bytes is not None else subprocess.DEVNULL,
+                            shell=False, env=env, **kw)
+    with _LOCK:
+        _RUNNING[run_id] = proc
+        early = run_id in _CANCELLED
+    if early:
+        _kill_tree(proc)
+    try:
+        try:
+            out, err = proc.communicate(input=stdin_bytes, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            _kill_tree(proc)
+            proc.communicate()
+            raise
+    finally:
+        with _LOCK:
+            _RUNNING.pop(run_id, None)
+            stopped = run_id in _CANCELLED
+            _CANCELLED.discard(run_id)
+    if stopped:
+        raise AgentCancelled("Fermato dall'utente.")
+    return proc.returncode, out, err
 
 
 def _found(exe: str) -> bool:
@@ -275,7 +353,7 @@ def _env_for_child(cfg: dict) -> dict | None:
     return env
 
 
-def run(prompt: str, timeout: int | None = None) -> str:
+def run(prompt: str, timeout: int | None = None, run_id: str | None = None) -> str:
     """Esegue l'agente headless con il prompt e restituisce il testo prodotto."""
     cfg = get_config()
     cmd = list(cfg["command"])
@@ -325,20 +403,17 @@ def run(prompt: str, timeout: int | None = None) -> str:
                 '(es. {"command": ["claude", "-p", "{prompt}"]}).'
             )
     try:
-        proc = subprocess.run(
-            cmd,
-            capture_output=True,
-            input=da_stdin,
-            stdin=None if da_stdin is not None else subprocess.DEVNULL,
-            timeout=timeout or cfg["timeout"],
-            shell=False,
-            env=_env_for_child(cfg),
-        )
+        returncode, stdout, stderr = _spawn(
+            cmd, da_stdin, timeout or cfg["timeout"], _env_for_child(cfg), run_id)
     except subprocess.TimeoutExpired as e:
         if out_file:
             _unlink(out_file)
         raise AgentUnavailable("L'agente non ha risposto entro il timeout.") from e
-    out = (proc.stdout or b"").decode("utf-8", errors="replace").strip()
+    except AgentCancelled:
+        if out_file:
+            _unlink(out_file)
+        raise
+    out = (stdout or b"").decode("utf-8", errors="replace").strip()
     if out_file:
         try:
             with open(out_file, encoding="utf-8", errors="replace") as f:
@@ -348,15 +423,15 @@ def run(prompt: str, timeout: int | None = None) -> str:
         except OSError:
             pass
         _unlink(out_file)
-    err = (proc.stderr or b"").decode("utf-8", errors="replace").strip()
-    if proc.returncode != 0:
+    err = (stderr or b"").decode("utf-8", errors="replace").strip()
+    if returncode != 0:
         # Un'uscita con errore non e' una risposta, anche se ha scritto
         # qualcosa: Claude Code scollegato stampa "Not logged in · Please
         # run /login" su stdout ed esce con 1. Prima quel testo tornava
         # come se fosse la bozza, e sarebbe finito in approvazione come
         # corpo della mail a un cliente.
         raise AgentUnavailable(
-            f"Agente terminato con errore ({proc.returncode}): {(err or out)[:400]}")
+            f"Agente terminato con errore ({returncode}): {(err or out)[:400]}")
     if _non_collegato(out):
         raise AgentUnavailable(f"Agente non collegato: {out[:200]}")
     return out

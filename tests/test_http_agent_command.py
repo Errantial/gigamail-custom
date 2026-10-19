@@ -134,3 +134,18 @@ def test_l_agente_non_puo_dichiarare_fatto_cio_che_non_e_successo(client, monkey
     monkeypatch.setattr(agent_bridge, "run", lambda p, timeout=None: visti.append(p) or "ok")
     client.post("/agent/command", json={"question": "crea una call"})
     assert "Never say something was done" in visti[-1]
+
+
+def test_stop_ferma_il_giro_e_tiene_le_richieste_gia_aperte(client, monkeypatch):
+    def agente(prompt, timeout=None, run_id=None):
+        assert run_id == "run-12345678"
+        policy.store().create("send_mail", {"to": "a@example.com"}, {"subject": "Prima dello stop"})
+        raise agent_bridge.AgentCancelled("Fermato dall'utente.")
+
+    monkeypatch.setattr(agent_bridge, "run", agente)
+    body = client.post("/agent/command", json={"question": "rispondi", "run_id": "run-12345678"}).json()
+    assert body["cancelled"] is True
+    assert [a["subject"] for a in body["approvals"]] == ["Prima dello stop"]
+    assert client.post("/agent/command", json={"question": "x", "run_id": "no spazi!"}).status_code == 422
+    monkeypatch.setattr(agent_bridge, "cancel", lambda rid: rid == "run-12345678")
+    assert client.post("/agent/command/cancel", json={"run_id": "run-12345678"}).json() == {"cancelled": True}

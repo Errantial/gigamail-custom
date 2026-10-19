@@ -4,7 +4,7 @@ import re
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from gigamail import agent_bridge
 from gigamail.core import accounts as core_accounts
@@ -406,12 +406,23 @@ class AgentCommandRequest(BaseModel):
     folder: Optional[str] = None
     lang: str = "it"
     history: list[AgentTurn] = []
+    # chosen by the console for this request: Stop ends the run under it
+    run_id: Optional[str] = Field(None, pattern=r"^[A-Za-z0-9-]{8,64}$")
 
 
 class AgentCompleteRequest(BaseModel):
     request_id: str
     lang: str = "it"
     question: str = ""   # the request that led to the approval: sets the answer's language
+    run_id: Optional[str] = Field(None, pattern=r"^[A-Za-z0-9-]{8,64}$")
+
+
+class AgentCancelRequest(BaseModel):
+    run_id: str = Field(..., pattern=r"^[A-Za-z0-9-]{8,64}$")
+
+
+def _run_kw(run_id):
+    return {"run_id": run_id} if run_id else {}
 
 
 def _lingua(lang: str) -> str:
@@ -503,10 +514,19 @@ def agent_command(req: AgentCommandRequest):
     aid = req.account_id or _active_id()
     prima = _id_in_sospeso()
     try:
-        risposta = (agent_bridge.run(_prompt_comando(req, aid)) or "").strip()
+        risposta = (agent_bridge.run(_prompt_comando(req, aid), **_run_kw(req.run_id)) or "").strip()
+    except agent_bridge.AgentCancelled:
+        # what the agent opened before Stop stays visible: the user decides it
+        return {"answer": "", "cancelled": True, "approvals": _richieste_nuove(prima)}
     except agent_bridge.AgentUnavailable as e:
         raise HTTPException(503, str(e)) from e
     return {"answer": risposta, "approvals": _richieste_nuove(prima)}
+
+
+@router.post("/agent/command/cancel")
+def agent_command_cancel(req: AgentCancelRequest):
+    """Stop in the console: ends the agent run started under run_id."""
+    return {"cancelled": agent_bridge.cancel(req.run_id)}
 
 
 @router.post("/agent/command/complete")
@@ -532,9 +552,15 @@ def agent_command_complete(req: AgentCompleteRequest):
         "refused, not permitted or failed, say so and do not claim it was done. "
         "Do nothing else."
     )
+    cancelled = False
     try:
-        risposta = (agent_bridge.run(prompt) or "").strip()
+        risposta = (agent_bridge.run(prompt, **_run_kw(req.run_id)) or "").strip()
+    except agent_bridge.AgentCancelled:
+        risposta, cancelled = "", True
     except agent_bridge.AgentUnavailable as e:
         raise HTTPException(503, str(e)) from e
     dopo = policy.store().get(req.request_id) or {}
+    if cancelled:
+        return {"answer": "", "cancelled": True, "status": dopo.get("status"),
+                "outcome": dopo.get("execution_outcome")}
     return {"answer": risposta, "status": dopo.get("status"), "outcome": dopo.get("execution_outcome")}

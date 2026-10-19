@@ -92,9 +92,82 @@
       `<span class="agent-dots"><i></i><i></i><i></i></span> ${escHtml(L('agent_thinking', 'L\'agente sta lavorando…'))}`);
   }
 
+  // ── memory: the conversation survives a restart ─────────────────────────
+  // Kept in this computer's localStorage (the console's own profile), never
+  // sent anywhere but to the agent, as the last turns of context. Clear
+  // wipes it.
+  const STORE_KEY = 'gm-agent-thread-v1';
+  const MAX_ENTRIES = 60;
+  let log = [];   // {k:'user'|'agent'|'error'|'note'|'appr', t, c, a, q, s}
+
+  function save() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({
+        history: history.slice(-12), log: log.slice(-MAX_ENTRIES),
+      }));
+    } catch (e) { /* storage full or off: the thread just is not kept */ }
+  }
+
+  function load() {
+    try {
+      const data = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+      if (!data || !Array.isArray(data.log)) return;
+      (Array.isArray(data.history) ? data.history : []).forEach((h) => {
+        if (h && (h.role === 'user' || h.role === 'agent')) history.push({ role: h.role, text: String(h.text || '') });
+      });
+      data.log.forEach(renderEntry);
+      log = data.log.slice(-MAX_ENTRIES);
+    } catch (e) { /* unreadable: start empty */ }
+  }
+
+  function remember(entry) {
+    log.push(entry);
+    if (log.length > MAX_ENTRIES) log = log.slice(-MAX_ENTRIES);
+    save();
+    return entry;
+  }
+
+  // Draws an entry, from a live answer or from the saved thread. Every text
+  // goes through escHtml / formatAnswer: what comes back from storage is
+  // treated as untrusted as what comes from the agent.
+  function renderEntry(e) {
+    if (!e || typeof e !== 'object') return;
+    if (e.k === 'user') {
+      addBubble('user', escHtml(e.t) + (e.c ? `<div class="agent-msg-ctx">${escHtml(e.c)}</div>` : ''));
+    } else if (e.k === 'agent') {
+      addBubble('agent', formatAnswer(e.t));
+    } else if (e.k === 'error') {
+      addBubble('agent error', escHtml(e.t));
+    } else if (e.k === 'note') {
+      addBubble('agent note', escHtml(e.t));
+    } else if (e.k === 'appr' && e.a) {
+      approvalCard(e.a, e.q, e);
+    }
+  }
+
+  const say = (k, t, c) => renderEntry(remember({ k, t: String(t || ''), c: c || '' }));
+
+  // ── runs: one id per request, so Stop ends the right one ────────────────
+  let currentRun = null;
+  function newRunId() {
+    try { if (window.crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) { /* fall back */ }
+    return `run-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  }
+
+  const STATES = {
+    approved: ['approved', 'agent_approved', 'Approvata'],
+    executed: ['approved', 'agent_executed', 'Approvata ed eseguita'],
+    'not-run': ['not-run', 'agent_not_run', 'Approvata, ma non eseguita'],
+    rejected: ['rejected', 'agent_rejected', 'Rifiutata: non verrà eseguita'],
+  };
+
   // `question` is the request that opened the approval: the confirmation
-  // after it comes back in the language the user wrote it in.
-  function approvalCard(a, question) {
+  // after it comes back in the language the user wrote it in. `entry` is
+  // its saved form: the card keeps its state across a restart.
+  function approvalCard(a, question, entry) {
+    entry = entry || remember({ k: 'appr', a: {
+      request_id: a.request_id, tool: a.tool, subject: a.subject, summary: a.summary,
+    }, q: question || '', s: 'pending' });
     const el = addBubble('approval', `
       <div class="agent-appr-head">${escHtml(L('agent_waiting', 'In attesa della tua approvazione'))}</div>
       <div class="agent-appr-title">${escHtml(a.subject || a.tool)}</div>
@@ -104,100 +177,137 @@
         <button class="agent-btn primary" data-act="approve">${escHtml(L('agent_approve', 'Approva'))}</button>
       </div>`);
     el.dataset.requestId = a.request_id;
-    const state = (cls, text) => {
+    const state = (name) => {
+      const [cls, key, it] = STATES[name];
+      el.classList.remove('approved', 'not-run', 'rejected');
       el.classList.add(cls);
-      el.querySelector('.agent-appr-head').textContent = text;
-      el.querySelector('.agent-appr-actions').innerHTML =
-        '';
+      el.querySelector('.agent-appr-head').textContent = L(key, it);
+      el.querySelector('.agent-appr-actions').innerHTML = '';
+      entry.s = name;
+      save();
     };
+    if (entry.s && entry.s !== 'pending' && STATES[entry.s]) { state(entry.s); return el; }
     el.querySelector('[data-act="approve"]').addEventListener('click', async (ev) => {
+      if (busy) return;
       ev.currentTarget.disabled = true;
       try {
         // la verifica Windows Hello / Touch ID la chiede il backend
         await window.electronAPI.approveRequest(a.request_id);
       } catch (e) {
         ev.currentTarget.disabled = false;
-        addBubble('agent error', escHtml(`${L('agent_not_approved', 'Non approvata')}: ${e.message || e}`));
+        say('error', `${L('agent_not_approved', 'Non approvata')}: ${e.message || e}`);
         return;
       }
-      state('approved', L('agent_approved', 'Approvata'));
+      state('approved');
       const wait = addThinking();
+      setBusy(true);
+      currentRun = newRunId();
       try {
-        const r = await window.electronAPI.agentComplete({ request_id: a.request_id, lang: lang(), question: question || '' });
+        const r = await window.electronAPI.agentComplete({
+          request_id: a.request_id, lang: lang(), question: question || '', run_id: currentRun,
+        });
         wait.remove();
-        if (r.status === 'executed') {
-          el.querySelector('.agent-appr-head').textContent = L('agent_executed', 'Approvata ed eseguita');
+        // What GigaMail recorded, not what the agent wrote: an agent that
+        // could not call the tool may still answer "done".
+        state(r.status === 'executed' ? 'executed' : 'not-run');
+        if (r.cancelled) {
+          say('note', L('agent_stopped', 'Fermato.'));
         } else {
-          // What GigaMail recorded, not what the agent wrote: an agent that
-          // could not call the tool may still answer "done".
-          el.classList.remove('approved');
-          el.classList.add('not-run');
-          el.querySelector('.agent-appr-head').textContent = L('agent_not_run', 'Approvata, ma non eseguita');
+          say('agent', r.answer || L('agent_done', 'Fatto.'));
+          history.push({ role: 'agent', text: r.answer || '' });
+          save();
         }
-        addBubble('agent', formatAnswer(r.answer || L('agent_done', 'Fatto.')));
-        history.push({ role: 'agent', text: r.answer || '' });
       } catch (e) {
         wait.remove();
-        addBubble('agent error', escHtml(e.message || String(e)));
+        say('error', e.message || String(e));
+      } finally {
+        currentRun = null;
+        setBusy(false);
       }
     });
     el.querySelector('[data-act="reject"]').addEventListener('click', async () => {
       try {
         await window.electronAPI.rejectRequest(a.request_id);
-        state('rejected', L('agent_rejected', 'Rifiutata: non verrà eseguita'));
+        state('rejected');
       } catch (e) {
-        addBubble('agent error', escHtml(e.message || String(e)));
+        say('error', e.message || String(e));
       }
     });
+    return el;
+  }
+
+  function setBusy(on) {
+    busy = on;
+    const btn = $('agentSend');
+    btn.classList.toggle('stop', on);
+    btn.textContent = on ? '■' : '↑';
+    btn.setAttribute('aria-label', on ? L('agent_stop', 'Ferma') : L('send', 'Invia'));
+    btn.title = on ? L('agent_stop', 'Ferma') : '';
+    autoGrow();
   }
 
   function autoGrow() {
     const ta = $('agentInput');
     ta.style.height = 'auto';
     ta.style.height = `${Math.min(ta.scrollHeight, 140)}px`;
-    $('agentSend').disabled = busy || !ta.value.trim();
+    // while the agent works the button is Stop, and Stop is always available
+    $('agentSend').disabled = busy ? !currentRun : !ta.value.trim();
+  }
+
+  async function stop() {
+    if (!currentRun) return;
+    const btn = $('agentSend');
+    btn.disabled = true;
+    try { await window.electronAPI.agentCancel({ run_id: currentRun }); } catch (e) { /* the answer will say */ }
   }
 
   async function send() {
     const ta = $('agentInput');
     const question = ta.value.trim();
     if (!question || busy) return;
-    busy = true;
     ta.value = '';
-    autoGrow();
     const mail = useMail ? openMail() : null;
-    addBubble('user', escHtml(question) +
-      (mail ? `<div class="agent-msg-ctx">${escHtml(mail.subject || L('agent_this_mail', 'Questa mail'))}</div>` : ''));
+    say('user', question, mail ? (mail.subject || L('agent_this_mail', 'Questa mail')) : '');
     const wait = addThinking();
+    currentRun = newRunId();
+    setBusy(true);
     const body = {
-      question, lang: lang(), history: history.slice(-6),
+      question, lang: lang(), history: history.slice(-6), run_id: currentRun,
       account_id: (typeof activeAccountId !== 'undefined' && activeAccountId) || null,
       mail_id: mail ? mail.id : null, folder: mail ? mail.folder : null,
     };
     history.push({ role: 'user', text: question });
+    save();
     try {
       const r = await window.electronAPI.agentCommand(body);
       wait.remove();
-      addBubble('agent', formatAnswer(r.answer || L('no_answer', '(nessuna risposta)')));
-      history.push({ role: 'agent', text: r.answer || '' });
+      if (r.cancelled) {
+        say('note', L('agent_stopped', 'Fermato.'));
+      } else {
+        say('agent', r.answer || L('no_answer', '(nessuna risposta)'));
+        history.push({ role: 'agent', text: r.answer || '' });
+        save();
+      }
       (r.approvals || []).forEach((a) => approvalCard(a, question));
     } catch (e) {
       wait.remove();
       const msg = String(e.message || e);
-      addBubble('agent error', escHtml(/^not found$/i.test(msg)
+      say('error', /^not found$/i.test(msg)
         ? L('agent_old_backend', 'Il backend in uso non conosce ancora questa funzione: chiudi GigaMail (anche dall\'icona vicino all\'orologio) e riaprila.')
         : /agent|agente|claude|codex/i.test(msg) && /install|trovat|found|unavailable/i.test(msg)
         ? L('agent_unavailable', 'Nessun agente trovato. Installa Claude Code o Codex e riprova.')
-        : msg));
+        : msg);
     } finally {
-      busy = false;
-      autoGrow();
+      currentRun = null;
+      setBusy(false);
     }
   }
 
   function clearThread() {
     $('agentThread').innerHTML = '';
     history.length = 0;
+    log = [];
+    try { localStorage.removeItem(STORE_KEY); } catch (e) { /* nothing kept anyway */ }
     $('agentBar').classList.remove('has-thread');
   }
 
@@ -208,7 +318,7 @@
     ta.addEventListener('keydown', (ev) => {
       if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); send(); }
     });
-    $('agentSend').addEventListener('click', send);
+    $('agentSend').addEventListener('click', () => (busy ? stop() : send()));
     $('agentSend').setAttribute('aria-label', L('send', 'Invia'));
     $('agentClear').addEventListener('click', clearThread);
     $('agentThread').addEventListener('click', (ev) => {
@@ -224,6 +334,7 @@
       if (window._currentMailId !== lastId) { lastId = window._currentMailId; useMail = true; }
       refreshChip();
     }).observe($('mailDetail'), { childList: true, subtree: false });
+    load();
     refreshChip();
     autoGrow();
   }
