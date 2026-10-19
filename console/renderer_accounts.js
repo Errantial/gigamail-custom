@@ -23,6 +23,21 @@ const AccountsView = (() => {
 if (typeof window !== 'undefined') window.AccountsView = AccountsView;
 
 
+// The circle at the bottom of the icon bar: the initial of the account on
+// screen, its address on hover. It was a fixed "S" in the page.
+let _sidebarAccounts = [];
+function updateSidebarAvatar(accounts) {
+  if (Array.isArray(accounts)) _sidebarAccounts = accounts;
+  const el = byId('sidebarAvatar');
+  if (!el) return;
+  const a = _sidebarAccounts.find(x => Number(x.id) === Number(activeAccountId));
+  const label = String((a && (a.name || a.email)) || '').trim();
+  el.textContent = label ? label.charAt(0).toUpperCase() : '·';
+  const tip = a ? [a.name, a.email].filter(Boolean).join(' · ') : '';
+  el.title = tip;
+  el.setAttribute('data-label', tip);
+}
+
 async function loadAccounts() {
   const started = performance.now();
   try {
@@ -38,6 +53,7 @@ async function loadAccounts() {
     // opened: keep it, the backend's may lag behind.
     if (activeGroup && ids.has(Number(activeAccountId))) select.value = String(activeAccountId);
     else activeAccountId = active?.id ?? null;
+    updateSidebarAvatar(accounts);
     mailFolderCache = [];
     renderCustomFolders();
     if (activeAccountId) {
@@ -149,6 +165,7 @@ function bindAccountEvents() {
       leaveGroup();   // one account picked: back to the single view
       await api.switchAccount(id);
       activeAccountId = id;
+      updateSidebarAvatar();
       customFolderCountsRequestId += 1;
       customFolderNewCounts = new Map();
       mailFolderCache = [];

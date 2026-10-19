@@ -6,8 +6,11 @@
   the theme one, switches the console's accent between pink and a calmer
   blue, in light and dark, in every window; the choice is kept. The
   window buttons (minimise, maximise, close) are drawn like the other
-  icons, in the same grey: they were text glyphs that Windows drew in
-  different sizes and colours.
+  icons, in the accent colour: they were text glyphs that Windows drew
+  in different sizes and colours. The GIGAMAIL wordmark sits in a recess
+  cut into the card, deeper in the dark theme. The circle at the bottom of
+  the icon bar shows the initial of the account on screen (its address on
+  hover): it was a fixed "S".
 - **Approve works on click in the console.** Approve in the agent bar's
   card and in *Waiting for you* asked Windows Hello, whose prompt could
   open behind the windows: the button stayed greyed out and nothing

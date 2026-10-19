@@ -90,3 +90,7 @@ html[data-accent="blue"] {
   --gm-pink: #3b6fd8; --gm-pink-hi: #5585e6; --gm-tint: #edf2fc; --gm-tint-line: #b8cbf0;
   --gm-accent-rgb: 59,111,216;
 }
+
+.tb-btn { color: var(--gm-pink) !important; }
+.tb-btn:hover, .tb-btn.close:hover, .tb-btn.minimize:hover, .tb-btn.maximize:hover {
+  background: var(--gm-tint) !important; color: var(--gm-pink-dn, var(--gm-pink)) !important; }
