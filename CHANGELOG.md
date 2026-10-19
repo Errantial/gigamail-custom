@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Fix: after an approval in the agent bar, the agent could not finish.**
+  The console started Claude Code allowing only the MCP server's old name,
+  `ade-mail`; a server registered as `gigamail`, by hand or by the plugin,
+  had no permission in non-interactive mode, so the call that completes an
+  approved request was refused. The agent now has permission under every
+  name GigaMail goes by. It is also told never to report as done what a
+  tool did not confirm, and the approval card shows what GigaMail recorded:
+  *Approved and run*, or *Approved, but not run* whatever the agent wrote.
 - **The console windows refuse inline scripts.** Their
   Content-Security-Policy no longer allows `'unsafe-inline'` in
   `script-src`: the scripts of the seven pages moved to their own files

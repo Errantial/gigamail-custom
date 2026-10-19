@@ -158,3 +158,14 @@ def test_un_agente_configurato_da_te_non_viene_sostituito(monkeypatch):
     with pytest.raises(agent_bridge.AgentUnavailable) as e:
         agent_bridge.run("ciao")
     assert "mio-agente-inesistente" in str(e.value)
+
+
+def test_claude_puo_usare_il_server_gigamail_con_ogni_nome():
+    """--allowedTools con il solo vecchio nome "ade-mail" lasciava senza
+    permesso il server registrato come "gigamail" o dal plugin: in -p ogni
+    chiamata veniva rifiutata."""
+    from gigamail import agent_bridge
+    cmd = agent_bridge._cmd_claude("claude")
+    allowed = cmd[cmd.index("--allowedTools") + 1].split(",")
+    assert {"mcp__gigamail", "mcp__plugin_gigamail_gigamail", "mcp__ade-mail"} <= set(allowed)
+    assert cmd[:3] == ["claude", "-p", "{prompt}"]

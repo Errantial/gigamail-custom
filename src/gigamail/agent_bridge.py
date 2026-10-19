@@ -86,10 +86,20 @@ def _find_codex() -> str:
     return "codex"
 
 
+# The names the GigaMail MCP server goes by in Claude Code: "gigamail" when
+# registered by hand (claude mcp add gigamail), "plugin_gigamail_gigamail"
+# when it comes from the plugin, "ade-mail" in installs from before the
+# rename. Allowing only "ade-mail" left today's installs without permission
+# in -p mode: every tool call was refused, including the completion of a
+# request the user had just approved.
+CLAUDE_MCP_SERVERS = ("gigamail", "plugin_gigamail_gigamail", "ade-mail")
+
+
 def _cmd_claude(exe: str) -> list:
-    # "mcp__ade-mail" a livello server: consente tutti i tool del server MCP
-    # ade-mail (i DANGEROUS restano comunque a due fasi lato server).
-    return [exe, "-p", "{prompt}", "--allowedTools", "mcp__ade-mail"]
+    # Server-level rules (mcp__<server>) allow every tool of the GigaMail
+    # server; DANGEROUS tools stay two-phase on the server side regardless.
+    allowed = ",".join(f"mcp__{name}" for name in CLAUDE_MCP_SERVERS)
+    return [exe, "-p", "{prompt}", "--allowedTools", allowed]
 
 
 def _cmd_codex(exe: str) -> list:

@@ -127,6 +127,12 @@
         wait.remove();
         if (r.status === 'executed') {
           el.querySelector('.agent-appr-head').textContent = L('agent_executed', 'Approvata ed eseguita');
+        } else {
+          // What GigaMail recorded, not what the agent wrote: an agent that
+          // could not call the tool may still answer "done".
+          el.classList.remove('approved');
+          el.classList.add('not-run');
+          el.querySelector('.agent-appr-head').textContent = L('agent_not_run', 'Approvata, ma non eseguita');
         }
         addBubble('agent', formatAnswer(r.answer || L('agent_done', 'Fatto.')));
         history.push({ role: 'agent', text: r.answer || '' });

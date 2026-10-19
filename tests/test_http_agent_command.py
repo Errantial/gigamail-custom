@@ -115,3 +115,22 @@ def test_the_confirmation_follows_the_language_of_the_request(client, monkeypatc
     assert "in the language the user wrote the request in" in p
     assert "responde a Anna que vale" in p
     assert "in English)" in p
+
+
+def test_l_agente_non_puo_dichiarare_fatto_cio_che_non_e_successo(client, monkeypatch):
+    """Visto dal vivo: Claude Code senza permesso sul tool ha scritto
+    "Riunione Zoom creata". Il prompt vieta di dichiarare esiti che il tool
+    non ha restituito, e lo stato che la console mostra e' quello registrato
+    da GigaMail, non il testo dell'agente."""
+    rid = policy.store().create("create_zoom_meeting", {"topic": "Call"}, {"topic": "Call"})
+    assert policy.store().approve(rid, by="test")
+    visti = []
+    monkeypatch.setattr(agent_bridge, "run", lambda p, timeout=None: visti.append(p) or "Riunione Zoom creata.")
+    body = client.post("/agent/command/complete", json={"request_id": rid}).json()
+    assert "do not claim it was done" in visti[0]
+    assert body["status"] == policy.APPROVED       # niente esecuzione registrata
+    assert body["answer"] == "Riunione Zoom creata."   # la console mostra lo stato, non questo
+
+    monkeypatch.setattr(agent_bridge, "run", lambda p, timeout=None: visti.append(p) or "ok")
+    client.post("/agent/command", json={"question": "crea una call"})
+    assert "Never say something was done" in visti[-1]

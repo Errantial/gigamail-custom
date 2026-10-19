@@ -145,3 +145,5 @@ html[data-theme="dark"] .agent-input:focus-within { background: var(--gm-card2);
 html[data-theme="dark"] .agent-btn.ghost { background: var(--gm-card2); }
 html[data-theme="dark"] #agentInput { background: transparent !important; border: none !important; box-shadow: none !important; color: var(--gm-ink) !important; }
 html[data-theme="dark"] .cal-event-chip.all-day { background: var(--gm-pink) !important; color: #fff !important; border-color: var(--gm-pink) !important; }
+html[data-theme="dark"] .agent-msg.approval.not-run { background: #2e2615; border-color: #6b5320; }
+html[data-theme="dark"] .agent-msg.approval.not-run .agent-appr-head { color: #f0b54a; }

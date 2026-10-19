@@ -229,3 +229,5 @@ body { background: var(--gm-bg); color: var(--gm-ink); }
   color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; }
 .agent-send:hover { background: var(--gm-pink-hi); }
 .agent-send:disabled { background: var(--gm-line); color: var(--gm-muted); cursor: default; }
+.agent-msg.approval.not-run { background: var(--gm-amber-bg); border-color: #efd3a3; }
+.agent-msg.approval.not-run .agent-appr-head { color: var(--gm-amber); }
