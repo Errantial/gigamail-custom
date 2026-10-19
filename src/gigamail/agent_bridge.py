@@ -330,7 +330,7 @@ def _claude_login_present() -> bool:
         return False
 
 
-def _env_for_child(cfg: dict) -> dict | None:
+def _env_for_child(cfg: dict, quiet_desktop: bool = False) -> dict | None:
     """Environment for the agent process, or None to inherit ours as is.
 
     Claude Code gives ANTHROPIC_API_KEY precedence over the claude.ai
@@ -351,6 +351,11 @@ def _env_for_child(cfg: dict) -> dict | None:
     if server and not os.environ.get("GIGAMAIL_SERVER"):
         env = env if env is not None else dict(os.environ)
         env["GIGAMAIL_SERVER"] = server
+    if quiet_desktop:
+        # The agent bar shows its approval cards on screen: the desktop toast
+        # for the same request was a duplicate. Telegram still notifies.
+        env = env if env is not None else dict(os.environ)
+        env["GIGAMAIL_NOTIFY_DESKTOP"] = "0"
     return env
 
 
@@ -369,7 +374,8 @@ def _our_server() -> str:
     return ""
 
 
-def run(prompt: str, timeout: int | None = None, run_id: str | None = None) -> str:
+def run(prompt: str, timeout: int | None = None, run_id: str | None = None,
+        quiet_desktop: bool = False) -> str:
     """Esegue l'agente headless con il prompt e restituisce il testo prodotto."""
     cfg = get_config()
     cmd = list(cfg["command"])
@@ -420,7 +426,7 @@ def run(prompt: str, timeout: int | None = None, run_id: str | None = None) -> s
             )
     try:
         returncode, stdout, stderr = _spawn(
-            cmd, da_stdin, timeout or cfg["timeout"], _env_for_child(cfg), run_id)
+            cmd, da_stdin, timeout or cfg["timeout"], _env_for_child(cfg, quiet_desktop), run_id)
     except subprocess.TimeoutExpired as e:
         if out_file:
             _unlink(out_file)

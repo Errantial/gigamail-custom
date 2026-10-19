@@ -422,7 +422,9 @@ class AgentCancelRequest(BaseModel):
 
 
 def _run_kw(run_id):
-    return {"run_id": run_id} if run_id else {}
+    """The agent bar's runs: Stop can end them, and their approval requests
+    show as cards on screen, so no desktop toast for them."""
+    return {"run_id": run_id, "quiet_desktop": True} if run_id else {}
 
 
 def _lingua(lang: str) -> str:

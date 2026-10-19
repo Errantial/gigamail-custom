@@ -3,7 +3,7 @@ import json
 import os
 import time
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
 from gigamail import policy
 
@@ -62,24 +62,36 @@ def get_approval(request_id: str):
 
 
 @router.post("/approvals/{request_id}/approve")
-def approve_request(request_id: str):
+def approve_request(request_id: str, request: Request = None):
     """Approva SOLO dopo una verifica dell'utente fisico (Windows Hello /
     Touch ID). Il token di sessione della console sta in un file: un
     processo puo' leggerlo e chiamare questo endpoint. Il prompt OS e'
     cio' che un processo non puo' superare — quindi sta qui, non nella
-    finestra. Senza backend di consenso: 503, nessuna approvazione."""
+    finestra. Senza backend di consenso: 503, nessuna approvazione.
+
+    Un clic su Approva in una finestra della console porta il segreto del
+    clic (console_click), che il file del token non contiene: e' una
+    persona davanti alla console, come per l'invio, e non apre il prompt
+    (che su Windows poteva aprirsi dietro le finestre e lasciare il bottone
+    fermo). Resta il prompt se l'utente l'ha chiesto anche per la console."""
     from gigamail import consent
+
+    from . import console_click
     rec = policy.store().get(request_id)
     if not rec:
         raise HTTPException(404, "Richiesta inesistente")
-    reason = f"GigaMail: approvare {rec['tool']} ({request_id})?"
-    try:
-        ok = consent.require_human(reason)
-    except consent.ConsentUnavailable as e:
-        raise HTTPException(503, str(e)) from e
-    if not ok:
-        raise HTTPException(403, "Verifica utente non superata o annullata")
-    if not policy.store().approve(request_id, by=_who()):
+    clic = (request is not None and console_click.is_console_click(request.headers)
+            and not console_click.send_requires_hello())
+    if not clic:
+        reason = f"GigaMail: approvare {rec['tool']} ({request_id})?"
+        try:
+            ok = consent.require_human(reason)
+        except consent.ConsentUnavailable as e:
+            raise HTTPException(503, str(e)) from e
+        if not ok:
+            raise HTTPException(403, "Verifica utente non superata o annullata")
+    by = f"{_who()} (console click)" if clic else _who()
+    if not policy.store().approve(request_id, by=by):
         raise HTTPException(409, "Richiesta non approvabile (già decisa o scaduta)")
     return {"success": True, "request_id": request_id, "status": "approved",
             "completed_by": _completed_by(request_id)}

@@ -131,8 +131,13 @@ OpenClaw and Hermes all hold a shell — so "out of band from MCP" was not
   the HTML the scripts generate (`console/tests/csp.test.js`). A text that
   slips past escaping stays text. A backend left
   running by an earlier launch does not know the new secret, and the
-  console replaces it on start. The user can keep the OS prompt for
-  console sends too (Automations, off by default); only a request carrying
+  console replaces it on start. The same holds for **Approve** clicked in a
+  console window (the agent bar's card, *Waiting for you*): the click
+  secret stands for the OS prompt, which on Windows could open behind the
+  windows and leave the button greyed out. Approving through any other
+  caller (the token alone, a script, the agent) still needs the OS
+  verification. The user can keep the OS prompt for console sends and
+  approvals too (Automations, off by default); only a request carrying
   the click secret can change that choice, and it never relaxes anything
   for other callers.
   Tidying from the console (deleting messages or folders, moving messages,

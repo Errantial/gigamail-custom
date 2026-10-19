@@ -137,7 +137,8 @@ def test_l_agente_non_puo_dichiarare_fatto_cio_che_non_e_successo(client, monkey
 
 
 def test_stop_ferma_il_giro_e_tiene_le_richieste_gia_aperte(client, monkeypatch):
-    def agente(prompt, timeout=None, run_id=None):
+    def agente(prompt, timeout=None, run_id=None, quiet_desktop=False):
+        assert quiet_desktop is True   # the cards are on screen: no desktop toast
         assert run_id == "run-12345678"
         policy.store().create("send_mail", {"to": "a@example.com"}, {"subject": "Prima dello stop"})
         raise agent_bridge.AgentCancelled("Fermato dall'utente.")

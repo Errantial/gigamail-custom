@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **Approve works on click in the console.** Approve in the agent bar's
+  card and in *Waiting for you* asked Windows Hello, whose prompt could
+  open behind the windows: the button stayed greyed out and nothing
+  happened. A click in a console window now approves, like a send does
+  (same click secret, audited as a console click); any other caller still
+  needs the OS verification, and the Automations option to keep the
+  prompt now covers approvals too. Requests the agent bar opens no longer
+  pop a desktop toast as well: their card is already on screen (Telegram
+  still notifies).
 - **The agent uses your personal Zoom link.** With no Zoom app connected
   but the personal meeting link saved in the console, `create_zoom_meeting`
   now returns that link at once: nothing to create, no approval, the agent

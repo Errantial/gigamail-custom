@@ -121,7 +121,7 @@
         <div class="ai-card-row" style="margin-top:8px">
           <span class="ai-card-status ${s.expiresIn < 120 ? 'warn' : ''}">${fmtEta(s.expiresIn, t)}</span>
           <span style="flex:1"></span>
-          <button class="chip-btn" data-act="approve" data-id="${esc(s.id)}">✅ ${esc(t('pending_approve', 'Approva (Hello)'))}</button>
+          <button class="chip-btn" data-act="approve" data-id="${esc(s.id)}">✅ ${esc(t('pending_approve', 'Approva'))}</button>
           <button class="chip-btn danger" data-act="reject" data-id="${esc(s.id)}">✖ ${esc(t('pending_reject', 'Rifiuta'))}</button>
         </div>
       </div>`;

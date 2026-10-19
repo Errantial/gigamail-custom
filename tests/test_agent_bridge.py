@@ -274,3 +274,14 @@ def test_the_agent_runs_the_gigamail_server_of_this_install(tmp_path, monkeypatc
     monkeypatch.setenv("GIGAMAIL_SERVER", "/custom/server")
     env = agent_bridge._env_for_child({"agent": "codex", "command": ["codex"]})
     assert env is None or env.get("GIGAMAIL_SERVER") == "/custom/server"
+
+
+def test_agent_bar_runs_send_no_desktop_toast(monkeypatch):
+    """The agent bar shows its approval cards in the console: the MCP server
+    it starts gets GIGAMAIL_NOTIFY_DESKTOP=0, other runs keep the toast."""
+    monkeypatch.delenv("GIGAMAIL_NOTIFY_DESKTOP", raising=False)
+    cfg = {"agent": "codex", "command": ["codex"]}
+    quiet = agent_bridge._env_for_child(cfg, quiet_desktop=True)
+    assert quiet["GIGAMAIL_NOTIFY_DESKTOP"] == "0"
+    loud = agent_bridge._env_for_child(cfg)
+    assert loud is None or "GIGAMAIL_NOTIFY_DESKTOP" not in loud

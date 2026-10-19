@@ -161,3 +161,31 @@ def test_the_choice_is_off_by_default_and_stored(monkeypatch):
     assert console_click.send_requires_hello() is True
     console_click.set_send_requires_hello(False)
     assert console_click.send_requires_hello() is False
+
+
+def test_approve_clicked_in_the_console_needs_no_hello(client, monkeypatch, tmp_path):
+    """Approve in the agent bar's card: the click secret is a person at the
+    console, as for a send. Seen live: the Hello prompt opened behind the
+    windows and the button stayed greyed out."""
+    policy.set_store(policy.ApprovalStore(str(tmp_path / "a.db")))
+    monkeypatch.setattr(consent, "require_human",
+                        lambda reason: (_ for _ in ()).throw(AssertionError("no prompt for a console click")))
+    rid = policy.store().create("send_mail", {"to": "x@example.com"}, {"subject": "Invito"})
+    r = client.post(f"/approvals/{rid}/approve", headers={"X-ADE-Human": SECRET})
+    assert r.status_code == 200 and r.json()["status"] == "approved"
+    assert "console click" in (policy.store().get(rid).get("decided_by") or "")
+    policy.set_store(None)
+
+
+def test_approve_without_the_secret_still_meets_the_os_prompt(client, monkeypatch, tmp_path):
+    policy.set_store(policy.ApprovalStore(str(tmp_path / "a.db")))
+    asked = []
+    monkeypatch.setattr(consent, "require_human", lambda reason: asked.append(reason) or False)
+    rid = policy.store().create("send_mail", {"to": "x@example.com"}, {"subject": "Invito"})
+    assert client.post(f"/approvals/{rid}/approve").status_code == 403
+    assert client.post(f"/approvals/{rid}/approve", headers={"X-ADE-Human": "b" * 64}).status_code == 403
+    assert len(asked) == 2
+    monkeypatch.setattr(console_click, "send_requires_hello", lambda: True)
+    assert client.post(f"/approvals/{rid}/approve", headers={"X-ADE-Human": SECRET}).status_code == 403
+    assert len(asked) == 3   # the user asked for the prompt on console clicks too
+    policy.set_store(None)
