@@ -88,12 +88,40 @@ places:
 2. The client JSON: the path in `GOOGLE_CLIENT_SECRETS`, the file
    installed by `gigamail google setup`, or a `client_secret_*.json` left
    in the data directory under its original name.
-3. `src/gigamail/core/google_config.json`, shipped in the package.
-   This is the one to fill for a public build: for a desktop client the
-   secret is not really secret, and it travels in the package exactly
-   like `client_id` in `ms_config.json`.
+3. `src/gigamail/core/google_config.json`, shipped in the package. This
+   is what every downloaded copy runs on. It is committed **empty** and
+   stays empty in git: the release workflow fills it right before the
+   wheel and the installers are built, from two repository secrets.
 
 `gigamail google status` prints which of the three is in use.
+
+### Shipping the client to users
+
+A desktop client's secret is not confidential (Google documents it as
+such) and it travels in the package exactly like `client_id` in
+`ms_config.json`. It still must not be committed: GitHub's secret scanner
+would flag it and git history is forever. So the two values live in the
+repository's Actions secrets and `scripts/inject_google_client.py` writes
+them into `google_config.json` in CI. Set them once, from the downloaded
+`client_secret_*.json`:
+
+```bash
+gh secret set GOOGLE_OAUTH_CLIENT_ID --repo adecubed/gigamail
+```
+
+```bash
+gh secret set GOOGLE_OAUTH_CLIENT_SECRET --repo adecubed/gigamail
+```
+
+Each command prompts for the value; paste it from the JSON (the
+`client_id` and `client_secret` fields of the `installed` section). The
+release then **fails** if either secret is missing, half-set or swapped,
+instead of shipping with Google silently switched off, which is what
+every build did until the secrets existed.
+
+Shipping the client is necessary, not sufficient: while the app is in
+testing mode, only the accounts listed as test users get past Google's
+consent screen. Everyone else needs the verification in section 3.
 
 ## 3. Verification, and what it costs you
 

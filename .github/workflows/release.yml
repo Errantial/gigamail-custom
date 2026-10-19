@@ -38,6 +38,17 @@ name: Release
 # Without the secrets the build is ad-hoc signed (runs, Gatekeeper warns, and
 # the app's update check fails on macOS: console/app_paths.js assumes the
 # Release carries a notarized app with its zip and latest-mac.yml).
+#
+# Google calendar and Drive need the OAuth client of the Google Cloud
+# project inside the package. google_config.json is committed EMPTY (a
+# desktop client's secret is not confidential, but the scanner and git
+# history do not care) and scripts/inject_google_client.py fills it here,
+# in every job that builds something users install, from two secrets:
+#   GOOGLE_OAUTH_CLIENT_ID      the client id of the "Desktop app" client
+#   GOOGLE_OAUTH_CLIENT_SECRET  its secret (GOCSPX-...)
+# Both from the client_secret_*.json Google offers when the client is
+# created. Without them the release FAILS, on purpose: shipping with
+# Google silently switched off is what happened to every build before.
 
 on:
   push:
@@ -62,6 +73,14 @@ jobs:
           pip install -e ".[all,dev]"
           pytest -q
           python -m gigamail.gen_toolmap --check
+
+      # After the tests, which expect the file empty; before the build,
+      # which must carry it filled.
+      - name: Google OAuth client into the package
+        env:
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+        run: python scripts/inject_google_client.py
 
       - name: Build sdist + wheel
         run: |
@@ -123,6 +142,11 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
+      - name: Google OAuth client into the package
+        env:
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+        run: python scripts/inject_google_client.py
       - name: Dipendenze console
         working-directory: console
         run: |
@@ -273,6 +297,11 @@ jobs:
           echo "APPLE_API_KEY_ID=${{ secrets.APPLE_API_KEY_ID }}" >> "$GITHUB_ENV"
           echo "APPLE_API_ISSUER=${{ secrets.APPLE_API_ISSUER }}" >> "$GITHUB_ENV"
           echo "signing as: $identity"
+      - name: Google OAuth client into the package
+        env:
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+        run: python3 scripts/inject_google_client.py
       - name: Portable Python for ${{ matrix.arch }}
         run: bash console/prepare-python.sh ${{ matrix.arch == 'arm64' && 'aarch64' || 'x86_64' }}
       - name: Build the dmg
