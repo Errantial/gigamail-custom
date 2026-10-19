@@ -506,6 +506,19 @@ def fetch_messages_by_uids(account_id=None, uids: List[str] = None, folder: str 
     return imap.fetch_messages_by_uids(imap_host, imap_port, email_addr, password, uids or [], folder=target)
 
 
+def count_unread(account_id=None, days: int = 5, cap: int = 99) -> int:
+    """How many unread mails of the last `days` days, up to `cap`: the
+    console's badge. Microsoft counts on Graph's side; IMAP and the demo
+    reuse get_unread_messages."""
+    a = _account(account_id)
+    if not a:
+        return 0
+    if not _demo(a) and a.get('type', 'microsoft') == 'microsoft':
+        since = datetime.now(timezone.utc) - timedelta(days=max(int(days or 5), 1))
+        return ms_mail.count_unread('inbox', since.strftime('%Y-%m-%dT%H:%M:%SZ'), cap)
+    return len(get_unread_messages(account_id, top=cap, days=days))
+
+
 def get_unread_messages(
     account_id=None,
     folder: str = 'inbox',

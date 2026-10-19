@@ -19,9 +19,23 @@ def get_messages(folder: str = 'inbox', top: int = 20, skip: int = 0) -> List[Di
         '$select': 'id,subject,from,receivedDateTime,isRead,bodyPreview,hasAttachments',
         '$orderby': 'receivedDateTime desc',
     }
-    res = requests.get(url, headers=_headers(), params=params)
+    res = requests.get(url, headers=_headers(), params=params, timeout=30)
     res.raise_for_status()
     return res.json().get('value', [])
+
+
+def count_unread(folder: str = 'inbox', since_iso: str = '', cap: int = 99) -> int:
+    """Unread mails received since `since_iso`, up to `cap`. Asks Graph for
+    the ids only, filtered on its side: counting the badge used to download
+    495 full messages, which Graph sometimes answered with 502."""
+    url = f'{GRAPH_URL}/me/mailFolders/{folder}/messages'
+    flt = 'isRead eq false'
+    if since_iso:
+        flt += f' and receivedDateTime ge {since_iso}'
+    params = {'$filter': flt, '$select': 'id', '$top': int(cap)}
+    res = requests.get(url, headers=_headers(), params=params, timeout=30)
+    res.raise_for_status()
+    return len(res.json().get('value', []))
 def get_message(message_id: str) -> Dict:
     url = f'{GRAPH_URL}/me/messages/{message_id}'
     params = {'$select': 'id,subject,from,toRecipients,ccRecipients,receivedDateTime,body,bodyPreview,isRead,hasAttachments'}

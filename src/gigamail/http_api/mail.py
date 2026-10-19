@@ -137,8 +137,13 @@ def unread(top: int = 20, days: int = 5, folder: Optional[str] = None,
 
 @router.get("/mail/unread_count")
 def unread_count(account_id: Optional[int] = None):
-    msgs = mail_router.get_unread_messages(account_id or _active_id(), top=99)
-    return {"count": len(msgs)}
+    import requests
+    try:
+        return {"count": mail_router.count_unread(account_id or _active_id(), cap=99)}
+    except requests.RequestException as e:
+        # The provider did not answer (Graph 502, a timeout): the badge waits
+        # for the next poll, without a traceback in the log at every poll.
+        raise HTTPException(502, f"Server di posta non raggiungibile: {e.__class__.__name__}") from None
 
 
 @router.get("/mail/folders")
