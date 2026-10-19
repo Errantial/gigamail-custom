@@ -1,10 +1,11 @@
 name: Desktop build (macOS)
 
-# Builds the macOS app (Apple Silicon) and proves it runs: the bundle has
-# the portable Python and the repo's code, the app starts from a fresh
-# profile with its embedded backend, the backend imports. Same checks as
-# the Windows "Desktop build", on the platform nobody at the keyboard has:
-# this job IS the Mac.
+# Builds the macOS app, Apple Silicon and Intel, and proves it runs: the
+# bundle has the portable Python and the repo's code, the app starts from
+# a fresh profile with its embedded backend, the backend imports. Same
+# checks as the Windows "Desktop build", on the platform nobody at the
+# keyboard has: this job IS the Mac. The Intel app runs on GitHub's Intel
+# runner, natively, not under Rosetta.
 
 on:
   push:
@@ -22,8 +23,18 @@ on:
 
 jobs:
   app:
-    runs-on: macos-latest   # Apple Silicon runner
-    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-latest      # Apple Silicon
+            out: mac-arm64
+          - arch: x64
+            runner: macos-15-intel    # Intel
+            out: mac
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
     env:
       # Without the Apple secrets, electron-builder must not look for an
       # identity in the keychain: afterpack.js ad-hoc signs the bundle. With
@@ -95,7 +106,8 @@ jobs:
       - name: venv for the development backend
         run: |
           python -m venv .venv
-          .venv/bin/pip install -e ".[all]" --quiet
+          # cryptography from a wheel only: there is none for Intel after 48.
+          .venv/bin/pip install -e ".[all]" --only-binary=cryptography --quiet
       - name: E2E console (XSS, renderer isolation, first start)
         working-directory: console
         env:
@@ -110,13 +122,13 @@ jobs:
         working-directory: console
         # notarize only with the credentials: electron-builder refuses to
         # notarize without them, and the ad-hoc build cannot be notarized.
-        run: npm run dist:mac -- --arm64 --config.mac.notarize=${{ env.HAVE_APPLE_SECRETS }}
+        run: npm run dist:mac -- --${{ matrix.arch }} --config.mac.notarize=${{ env.HAVE_APPLE_SECRETS }}
 
       - name: The dmg follows pyproject.toml and the bundle is complete
         run: |
           ver=$(sed -n 's/^version *= *"\([^"]*\)".*/\1/p' pyproject.toml | head -1)
-          dmg="console/dist/GigaMail-$ver-arm64.dmg"
-          app="console/dist/mac-arm64/GigaMail.app"
+          dmg="console/dist/GigaMail-$ver-${{ matrix.arch }}.dmg"
+          app="console/dist/${{ matrix.out }}/GigaMail.app"
           ls -la console/dist
           test -f "$dmg" || { echo "expected dmg not found: $dmg"; exit 1; }
           for p in "Contents/MacOS/GigaMail" "Contents/Resources/python/bin/python3" "Contents/Resources/gigamail/src/gigamail"; do
@@ -131,7 +143,7 @@ jobs:
 
       - name: The packed backend imports
         run: |
-          app="console/dist/mac-arm64/GigaMail.app"
+          app="console/dist/${{ matrix.out }}/GigaMail.app"
           PYTHONPATH="$app/Contents/Resources/gigamail/src" "$app/Contents/Resources/python/bin/python3" -c "import gigamail, fastapi, uvicorn, mcp; print('backend import OK')"
 
       - name: The packed app starts (fresh profile, embedded backend, onboarding)
@@ -139,14 +151,14 @@ jobs:
         env:
           ADE_CONSOLE_PORT: "8022"
         run: |
-          export GIGAMAIL_EXE="$PWD/dist/mac-arm64/GigaMail.app/Contents/MacOS/GigaMail"
+          export GIGAMAIL_EXE="$PWD/dist/${{ matrix.out }}/GigaMail.app/Contents/MacOS/GigaMail"
           export GIGAMAIL_EXPECTED_VERSION=$(sed -n 's/^version *= *"\([^"]*\)".*/\1/p' ../pyproject.toml | head -1)
           npm run test:packaged
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: gigamail-macos-arm64
+          name: gigamail-macos-${{ matrix.arch }}
           path: |
-            console/dist/GigaMail-*-arm64.dmg
-            console/dist/GigaMail-*-arm64.zip
+            console/dist/GigaMail-*-${{ matrix.arch }}.dmg
+            console/dist/GigaMail-*-${{ matrix.arch }}.zip
           if-no-files-found: error

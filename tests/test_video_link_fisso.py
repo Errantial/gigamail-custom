@@ -106,6 +106,107 @@ def test_senza_link_e_senza_app_lo_dice(monkeypatch, mondo):
     assert "console" in appointments.testo_avviso(*avvisi[0])
 
 
+# ── a link already in the mail ───────────────────────────────────────
+
+CLIENT = "gb@example.com"
+OUR_LINK = "https://us06web.zoom.us/j/9876543210?pwd=xyz"
+
+
+def _zoom_connected(monkeypatch):
+    """Zoom connected: any meeting created here is a bug."""
+    monkeypatch.setattr(video_call.zoom, "configurato", lambda: True)
+
+
+def _we_send(monkeypatch, account_id, subject, body, inizio):
+    """What mail_router does after one of our mails goes out."""
+    _agente(monkeypatch, '{"stato":"confermato","inizio":"%s"}' % inizio)
+    appointments.segui(account_id, subject, CLIENT)
+    if appointments.parla_di_video(body):
+        appointments.segna_video(account_id, subject, CLIENT)
+    return appointments.after_sent(account_id, subject, body, CLIENT,
+                                   adesso=NOW)
+
+
+def test_new_mail_to_a_client_already_confirmed_creates_no_second_meeting(
+        monkeypatch, mondo):
+    """A new mail with a new subject, from another account, to a client
+    whose video call at that time was already confirmed: it used to create
+    a second appointment, a second Zoom meeting and a reply with the new
+    link waiting for approval."""
+    cal, notifiche = mondo
+    appointments.segna_video(2, "Bilocali Via Roma", CLIENT)
+    _conferma(monkeypatch, "link-5", "2026-09-17T16:00")
+    assert len(notifiche) == 1
+    _zoom_connected(monkeypatch)
+
+    toccato = _we_send(monkeypatch, 3, "Link video call di domani ore 16:00",
+                       f"Ecco il link per domani alle 16:00: {LINK}",
+                       "2026-09-17T16:00")
+
+    assert toccato["invariato"] is True
+    assert len(cal.creati) == 1 and len(notifiche) == 1
+    riga = appointments.store().get(3, appointments.thread_key(
+        "Link video call di domani ore 16:00", CLIENT))
+    assert riga["event_id"] == "ev1" and riga["zoom_url"] == LINK
+
+
+def test_link_in_the_confirming_mail_is_the_calls_link(monkeypatch, mondo):
+    cal, notifiche = mondo
+    _zoom_connected(monkeypatch)
+
+    _we_send(monkeypatch, 2, "Video call",
+             f"Confermo la video call di domani alle 16:00.\n"
+             f"Link Zoom: {OUR_LINK}.\n", "2026-09-17T16:00")
+
+    assert notifiche == [], "no reply with another link"
+    assert cal.aggiornati[-1]["location"] == OUR_LINK
+    riga = appointments.store().get(2, appointments.thread_key("Video call", CLIENT))
+    assert riga["zoom_id"] == video_call._EXTERNAL and riga["zoom_url"] == OUR_LINK
+
+
+def test_client_reply_with_their_link_creates_no_meeting(monkeypatch, mondo):
+    _cal, notifiche = mondo
+    _zoom_connected(monkeypatch)
+    appointments.segna_video(2, "Bilocali Via Roma", CLIENT)
+    meet = "https://meet.google.com/abc-defg-hij"
+    _agente(monkeypatch, '{"stato":"proposto","inizio":"2026-09-17T16:00",'
+                         '"scelta_unica":true,"accetta":true}')
+    avvisi = []
+    appointments.sweep(2, [_msg("link-6", f"va bene alle 16:00, ci colleghiamo qui: {meet}")],
+                       adesso=NOW, avvisa=lambda *a: avvisi.append(a))
+    assert notifiche == []
+    assert meet in appointments.testo_avviso(*avvisi[0])
+
+
+def test_an_external_link_is_neither_moved_nor_cancelled(monkeypatch, mondo):
+    _zoom_connected(monkeypatch)
+    cancellate = []
+    monkeypatch.setattr(video_call.zoom, "cancella_riunione", cancellate.append)
+    _we_send(monkeypatch, 2, "Video call",
+             f"Confermo domani alle 16:00, link: {OUR_LINK}", "2026-09-17T16:00")
+    _we_send(monkeypatch, 2, "Re: Video call", "Spostiamo a venerdi alle 16:00?",
+             "2026-09-18T16:00")
+    _agente(monkeypatch, '{"stato":"disdetto"}')
+    appointments.dalla_mail(2, "Re: Video call", "Devo disdire l'appuntamento",
+                            CLIENT, adesso=NOW)
+    assert cancellate == []
+
+
+@pytest.mark.parametrize("testo, link", [
+    ("entra da https://us02web.zoom.us/j/111222333?pwd=q1 alle 16",
+     "https://us02web.zoom.us/j/111222333?pwd=q1"),
+    ("<https://zoom.us/j/444555666>", "https://zoom.us/j/444555666"),
+    ("Meet: https://meet.google.com/abc-defg-hij.",
+     "https://meet.google.com/abc-defg-hij"),
+    ("https://teams.microsoft.com/l/meetup-join/19%3ameeting_x%40thread.v2/0",
+     "https://teams.microsoft.com/l/meetup-join/19%3ameeting_x%40thread.v2/0"),
+    ("scarica Zoom da https://zoom.us/download", ""),
+    ("ci vediamo su Zoom alle 16", ""),
+])
+def test_meeting_link(testo, link):
+    assert video_call.meeting_link(testo) == link
+
+
 # ── la scheda della console ──────────────────────────────────────────
 
 @pytest.fixture()

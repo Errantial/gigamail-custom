@@ -22,6 +22,7 @@ assente, il prompt viene appeso come ultimo argomento); {output} con un file
 temporaneo da cui leggere la risposta finale, per le CLI che su stdout
 stampano anche il resto (Codex).
 """
+import glob
 import json
 import os
 import shutil
@@ -39,22 +40,37 @@ def _found(exe: str) -> bool:
     return bool(exe) and (shutil.which(exe) is not None or os.path.exists(exe))
 
 
+def _version_key(name: str) -> list:
+    return [int(x) for x in name.split(".") if x.isdigit()]
+
+
 def _find_claude() -> str:
-    """Trova la CLI di Claude Code: PATH, oppure l'installazione versionata
-    piu' recente dell'app desktop (%APPDATA%/Claude/claude-code/<ver>/claude.exe)."""
+    """Find the Claude Code CLI: PATH first, otherwise the newest versioned
+    install bundled with the desktop app under %APPDATA%/Claude/claude-code.
+
+    Older desktop builds put the binary at <version>/claude.exe; current
+    ones nest it one level deeper, in a hash-named folder
+    (<version>/<hash>/claude.exe). Both layouts are searched, newest
+    version wins."""
     on_path = shutil.which("claude")
     if on_path:
         return on_path
     base = os.path.join(os.environ.get("APPDATA", ""), "Claude", "claude-code")
     try:
-        versions = [d for d in os.listdir(base)
-                    if os.path.exists(os.path.join(base, d, "claude.exe"))]
-        if versions:
-            newest = max(versions, key=lambda v: [int(x) for x in v.split(".") if x.isdigit()])
-            return os.path.join(base, newest, "claude.exe")
+        found = {}
+        for ver in os.listdir(base):
+            direct = os.path.join(base, ver, "claude.exe")
+            if os.path.isfile(direct):
+                found[ver] = direct
+                continue
+            nested = sorted(glob.glob(os.path.join(base, ver, "*", "claude.exe")))
+            if nested:
+                found[ver] = nested[0]
+        if found:
+            return found[max(found, key=_version_key)]
     except Exception:
         pass
-    return "claude"  # lasciamo che il chiamante segnali l'assenza
+    return "claude"  # let the caller report that it is missing
 
 
 def _find_codex() -> str:
@@ -207,6 +223,48 @@ def _va_a_capo(prompt: str) -> bool:
     return "\n" in (prompt or "") or "\r" in (prompt or "")
 
 
+def _claude_config_dir() -> str:
+    """Where Claude Code keeps its own state: CLAUDE_CONFIG_DIR, else ~/.claude."""
+    return os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude")
+
+
+def _claude_login_present() -> bool:
+    """True when Claude Code holds a claude.ai login (a non-empty OAuth
+    access token in its credentials file). Any problem reading the file
+    counts as "no login": then nothing is taken away from the child."""
+    path = os.path.join(_claude_config_dir(), ".credentials.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        oauth = data.get("claudeAiOauth") if isinstance(data, dict) else None
+        return bool(isinstance(oauth, dict) and oauth.get("accessToken"))
+    except Exception:
+        return False
+
+
+def _env_for_child(cfg: dict) -> dict | None:
+    """Environment for the agent process, or None to inherit ours as is.
+
+    Claude Code gives ANTHROPIC_API_KEY precedence over the claude.ai
+    login: with the key in the user's environment the drafts are billed
+    per token on the API instead of the subscription, the account's
+    connectors are disabled, and the CLI prints a warning in place of the
+    draft. A user who keeps that key for other programs cannot remove it,
+    so when Claude Code is the agent and a claude.ai login exists the key
+    is dropped from the child's environment only. The key stays when
+    there is no login (it is then the only way to authenticate) and when
+    ANTHROPIC_BASE_URL points at a gateway that needs it."""
+    if _agent_of(cfg) != "claude":
+        return None
+    if "ANTHROPIC_API_KEY" not in os.environ or os.environ.get("ANTHROPIC_BASE_URL"):
+        return None
+    if not _claude_login_present():
+        return None
+    env = dict(os.environ)
+    del env["ANTHROPIC_API_KEY"]
+    return env
+
+
 def run(prompt: str, timeout: int | None = None) -> str:
     """Esegue l'agente headless con il prompt e restituisce il testo prodotto."""
     cfg = get_config()
@@ -264,6 +322,7 @@ def run(prompt: str, timeout: int | None = None) -> str:
             stdin=None if da_stdin is not None else subprocess.DEVNULL,
             timeout=timeout or cfg["timeout"],
             shell=False,
+            env=_env_for_child(cfg),
         )
     except subprocess.TimeoutExpired as e:
         if out_file:

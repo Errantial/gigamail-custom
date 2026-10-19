@@ -1,8 +1,7 @@
 // Contatore visite: lo stesso backend che conta il sito nerine.io.
 // La pagina manda gli eventi (visita, contatti_lasciati) in POST a
-// eventsEndpoint con site='gigamail'. Il riepilogo si legge da:
-//   https://adecubed-sofia.onrender.com/stats?site=gigamail
-//   https://adecubed-sofia.onrender.com/stats?site=gigamail&days=7&format=text   (per Sofia)
+// eventsEndpoint con site='gigamail'. Where to read the summary is not
+// written here: this file is public.
 // Lascia eventsEndpoint vuoto per spegnere il contatore.
 //
 // cloudflareToken: token pubblico di Cloudflare Web Analytics (Manage site >

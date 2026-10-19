@@ -163,6 +163,20 @@ def test_asks_how_it_went_an_hour_after_the_start(world):
     assert len(_questions(world["tg"])) == 1          # asked once
 
 
+def test_one_question_for_threads_sharing_an_appointment(world):
+    """A later mail with a new subject, from another account, is linked to
+    the appointment already confirmed: both threads hold its event."""
+    _confirmed()
+    appointments.store().upsert(
+        3, appointments.thread_key("Link per la video call", CONTACT), "ev-1",
+        "confermato", START.isoformat(timespec="minutes"),
+        (START + timedelta(hours=1)).isoformat(timespec="minutes"),
+        "Mario Rossi")
+    after.tick(None, now=START + timedelta(minutes=61))
+    after.tick(None, now=START + timedelta(minutes=90))
+    assert len(_questions(world["tg"])) == 1
+
+
 def test_old_or_removed_appointments_are_not_asked_about(world):
     _confirmed(start=START - timedelta(days=5))
     after.tick(None, now=START + timedelta(hours=2))

@@ -1,7 +1,7 @@
 {
   "name": "gigamail",
   "productName": "GigaMail",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "GigaMail — secure agentic email console",
   "main": "main.js",
   "author": {
@@ -107,18 +107,8 @@
     "afterPack": "./afterpack.js",
     "mac": {
       "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "arm64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "arm64"
-          ]
-        }
+        "dmg",
+        "zip"
       ],
       "icon": "../docs/brand/gigamail-logo-1024.png",
       "category": "public.app-category.productivity",

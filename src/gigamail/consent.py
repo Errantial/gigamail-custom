@@ -137,14 +137,19 @@ def _win_available() -> bool:
 # non cambia — ma "hai annullato" e "su questo PC Hello non e'
 # configurato" richiedono due azioni diverse, e appiattirli sulla
 # stessa frase lascia l'utente a indovinare quale dei due sia.
+# Chiavi = UserConsentVerificationResult (0 Verified ... 6 Canceled),
+# lette da winrt: non sono gli stessi numeri di _DISPONIBILITA_WIN oltre
+# il 4, e sbagliarli di uno faceva dire "annullata" ai tentativi esauriti.
 _MOTIVI_WIN = {
     0: "verificato",
-    1: "su questo PC non e' configurato nessun metodo Hello (PIN, "
-       "impronta o volto)",
-    2: "Windows Hello non e' disponibile su questo dispositivo",
-    3: "dispositivo occupato: un'altra verifica e' gia' in corso",
-    4: "tentativi esauriti",
-    5: "annullata",
+    1: "nessun dispositivo Hello su questo PC (DeviceNotPresent)",
+    2: "Windows Hello non e' configurato per questo utente Windows "
+       "(NotConfiguredForUser): imposta un PIN in Impostazioni > Account "
+       "> Opzioni di accesso",
+    3: "Windows Hello e' disabilitato da criteri di gruppo (DisabledByPolicy)",
+    4: "dispositivo occupato: un'altra verifica e' gia' in corso (DeviceBusy)",
+    5: "tentativi esauriti (RetriesExhausted)",
+    6: "annullata (Canceled)",
 }
 
 _ultimo_motivo = ""

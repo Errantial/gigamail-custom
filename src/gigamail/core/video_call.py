@@ -40,6 +40,19 @@ _TTL_SECONDI = 4 * 3600
 # Riunione "personale": non nasce da Zoom, e' il link fisso dell'utente. Si
 # riconosce da qui, perche' non si sposta e non si cancella come le altre.
 _FISSO = "personale"
+# A link that came in the confirming mail itself: someone else's meeting, or
+# one made by hand. GigaMail neither moves nor cancels it.
+_EXTERNAL = "external"
+
+_MEETING_LINK = re.compile(
+    r"https?://(?:[\w-]+\.)*(?:zoom\.us/(?:j|my|s|w)/"
+    r"|meet\.google\.com/[a-z]{3}-[a-z]{4}-[a-z]{3}"
+    r"|teams\.microsoft\.com/l/meetup-join/"
+    r"|teams\.live\.com/meet/"
+    r"|[\w-]+\.webex\.com/(?:meet|join|[\w.-]+/j\.php)"
+    r"|whereby\.com/"
+    r"|meet\.jit\.si/"
+    r")[^\s<>\"')\]]*", re.IGNORECASE)
 
 
 def link_fisso() -> str:
@@ -49,6 +62,17 @@ def link_fisso() -> str:
     volta e vale per tutte le video call. In cambio e' sempre lo stesso
     link, quindi conviene tenere la sala d'attesa accesa."""
     return str(accounts.get_setting("zoom_link_fisso", "") or "").strip()
+
+
+def meeting_link(testo: str) -> str:
+    """The first video meeting link in the text, or ""."""
+    m = _MEETING_LINK.search(str(testo or ""))
+    return m.group(0).rstrip(".,;:!?") if m else ""
+
+
+def own_meeting(zoom_id: str) -> bool:
+    """A meeting GigaMail created on Zoom, so one it may move or cancel."""
+    return bool(zoom_id) and zoom_id not in (_FISSO, _EXTERNAL)
 
 
 def e_video(testo: str) -> bool:
@@ -128,19 +152,19 @@ def _nel_calendario(event_id: str, url: str) -> None:
 def dopo_conferma(account_id: int, riga: Dict[str, Any],
                   messaggio: Dict[str, Any], mittente: str, subject: str,
                   esito: Dict[str, Any],
-                  toccato: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+                  toccato: Optional[Dict[str, Any]],
+                  corpo: str = "") -> Dict[str, Any]:
     """Riunione, link in calendario, mail in approvazione.
 
     Ritorna cosa e' successo, per l'avviso all'umano:
       creata          riunione nuova e mail con il link in approvazione
       spostata        l'appuntamento aveva gia' una riunione: cambia l'ora,
                       il link resta quello gia' spedito
+      link_presente   the confirming mail already carries a meeting link:
+                      recorded, no meeting, no mail
       non_configurato Zoom non collegato, il link va mandato a mano
     Gli errori di Zoom salgono al chiamante, che li riporta nell'avviso."""
     chiave = riga["thread_key"]
-    fisso = link_fisso()
-    if not zoom.configurato() and not fisso:
-        return {"stato": "non_configurato"}
     st = appointments.store()
     corrente = st.get(account_id, chiave) or {}
     durata = _minuti(esito)
@@ -150,13 +174,30 @@ def dopo_conferma(account_id: int, riga: Dict[str, Any],
     if corrente.get("zoom_id"):
         # Il link personale non si sposta: e' sempre lo stesso, e il
         # cliente ce l'ha gia'. Cambia solo l'orario dell'appuntamento.
-        if corrente["zoom_id"] != _FISSO:
+        if own_meeting(corrente["zoom_id"]):
+            if not zoom.configurato():
+                return {"stato": "non_configurato"}
             zoom.sposta_riunione(corrente["zoom_id"], esito["inizio"], durata)
         _nel_calendario(event_id, corrente.get("zoom_url") or "")
         policy.audit("appointment", {"account_id": account_id,
                                      "thread": chiave}, "zoom_moved")
         return {"stato": "spostata", "join_url": corrente.get("zoom_url") or "",
                 "fisso": corrente["zoom_id"] == _FISSO}
+
+    gia_nella_mail = meeting_link(corpo)
+    if gia_nella_mail:
+        # The mail that fixed the call already carries its link: we sent
+        # it, or the client did. A new meeting and a second mail with a
+        # different link would leave the client with two links.
+        st.set_zoom(account_id, chiave, _EXTERNAL, gia_nella_mail)
+        _nel_calendario(event_id, gia_nella_mail)
+        policy.audit("appointment", {"account_id": account_id,
+                                     "thread": chiave}, "meeting_link_found")
+        return {"stato": "link_presente", "join_url": gia_nella_mail}
+
+    fisso = link_fisso()
+    if not zoom.configurato() and not fisso:
+        return {"stato": "non_configurato"}
 
     nome = _nome(messaggio)
     if fisso and not zoom.configurato():

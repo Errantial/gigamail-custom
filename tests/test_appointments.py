@@ -143,6 +143,62 @@ def test_conferma_ripetuta_non_tocca_levento(monkeypatch, cal):
     assert riga["con"] == "Andrea Gialli"
 
 
+def _confirmed_on(monkeypatch, account_id, subject, start,
+                  counterpart="max@example.com"):
+    _agente(monkeypatch, '{"stato":"confermato","inizio":"%s"}' % start)
+    return appointments.dalla_mail(account_id, subject, f"ci vediamo alle {start[-5:]}",
+                                   counterpart, adesso=NOW)
+
+
+def test_new_subject_same_time_is_the_same_appointment(monkeypatch, cal):
+    """A new mail of ours with a new subject, from another account, to a
+    client already confirmed at that time: the thread key differed, so the
+    repeated-confirmation check never ran and a second appointment was
+    created."""
+    _confirmed_on(monkeypatch, 2, "Appuntamento", "2026-09-11T17:00")
+    esito = _confirmed_on(monkeypatch, 3, "Link per stasera ore 17:00",
+                          "2026-09-11T17:00")
+    assert esito["invariato"] is True
+    assert len(cal.creati) == 1 and cal.aggiornati == []
+    riga = appointments.store().get(
+        3, appointments.thread_key("Link per stasera ore 17:00", "max@example.com"))
+    assert riga["event_id"] == "ev1" and riga["stato"] == "confermato"
+
+
+def test_same_time_with_another_client_is_another_appointment(monkeypatch, cal):
+    _confirmed_on(monkeypatch, 2, "Appuntamento", "2026-09-11T17:00")
+    _confirmed_on(monkeypatch, 2, "Appuntamento", "2026-09-11T17:00",
+                  counterpart="anna.bianchi@example.com")
+    _confirmed_on(monkeypatch, 2, "Altro oggetto", "2026-09-14T17:00")
+    assert len(cal.creati) == 3
+
+
+def test_linked_thread_moves_the_shared_event(monkeypatch, cal):
+    _confirmed_on(monkeypatch, 2, "Appuntamento", "2026-09-11T17:00")
+    _confirmed_on(monkeypatch, 3, "Nuovo oggetto", "2026-09-11T17:00")
+    _confirmed_on(monkeypatch, 3, "Re: Nuovo oggetto", "2026-09-14T17:00")
+    assert len(cal.creati) == 1
+    assert [a["start"] for a in cal.aggiornati] == ["2026-09-14T17:00"]
+    # The first thread knows the new time: a "thanks, see you" there with
+    # the new time does not move the event again.
+    prima = appointments.store().get(
+        2, appointments.thread_key("Appuntamento", "max@example.com"))
+    assert prima["inizio"] == "2026-09-14T17:00"
+    esito = _confirmed_on(monkeypatch, 2, "Re: Appuntamento", "2026-09-14T17:00")
+    assert esito["invariato"] is True and len(cal.aggiornati) == 1
+
+
+def test_cancelling_from_a_linked_thread_clears_every_thread(monkeypatch, cal):
+    _confirmed_on(monkeypatch, 2, "Appuntamento", "2026-09-11T17:00")
+    _confirmed_on(monkeypatch, 3, "Nuovo oggetto", "2026-09-11T17:00")
+    _agente(monkeypatch, '{"stato":"disdetto"}')
+    appointments.dalla_mail(3, "Re: Nuovo oggetto", "devo disdire l'appuntamento",
+                            "max@example.com", adesso=NOW)
+    assert cal.cancellati == ["ev1"]
+    assert appointments.store().get(
+        2, appointments.thread_key("Appuntamento", "max@example.com")) is None
+
+
 def test_spostamento_non_riscrive_titolo_ne_svuota_luogo(monkeypatch, cal):
     _agente(monkeypatch, '{"stato":"confermato","inizio":"2026-09-11T17:00"}')
     appointments.dalla_mail(2, "Appuntamento", "venerdi alle 17:00",

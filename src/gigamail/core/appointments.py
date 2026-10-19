@@ -296,6 +296,40 @@ class AppointmentStore:
                 " WHERE account_id=? AND thread_key=?",
                 (str(zoom_id), str(zoom_url), int(account_id), thread_key))
 
+    # -- one appointment, several threads --------------------------------
+
+    def confirmed_twin(self, account_id: int, thread_key: str,
+                       start: str) -> Optional[Dict[str, Any]]:
+        """The appointment already confirmed with the same counterpart at
+        the same start, on another thread of any account. The thread key
+        starts with the counterpart's address."""
+        address = str(thread_key or "").split("|", 1)[0]
+        if not address or not start:
+            return None
+        prefix = address + "|"
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM appuntamenti WHERE stato='confermato'"
+                " AND event_id != '' AND inizio=?"
+                " AND substr(thread_key, 1, ?)=?"
+                " AND NOT (account_id=? AND thread_key=?)"
+                " ORDER BY updated_at LIMIT 1",
+                (start, len(prefix), prefix, int(account_id),
+                 thread_key)).fetchone()
+        return dict(row) if row else None
+
+    def move_event_rows(self, event_id: str, start: str, end: str) -> None:
+        """Every thread linked to the event follows its new time."""
+        with self._conn() as conn:
+            conn.execute(
+                "UPDATE appuntamenti SET inizio=?, fine=? WHERE event_id=?",
+                (start, end, str(event_id)))
+
+    def delete_event_rows(self, event_id: str) -> None:
+        with self._conn() as conn:
+            conn.execute("DELETE FROM appuntamenti WHERE event_id=?",
+                         (str(event_id),))
+
     # -- sent mails to read again ----------------------------------------
 
     def pending_read_add(self, account_id: int, subject: str, body: str,
@@ -735,7 +769,8 @@ def applica(account_id: int, chiave: str, esito: Dict[str, Any],
                                              "thread": chiave},
                              "delete_failed", detail=str(e)[:200])
                 return None
-        if corrente.get("zoom_id"):
+        from . import video_call
+        if video_call.own_meeting(corrente.get("zoom_id") or ""):
             try:
                 from . import zoom
                 zoom.cancella_riunione(corrente["zoom_id"])
@@ -748,6 +783,9 @@ def applica(account_id: int, chiave: str, esito: Dict[str, Any],
                                              "thread": chiave},
                              "zoom_delete_failed", detail=str(e)[:200])
         st.delete(account_id, chiave)
+        if corrente.get("event_id"):
+            # The other threads that pointed at the same event.
+            st.delete_event_rows(corrente["event_id"])
         policy.audit("appointment", {"account_id": account_id,
                                      "thread": chiave}, "deleted")
         return {"stato": "disdetto",
@@ -769,6 +807,11 @@ def applica(account_id: int, chiave: str, esito: Dict[str, Any],
                                      "thread": chiave, "stato": stato,
                                      "inizio": inizio}, "proposed")
         return {"stato": "proposto", "event_id": ""}
+
+    if not (corrente and corrente.get("event_id")):
+        gemello = st.confirmed_twin(account_id, chiave, inizio)
+        if gemello:
+            return _link_twin(account_id, chiave, gemello, con, received_at)
 
     titolo = _titolo(esito, controparte, oggetto)
     luogo = esito.get("luogo") or ""
@@ -803,6 +846,7 @@ def applica(account_id: int, chiave: str, esito: Dict[str, Any],
                 modifiche["subject"] = titolo
             evento = calendar_router.update_event(corrente["event_id"], **modifiche)
             event_id = corrente["event_id"]
+            st.move_event_rows(event_id, inizio, fine)
         else:
             evento = calendar_router.create_event(
                 titolo, inizio, fine, location=luogo,
@@ -832,6 +876,33 @@ def applica(account_id: int, chiave: str, esito: Dict[str, Any],
     return {"stato": stato, "event_id": event_id, "evento": evento}
 
 
+def _link_twin(account_id: int, chiave: str, gemello: Dict[str, Any],
+               con: str, received_at: Optional[float]
+               ) -> Dict[str, Any]:
+    """The same appointment, confirmed again from another thread.
+
+    The thread key is counterpart + subject: a new mail of ours with a new
+    subject (the link for tonight's call, sent from another account) looked
+    like a new appointment, and the "same time, no rewrite" check never
+    ran. A second event, a second Zoom meeting and a second link mail went
+    out for approval. Now the thread points at the event that already
+    exists, with its meeting, and nothing is created."""
+    st = store()
+    st.upsert(account_id, chiave, gemello["event_id"], "confermato",
+              gemello["inizio"], gemello["fine"],
+              gemello.get("con") or con, updated_at=received_at)
+    if gemello.get("zoom_id"):
+        st.set_zoom(account_id, chiave, gemello["zoom_id"],
+                    gemello.get("zoom_url") or "")
+    policy.audit("appointment", {"account_id": account_id, "thread": chiave,
+                                 "inizio": gemello["inizio"]},
+                 "linked_to_existing",
+                 detail=f"account {gemello['account_id']}: "
+                        f"{gemello['thread_key']}"[:200])
+    return {"stato": "confermato", "event_id": gemello["event_id"],
+            "invariato": True, "gemello": gemello["thread_key"]}
+
+
 # ── INGRESSI DEL MODULO ──────────────────────────────────────────────
 
 def dalla_mail(account_id: int, subject: str, body: str, controparte: str,
@@ -859,7 +930,7 @@ def _from_mail(account_id: int, subject: str, body: str, controparte: str,
     toccato = applica(account_id, chiave, esito, controparte=controparte,
                       oggetto=subject)
     _video_dopo_conferma(account_id, chiave, {}, _indirizzo(controparte),
-                         subject, esito, toccato)
+                         subject, esito, toccato, corpo=body)
     return esito, toccato, prima
 
 
@@ -1025,10 +1096,12 @@ def _tell_human(it: str, en: str) -> None:
 def _video_dopo_conferma(account_id: int, chiave: str,
                          messaggio: Dict[str, Any], mittente: str,
                          subject: str, esito: Dict[str, Any],
-                         toccato: Optional[Dict[str, Any]]
-                         ) -> Optional[Dict[str, Any]]:
+                         toccato: Optional[Dict[str, Any]],
+                         corpo: str = "") -> Optional[Dict[str, Any]]:
     """Se l'appuntamento confermato e' una video call: riunione Zoom e
     mail con il link in approvazione. None se non c'era niente da fare.
+    corpo is the confirming mail's text: a meeting link already in it is
+    the call's link, and no meeting is created.
     Un guasto di Zoom non tocca l'appuntamento, che resta in calendario:
     finisce nell'avviso, dove l'umano lo vede."""
     if (not toccato or esito.get("stato") != "confermato"
@@ -1040,7 +1113,8 @@ def _video_dopo_conferma(account_id: int, chiave: str,
     try:
         from . import video_call
         return video_call.dopo_conferma(account_id, riga, messaggio,
-                                        mittente, subject, esito, toccato)
+                                        mittente, subject, esito, toccato,
+                                        corpo=corpo)
     except Exception as e:
         logger.warning("video call non preparata per %s: %s", chiave, e)
         policy.audit("appointment", {"account_id": account_id,
@@ -1344,7 +1418,7 @@ def sweep(account_id: int, messaggi: list, adesso=None,
                     chiusi_qui.add(chiave)
                 video = _video_dopo_conferma(
                     account_id, riga["thread_key"], m, mittente, subject,
-                    esito, toccato)
+                    esito, toccato, corpo=corpo)
                 if video:
                     esito = dict(esito, video=video)
         if mid and chiave not in da_ritentare:
@@ -1533,6 +1607,11 @@ def _nota_video(video: Dict[str, Any], it: bool = True) -> str:
                 "aspetta la tua approvazione." if it else
                 f"🎥 Zoom meeting created: {url}. The mail with the link "
                 "awaits your approval.")
+    if stato == "link_presente":
+        return (f"🎥 La mail porta gia' il link della video call ({url}): "
+                "nessuna nuova riunione, nessuna mail da mandare." if it else
+                f"🎥 The mail already carries the video call link ({url}): "
+                "no new meeting, no mail to send.")
     if stato == "spostata":
         return ("🎥 Riunione Zoom spostata al nuovo orario, il link resta "
                 "quello gia' mandato." if it else
