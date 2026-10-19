@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' file:; script-src 'self' file: 'unsafe-inline'; style-src 'self' file: 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' file: data: https://fonts.gstatic.com; img-src 'self' file: http://127.0.0.1:* http://localhost:* https: http: data: blob:; connect-src http://127.0.0.1:* http://localhost:*; media-src 'self' file: blob: data: http://127.0.0.1:* http://localhost:*; object-src 'none'; base-uri 'none'; form-action 'none'"/>
-<title>Nuova mail</title>
+<title data-i18n="new_mail">Nuova mail</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Saira:wght@300;400;500;600;700&display=swap');
   :root {
@@ -168,7 +168,7 @@
 <div class="fields">
   <div class="field-row" style="position:relative;">
     <span class="field-label" data-i18n="to_label">A:</span>
-    <input type="text" id="mailTo" class="field-input" data-i18n-ph="recipient_ph" placeholder="destinatario@email.it" autocomplete="off"/>
+    <input type="text" id="mailTo" class="field-input" data-i18n-ph="recipient_ph" placeholder="mario.rossi@example.com" autocomplete="off"/>
     <div id="mailToAutocomplete" class="autocomplete-box hidden"></div>
   </div>
   <div class="field-row">
@@ -187,7 +187,7 @@
 
 <div class="body-area" id="bodyAreaWrap">
   <textarea id="mailBody" class="body-textarea" data-i18n-ph="new_mail_body_ph" placeholder="Scrivi la mail… (trascina file o immagini qui)"></textarea>
-  <div class="drop-overlay" id="bodyDropOverlay">📎 Rilascia per allegare</div>
+  <div class="drop-overlay" id="bodyDropOverlay">📎 <span data-i18n="cmp_drop_to_attach">Rilascia per allegare</span></div>
   <div class="attachments" id="attachmentsBox"></div>
 </div>
 
@@ -197,7 +197,7 @@
   <div style="position:relative;">
     <button class="tool-btn" id="btnFollowup" data-i18n-title="followup" title="Follow-up">📌</button>
     <div class="fu-dropdown" id="followupDropdown">
-      <div class="fu-opt" data-h="0">✕ Nessuno</div>
+      <div class="fu-opt" data-h="0">✕ <span data-i18n="cmp_followup_none">Nessuno</span></div>
       <div class="fu-opt" data-h="24">24h</div>
       <div class="fu-opt" data-h="48">48h</div>
       <div class="fu-opt" data-h="72">72h</div>
@@ -227,6 +227,7 @@ let sendRafId = null;
 let instructionContext = '';
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function T(key, it){ return (window.i18n && window.i18n.t) ? window.i18n.t(key, it) : it; }
 
 // ── BOZZA: salvata in GigaMail mentre si scrive ───────────────────────────────
 // In locale due secondi dopo l'ultimo tasto. Nella cartella Bozze della
@@ -273,7 +274,7 @@ async function saveDraftNow({ sync = false } = {}) {
     if (needSync) { syncedSig = sig; lastSyncAt = Date.now(); }
     // Non copre messaggi piu' importanti ("Invio annullato", errori).
     const st = document.getElementById('status');
-    const label = window.i18n ? window.i18n.t('draft_saved') : 'Bozza salvata';
+    const label = T('draft_saved', 'Bozza salvata');
     if (!st.textContent || st.textContent === label) st.textContent = label;
   } catch (e) { console.error('saveDraft:', e); }
 }
@@ -402,7 +403,7 @@ instrEl.addEventListener('drop', async (e) => {
   instrEl.classList.remove('drag-over');
   const file = e.dataTransfer.files?.[0];
   if (!file) return;
-  instrEl.placeholder = 'Estrazione testo…';
+  instrEl.placeholder = T('cmp_extracting_text', 'Estrazione testo…');
   try {
     const formData = new FormData();
     formData.append('file', file);
@@ -411,9 +412,9 @@ instrEl.addEventListener('drop', async (e) => {
     instructionContext = data.text || '';
     ctxBadge.textContent = `📄 ${file.name}`;
     ctxBadge.classList.add('visible');
-    instrEl.placeholder = 'Istruzione AI — trascina file per contesto…';
+    instrEl.placeholder = T('ai_instruction_drag_ph', 'Istruzione AI — trascina file per contesto…');
   } catch(err) {
-    instrEl.placeholder = 'Errore estrazione — riprova';
+    instrEl.placeholder = T('cmp_extract_error_retry', 'Errore estrazione — riprova');
   }
 });
 ctxBadge.addEventListener('click', () => {
@@ -478,7 +479,7 @@ document.getElementById('btnGenerate').addEventListener('click', async () => {
   const btn = document.getElementById('btnGenerate');
   const ta  = document.getElementById('mailBody');
   const st  = document.getElementById('status');
-  btn.disabled = true; btn.textContent = '…'; ta.value = 'Generazione…'; st.textContent = '';
+  btn.disabled = true; btn.textContent = '…'; ta.value = T('cmp_generating', 'Generazione…'); st.textContent = '';
   try {
     const baseInstruction = instrEl.value.trim();
     const instruction = instructionContext
@@ -493,8 +494,8 @@ document.getElementById('btnGenerate').addEventListener('click', async () => {
     if (!r.ok) throw (data.detail || `HTTP ${r.status}`);
     ta.value = data.draft || data.text || '';
     scheduleDraftSave();
-  } catch(e) { ta.value = ''; st.textContent = `Errore generazione: ${e}`; }
-  btn.textContent = '⚡ ' + (window.i18n?window.i18n.t('generate'):'GENERA'); btn.disabled = false;
+  } catch(e) { ta.value = ''; st.textContent = `${T('cmp_generate_error', 'Errore generazione')}: ${e}`; }
+  btn.textContent = '⚡ ' + T('generate', 'GENERA'); btn.disabled = false;
 });
 
 // ── INVIA con delay 5s ────────────────────────────────────────────────────────
@@ -504,7 +505,7 @@ function resetSendBtn() {
   const btn    = document.getElementById('btnSend');
   if (sendTimer) { clearTimeout(sendTimer); sendTimer = null; }
   if (sendRafId) { cancelAnimationFrame(sendRafId); sendRafId = null; }
-  btn.disabled = false; label.textContent = 'Invia ↑';
+  btn.disabled = false; label.textContent = T('send', 'Invia ↑');
   circle.style.setProperty('--pct', '0%');
 }
 
@@ -518,7 +519,7 @@ async function execSend() {
   const body    = document.getElementById('mailBody').value;
   const cc      = document.getElementById('mailCc').value.trim();
   const bcc     = document.getElementById('mailBcc').value.trim();
-  btn.disabled = true; label.textContent = 'Invio…';
+  btn.disabled = true; label.textContent = T('cmp_sending_btn', 'Invio…');
   circle.style.setProperty('--pct', '100%');
   try {
     let url = `${API}/mail/send`;
@@ -534,10 +535,10 @@ async function execSend() {
       const detail = Array.isArray(result?.detail)
         ? result.detail.map(d => d?.msg || JSON.stringify(d)).join('; ')
         : result?.detail;
-      throw new Error(detail || result?.error || `Invio non confermato (HTTP ${response.status})`);
+      throw new Error(detail || result?.error || `${T('cmp_send_unconfirmed', 'Invio non confermato')} (HTTP ${response.status})`);
     }
     if (result.dryrun) {
-      st.textContent = 'Simulazione: nessuna mail inviata.';
+      st.textContent = T('cmp_dryrun_no_send', 'Simulazione: nessuna mail inviata.');
       resetSendBtn();
       return;
     }
@@ -552,10 +553,10 @@ async function execSend() {
         await window.newMailWindowAPI?.followupSave({ message_id:null, account_id:accountId, subject, to_addr:to, hours:followupHours });
       } catch (e) { console.warn('followupSave:', e); }
     }
-    st.textContent = 'Inviata ✓';
+    st.textContent = T('cmp_sent_check', 'Inviata ✓');
     setTimeout(() => window.newMailWindowAPI?.close(), 800);
   } catch(e) {
-    st.textContent = 'Errore invio' + (e && e.message ? `: ${e.message}` : '');
+    st.textContent = T('cmp_send_error', 'Errore invio') + (e && e.message ? `: ${e.message}` : '');
     resetSendBtn();
   }
 }
@@ -564,11 +565,11 @@ document.getElementById('btnSend').addEventListener('click', () => {
   const to   = document.getElementById('mailTo').value.trim();
   const body = document.getElementById('mailBody').value;
   const st   = document.getElementById('status');
-  if (sendTimer) { resetSendBtn(); st.textContent = 'Invio annullato'; return; }
-  if (!to || !body) { st.textContent = 'Compila A e il testo'; return; }
+  if (sendTimer) { resetSendBtn(); st.textContent = T('cmp_send_cancelled', 'Invio annullato'); return; }
+  if (!to || !body) { st.textContent = T('cmp_fill_to_body', 'Compila A e il testo'); return; }
   const label  = document.getElementById('sendLabel');
   const circle = document.getElementById('sendCircle');
-  label.textContent = '✕ Annulla';
+  label.textContent = '✕ ' + T('cancel', 'Annulla');
   circle.style.setProperty('--pct', '0%');
   st.textContent = '';
   const startTs = performance.now();
@@ -597,15 +598,17 @@ async function maskAll() {
     });
     const d = await r.json();
     if (!d.mapping || Object.keys(d.mapping).length === 0) {
-      showMaskToast('Nessun dato sensibile rilevato.');
+      showMaskToast(T('cmp_mask_none_found', 'Nessun dato sensibile rilevato.'));
       return;
     }
     ta.value = d.masked;
     Object.assign(maskMapping, d.mapping);
     const n = Object.keys(d.mapping).length;
-    showMaskToast(`Mascherati ${n} element${n===1?'o':'i'}.`);
+    showMaskToast(n === 1
+      ? T('cmp_mask_masked_one', 'Mascherato 1 elemento.')
+      : T('cmp_mask_masked_many', 'Mascherati {n} elementi.').replace('{n}', n));
   } catch (e) {
-    alert('Errore mascheramento: ' + e.message);
+    alert(T('cmp_mask_error', 'Errore mascheramento') + ': ' + e.message);
   }
 }
 
@@ -616,12 +619,12 @@ function askLabel(selected, suggested) {
     ov.style.cssText = 'position:fixed;inset:0;z-index:100001;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;';
     ov.innerHTML = `
       <div style="background:#fff;border:1px solid rgba(0,0,0,0.14);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,0.4);width:min(360px,90vw);padding:16px;font-family:inherit">
-        <div style="font-size:13px;margin-bottom:4px">Maschera <b>${escMaskNM(selected)}</b></div>
-        <div style="font-size:11px;color:rgba(0,0,0,0.6);margin-bottom:8px">Etichetta (modificabile):</div>
+        <div style="font-size:13px;margin-bottom:4px">${escMaskNM(T('cmp_mask', 'Maschera'))} <b>${escMaskNM(selected)}</b></div>
+        <div style="font-size:11px;color:rgba(0,0,0,0.6);margin-bottom:8px">${escMaskNM(T('cmp_mask_label_editable', 'Etichetta (modificabile):'))}</div>
         <input id="maskLabelInput" type="text" value="${escMaskNM(suggested)}" style="width:100%;padding:8px 10px;border:1.5px solid rgba(0,0,0,0.4);border-radius:8px;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"/>
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
-          <button id="maskLabelCancel" style="padding:7px 14px;border:1px solid rgba(0,0,0,0.2);background:#fff;border-radius:8px;cursor:pointer;font-size:12px">Annulla</button>
-          <button id="maskLabelOk" style="padding:7px 14px;border:none;background:#f3e6f0;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">Maschera</button>
+          <button id="maskLabelCancel" style="padding:7px 14px;border:1px solid rgba(0,0,0,0.2);background:#fff;border-radius:8px;cursor:pointer;font-size:12px">${escMaskNM(T('cancel', 'Annulla'))}</button>
+          <button id="maskLabelOk" style="padding:7px 14px;border:none;background:#f3e6f0;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">${escMaskNM(T('cmp_mask', 'Maschera'))}</button>
         </div>
       </div>`;
     document.body.appendChild(ov);
@@ -642,7 +645,7 @@ function escMaskNM(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'
 async function maskSelection() {
   const ta = document.getElementById('mailBody');
   const s = ta.selectionStart, e = ta.selectionEnd;
-  if (s === e) { showMaskToast('Seleziona prima il testo da mascherare.'); return; }
+  if (s === e) { showMaskToast(T('cmp_mask_select_first', 'Seleziona prima il testo da mascherare.')); return; }
   const selected = ta.value.substring(s, e).trim();
   if (!selected) return;
 
@@ -670,7 +673,7 @@ async function maskSelection() {
   const ph = `[${labelClean}_${existing + 1}]`;
   maskMapping[ph] = selected;
   ta.value = ta.value.split(selected).join(ph);
-  showMaskToast(`"${selected}" → ${ph} (regola salvata)`);
+  showMaskToast(`"${selected}" → ${ph} (${T('cmp_mask_rule_saved', 'regola salvata')})`);
 }
 
 let _maskToastT = null;
@@ -700,12 +703,12 @@ function showMaskCtxMenu(x, y) {
   m.style.cssText = 'position:fixed;z-index:99999;min-width:190px;background:#fff;border:1px solid rgba(0,0,0,0.14);border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.07);padding:5px;font-family:inherit;';
   if (isPlaceholder) {
     m.innerHTML =
-      '<div class="mask-ctx-item" data-act="unmask" style="padding:8px 12px;border-radius:7px;font-size:13px;cursor:pointer">↩️ Rimuovi maschera (ripristina)</div>' +
-      '<div class="mask-ctx-item" data-act="delrule" style="padding:8px 12px;border-radius:7px;font-size:13px;cursor:pointer;color:#dc2626">🗑 Elimina regola salvata</div>';
+      '<div class="mask-ctx-item" data-act="unmask" style="padding:8px 12px;border-radius:7px;font-size:13px;cursor:pointer">↩️ ' + escMaskNM(T('cmp_unmask_restore', 'Rimuovi maschera (ripristina)')) + '</div>' +
+      '<div class="mask-ctx-item" data-act="delrule" style="padding:8px 12px;border-radius:7px;font-size:13px;cursor:pointer;color:#dc2626">🗑 ' + escMaskNM(T('cmp_delete_saved_rule', 'Elimina regola salvata')) + '</div>';
   } else {
     m.innerHTML =
-      '<div class="mask-ctx-item" data-act="sel" style="padding:8px 12px;border-radius:7px;font-size:13px;cursor:pointer">🔒 Maschera selezione</div>' +
-      '<div class="mask-ctx-item" data-act="all" style="padding:8px 12px;border-radius:7px;font-size:13px;cursor:pointer">🛡️ Maschera tutto</div>';
+      '<div class="mask-ctx-item" data-act="sel" style="padding:8px 12px;border-radius:7px;font-size:13px;cursor:pointer">🔒 ' + escMaskNM(T('cmp_mask_selection', 'Maschera selezione')) + '</div>' +
+      '<div class="mask-ctx-item" data-act="all" style="padding:8px 12px;border-radius:7px;font-size:13px;cursor:pointer">🛡️ ' + escMaskNM(T('cmp_mask_all', 'Maschera tutto')) + '</div>';
   }
   document.body.appendChild(m);
   const rect = m.getBoundingClientRect();
@@ -733,13 +736,13 @@ function unmaskPlaceholder(ph) {
   const ta = document.getElementById('mailBody');
   ta.value = ta.value.split(ph).join(orig);
   delete maskMapping[ph];
-  showMaskToast(`Maschera rimossa: ${ph} → testo originale`);
+  showMaskToast(T('cmp_mask_removed', 'Maschera rimossa: {ph} → testo originale').replace('{ph}', ph));
 }
 
 // Elimina la regola salvata dal DB (cerca per valore) + smaschera nel testo
 async function deleteRuleByValue(value, ph) {
   if (!value) return;
-  if (!confirm('Eliminare questa regola salvata? Non verrà più mascherata in automatico.')) return;
+  if (!confirm(T('cmp_delete_rule_confirm', 'Eliminare questa regola salvata? Non verrà più mascherata in automatico.'))) return;
   try {
     const aid = accountId;
     const r = await fetch(`${API}/masks` + (aid ? `?account_id=${aid}` : ''));
@@ -750,7 +753,7 @@ async function deleteRuleByValue(value, ph) {
     }
   } catch (e) { console.warn('[MASK] delete rule fail', e); }
   if (ph) unmaskPlaceholder(ph);
-  showMaskToast('Regola eliminata');
+  showMaskToast(T('cmp_rule_deleted', 'Regola eliminata'));
 }
 
 document.getElementById('btnMask')?.addEventListener('click', maskAll);

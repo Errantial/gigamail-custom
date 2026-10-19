@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' file:; script-src 'self' file: 'unsafe-inline'; style-src 'self' file: 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' file: data: https://fonts.gstatic.com; img-src 'self' file: http://127.0.0.1:* http://localhost:* https: http: data: blob:; connect-src http://127.0.0.1:* http://localhost:*; media-src 'self' file: blob: data: http://127.0.0.1:* http://localhost:*; object-src 'none'; base-uri 'none'; form-action 'none'"/>
-<title>Nuova risposta</title>
+<title data-i18n="new_reply">Nuova risposta</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Saira:wght@300;400;500;600;700&display=swap');
   :root {
@@ -168,7 +168,7 @@
 <div class="reply-header">
   <div class="reply-row" style="position:relative;">
     <span class="reply-label" data-i18n="to_label">A:</span>
-    <input type="text" id="replyTo" class="reply-field" data-i18n-ph="recipient_ph" placeholder="destinatario@email.it" autocomplete="off"/>
+    <input type="text" id="replyTo" class="reply-field" data-i18n-ph="recipient_ph" placeholder="mario.rossi@example.com" autocomplete="off"/>
     <div id="replyToAutocomplete" style="position:absolute;left:60px;right:0;top:34px;background:#fff;border:1px solid rgba(0,0,0,0.14);border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.07);z-index:999;display:none;max-height:180px;overflow-y:auto;"></div>
   </div>
   <div class="field-sep"></div>
@@ -185,7 +185,7 @@
 
 <div class="reply-body" id="replyBodyWrap">
   <textarea id="replyText" class="reply-textarea" data-i18n-ph="reply_text_drag_ph" placeholder="Scrivi la tua risposta… (trascina file o immagini qui)"></textarea>
-  <div class="drop-overlay" id="bodyDropOverlay">📎 Rilascia per allegare</div>
+  <div class="drop-overlay" id="bodyDropOverlay">📎 <span data-i18n="cmp_drop_to_attach">Rilascia per allegare</span></div>
   <div class="attachments" id="attachmentsBox"></div>
   <div id="guardBanner"></div>
   <div id="suggestedBanner"></div>
@@ -197,7 +197,7 @@
   <div style="position:relative;">
     <button class="tool-btn" id="btnFollowup" data-i18n-title="followup" title="Follow-up">📌</button>
     <div class="fu-dropdown" id="followupDropdown">
-      <div class="fu-opt" data-h="0">✕ Nessuno</div>
+      <div class="fu-opt" data-h="0">✕ <span data-i18n="cmp_followup_none">Nessuno</span></div>
       <div class="fu-opt" data-h="24">24h</div>
       <div class="fu-opt" data-h="48">48h</div>
       <div class="fu-opt" data-h="72">72h</div>
@@ -301,7 +301,7 @@ async function applyMailData(data) {
     document.getElementById('replySubject').value = data.forward_subject || (data.subject ? `Fwd: ${data.subject}` : 'Fwd:');
     document.getElementById('replyText').value    = data.forward_body || '';
     const titleEl = document.querySelector('.tb-title') || document.querySelector('.popup-tb-title');
-    if (titleEl) titleEl.textContent = 'Inoltra';
+    if (titleEl) titleEl.textContent = T('forward_cap', 'Inoltra');
 
     // Scarica e ri-allega gli allegati della mail originale
     const fwdNames = data.forward_attachments || [];
@@ -454,7 +454,7 @@ instrEl.addEventListener('drop', async (e) => {
   instrEl.classList.remove('drag-over');
   const file = e.dataTransfer.files?.[0];
   if (!file) return;
-  instrEl.placeholder = 'Estrazione testo…';
+  instrEl.placeholder = T('cmp_extracting_text', 'Estrazione testo…');
   try {
     const formData = new FormData();
     formData.append('file', file);
@@ -463,9 +463,9 @@ instrEl.addEventListener('drop', async (e) => {
     instructionContext = data.text || '';
     ctxBadge.textContent = `📄 ${file.name}`;
     ctxBadge.classList.add('visible');
-    instrEl.placeholder = 'Istruzione AI (opz.)…';
+    instrEl.placeholder = T('cmp_ai_instruction_opt_ph', 'Istruzione AI (opz.)…');
   } catch(err) {
-    instrEl.placeholder = 'Errore estrazione — riprova';
+    instrEl.placeholder = T('cmp_extract_error_retry', 'Errore estrazione — riprova');
     console.error(err);
   }
 });
@@ -501,10 +501,10 @@ instrEl.addEventListener('keydown', (e) => {
 
 // ── GENERA ────────────────────────────────────────────────────────────────────
 document.getElementById('btnGenerate').addEventListener('click', async () => {
-  if (!mailData) { document.getElementById('replyText').value = 'Errore: dati mail non caricati.'; return; }
+  if (!mailData) { document.getElementById('replyText').value = T('cmp_mail_data_not_loaded', 'Errore: dati mail non caricati.'); return; }
   const btn = document.getElementById('btnGenerate');
   const ta  = document.getElementById('replyText');
-  btn.textContent = '…'; btn.disabled = true; ta.value = 'Generazione bozza…';
+  btn.textContent = '…'; btn.disabled = true; ta.value = T('cmp_generating_draft', 'Generazione bozza…');
   try {
     const baseInstruction = instrEl.value.trim();
     // Se c'è contesto da file, appendilo all'istruzione
@@ -543,7 +543,7 @@ document.getElementById('btnGenerate').addEventListener('click', async () => {
       guard.style.display = 'block';
       ta.value = '';
       window._lastGeneratedDraft = '';
-      btn.textContent = '⚡ ' + (window.i18n?window.i18n.t('generate'):'GENERA'); btn.disabled = false;
+      btn.textContent = '⚡ ' + T('generate', 'GENERA'); btn.disabled = false;
       return;
     }
     ta.value = data.draft || data.text || '';
@@ -559,8 +559,8 @@ document.getElementById('btnGenerate').addEventListener('click', async () => {
         <button onclick="addSuggestedAttachments()" style="margin-top:6px;padding:4px 10px;border-radius:6px;background:rgba(26,108,245,0.1);border:1px solid rgba(26,108,245,0.2);color:var(--accent);font-size:10px;cursor:pointer">+ ${esc(T('add_selected','AGGIUNGI SELEZIONATI'))}</button>`;
       banner.style.display = 'block';
     }
-  } catch(e) { ta.value = `Errore: ${e}`; }
-  btn.textContent = '⚡ ' + (window.i18n?window.i18n.t('generate'):'GENERA'); btn.disabled = false;
+  } catch(e) { ta.value = `${T('error', 'Errore')}: ${e}`; }
+  btn.textContent = '⚡ ' + T('generate', 'GENERA'); btn.disabled = false;
 });
 
 async function addSuggestedAttachments() {
@@ -584,7 +584,7 @@ function resetSendBtn() {
   if (sendTimer) { clearTimeout(sendTimer); sendTimer = null; }
   if (sendRafId) { cancelAnimationFrame(sendRafId); sendRafId = null; }
   btn.disabled = false;
-  label.textContent = 'Invia ↑';
+  label.textContent = T('send', 'Invia ↑');
   circle.style.setProperty('--pct', '0%');
 }
 
@@ -597,7 +597,7 @@ async function execSend() {
   const body    = document.getElementById('replyText').value;
   const cc      = document.getElementById('replyCc').value.trim();
 
-  btn.disabled = true; label.textContent = 'Invio…';
+  btn.disabled = true; label.textContent = T('cmp_sending_btn', 'Invio…');
   circle.style.setProperty('--pct', '100%');
   try {
     let url = `${API}/mail/send`;
@@ -623,10 +623,10 @@ async function execSend() {
       const detail = Array.isArray(result?.detail)
         ? result.detail.map(d => d?.msg || JSON.stringify(d)).join('; ')
         : result?.detail;
-      throw new Error(detail || result?.error || `Invio non confermato (HTTP ${response.status})`);
+      throw new Error(detail || result?.error || `${T('cmp_send_unconfirmed', 'Invio non confermato')} (HTTP ${response.status})`);
     }
     if (result.dryrun) {
-      alert('Simulazione: nessuna mail inviata.');
+      alert(T('cmp_dryrun_no_send', 'Simulazione: nessuna mail inviata.'));
       resetSendBtn();
       return;
     }
@@ -637,7 +637,7 @@ async function execSend() {
     }
     window.replyWindowAPI?.close();
   } catch(e) {
-    alert('Errore invio: ' + e);
+    alert(T('cmp_send_error', 'Errore invio') + ': ' + e);
     resetSendBtn();
   }
 }
@@ -647,10 +647,10 @@ document.getElementById('btnSend').addEventListener('click', () => {
   if (sendTimer) { resetSendBtn(); return; }
   const to   = document.getElementById('replyTo').value.trim();
   const body = document.getElementById('replyText').value;
-  if (!to || !body) { alert('Compila A e il testo'); return; }
+  if (!to || !body) { alert(T('cmp_fill_to_body', 'Compila A e il testo')); return; }
   const label  = document.getElementById('sendLabel');
   const circle = document.getElementById('sendCircle');
-  label.textContent = '✕ Annulla';
+  label.textContent = '✕ ' + T('cancel', 'Annulla');
   circle.style.setProperty('--pct', '0%');
   const startTs = performance.now();
   function tick() {
@@ -702,8 +702,8 @@ function showMaskBadge(n) {
   if (!btn) return;
   btn.textContent = n > 0 ? `🔒 ${n}` : '🔒';
   btn.title = n > 0
-    ? `${n} dati sensibili mascherati. Click per controllare.`
-    : 'Nessun dato sensibile rilevato. Click per gestire.';
+    ? T('cmp_mask_badge_n', '{n} dati sensibili mascherati. Click per controllare.').replace('{n}', n)
+    : T('cmp_mask_badge_none', 'Nessun dato sensibile rilevato. Click per gestire.');
   btn.style.background = n > 0 ? 'rgba(46,160,67,0.18)' : '';
 }
 
@@ -716,12 +716,12 @@ function openMaskPanel() {
 
   panel.innerHTML = `
     <div style="padding:12px 16px;background:#f3e6f0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
-      <strong style="font-size:13px">🔒 Controlla i dati prima di generare</strong>
+      <strong style="font-size:13px">🔒 ${escMask(T('cmp_mask_panel_title', 'Controlla i dati prima di generare'))}</strong>
       <button id="maskPanelClose" style="border:none;background:rgba(255,255,255,0.4);border-radius:6px;width:24px;height:24px;cursor:pointer;font-weight:700">✕</button>
     </div>
-    <div style="font-size:11px;color:rgba(0,0,0,0.6);padding:8px 14px 4px;flex-shrink:0">Mail originale (i dati mascherati appaiono come <b>[ETICHETTA_N]</b>). Seleziona altro testo qui sotto e usa il tasto destro per mascherarlo.</div>
+    <div style="font-size:11px;color:rgba(0,0,0,0.6);padding:8px 14px 4px;flex-shrink:0">${escMask(T('cmp_mask_panel_intro', 'Mail originale (i dati mascherati appaiono come {ph}). Seleziona altro testo qui sotto e usa il tasto destro per mascherarlo.')).replace('{ph}', '<b>[' + escMask(T('cmp_mask_label_word', 'ETICHETTA')) + '_N]</b>')}</div>
     <div id="maskOrigBox" style="margin:0 14px;padding:10px 12px;background:rgba(248,250,252,0.9);border:1px solid rgba(0,0,0,0.12);border-radius:8px;font-size:12px;line-height:1.5;white-space:pre-wrap;overflow:auto;flex:1;min-height:120px;user-select:text;"></div>
-    <div style="font-size:11px;color:rgba(0,0,0,0.6);padding:8px 14px 4px;flex-shrink:0">Spunta = mascherato (non esce). Togli per lasciare in chiaro.</div>
+    <div style="font-size:11px;color:rgba(0,0,0,0.6);padding:8px 14px 4px;flex-shrink:0">${escMask(T('cmp_mask_panel_check_hint', 'Spunta = mascherato (non esce). Togli per lasciare in chiaro.'))}</div>
     <div id="maskList" style="margin:0 14px 12px;border:1px solid rgba(0,0,0,0.1);border-radius:8px;overflow:auto;max-height:160px;flex-shrink:0"></div>
   `;
   document.body.appendChild(panel);
@@ -772,16 +772,16 @@ function renderMaskPanel() {
     list.innerHTML = maskCandidates.map(c => {
       const checked = c.active ? 'checked' : '';
       const trash = (c.source === 'user' && c.mask_id)
-        ? `<button data-del-mask="${c.mask_id}" title="Elimina regola salvata (non maschera più in futuro)" style="border:none;background:none;cursor:pointer;font-size:13px;opacity:0.55;flex-shrink:0">🗑</button>`
+        ? `<button data-del-mask="${c.mask_id}" title="${escMask(T('cmp_delete_rule_title', 'Elimina regola salvata (non maschera più in futuro)'))}" style="border:none;background:none;cursor:pointer;font-size:13px;opacity:0.55;flex-shrink:0">🗑</button>`
         : '';
       return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(0,0,0,0.06);font-size:12.5px">
         <input type="checkbox" data-mask-idx="${c.index}" ${checked} style="width:16px;height:16px;flex-shrink:0;cursor:pointer"/>
         <span style="font-weight:700;color:#2ea043;flex-shrink:0;min-width:78px">[${c.label_prefix}_]</span>
         <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escMask(c.value)}</span>
-        <span style="font-size:10px;color:rgba(0,0,0,0.55)">${c.source==='user'?'tua regola':'auto'}</span>
+        <span style="font-size:10px;color:rgba(0,0,0,0.55)">${escMask(c.source==='user' ? T('cmp_mask_source_user', 'tua regola') : T('cmp_mask_source_auto', 'auto'))}</span>
         ${trash}
       </div>`;
-    }).join('') || '<div style="padding:14px;color:rgba(0,0,0,0.55);font-size:12px;text-align:center">Nessun dato rilevato. Seleziona testo sopra e tasto destro per mascherare.</div>';
+    }).join('') || '<div style="padding:14px;color:rgba(0,0,0,0.55);font-size:12px;text-align:center">' + escMask(T('cmp_mask_list_empty', 'Nessun dato rilevato. Seleziona testo sopra e tasto destro per mascherare.')) + '</div>';
     list.querySelectorAll('input[data-mask-idx]').forEach(cb => {
       cb.addEventListener('change', () => {
         const idx = parseInt(cb.dataset.maskIdx, 10);
@@ -796,7 +796,7 @@ function renderMaskPanel() {
     list.querySelectorAll('button[data-del-mask]').forEach(btn => {
       btn.addEventListener('click', async () => {
         const mid = btn.dataset.delMask;
-        if (!confirm('Eliminare questa regola? Non verrà più mascherata in automatico.')) return;
+        if (!confirm(T('cmp_delete_rule_confirm', 'Eliminare questa regola salvata? Non verrà più mascherata in automatico.'))) return;
         try {
           const aid = _maskAccountId();
           await fetch(`${API}/masks/${mid}` + (aid ? `?account_id=${aid}` : ''), { method: 'DELETE' });
@@ -821,12 +821,12 @@ function askLabel(selected, suggested) {
     ov.style.cssText = 'position:fixed;inset:0;z-index:100001;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;';
     ov.innerHTML = `
       <div style="background:#fff;border:1px solid rgba(0,0,0,0.14);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,0.4);width:min(360px,90vw);padding:16px;font-family:inherit">
-        <div style="font-size:13px;margin-bottom:4px">Maschera <b>${escMask(selected)}</b></div>
-        <div style="font-size:11px;color:rgba(0,0,0,0.6);margin-bottom:8px">Etichetta (modificabile):</div>
+        <div style="font-size:13px;margin-bottom:4px">${escMask(T('cmp_mask', 'Maschera'))} <b>${escMask(selected)}</b></div>
+        <div style="font-size:11px;color:rgba(0,0,0,0.6);margin-bottom:8px">${escMask(T('cmp_mask_label_editable', 'Etichetta (modificabile):'))}</div>
         <input id="maskLabelInput" type="text" value="${escMask(suggested)}" style="width:100%;padding:8px 10px;border:1.5px solid rgba(0,0,0,0.4);border-radius:8px;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"/>
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
-          <button id="maskLabelCancel" style="padding:7px 14px;border:1px solid rgba(0,0,0,0.2);background:#fff;border-radius:8px;cursor:pointer;font-size:12px">Annulla</button>
-          <button id="maskLabelOk" style="padding:7px 14px;border:none;background:#f3e6f0;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">Maschera</button>
+          <button id="maskLabelCancel" style="padding:7px 14px;border:1px solid rgba(0,0,0,0.2);background:#fff;border-radius:8px;cursor:pointer;font-size:12px">${escMask(T('cancel', 'Annulla'))}</button>
+          <button id="maskLabelOk" style="padding:7px 14px;border:none;background:#f3e6f0;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">${escMask(T('cmp_mask', 'Maschera'))}</button>
         </div>
       </div>`;
     document.body.appendChild(ov);
@@ -874,7 +874,7 @@ function showMaskCtxMenu(x, y, selectedText) {
   const m = document.createElement('div');
   m.id = 'maskCtxMenu';
   m.style.cssText = 'position:fixed;z-index:100000;min-width:180px;background:#fff;border:1px solid rgba(0,0,0,0.14);border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.07);padding:5px;';
-  m.innerHTML = '<div class="mask-ctx-item" style="padding:8px 12px;border-radius:7px;font-size:13px;cursor:pointer">🔒 Maschera selezione</div>';
+  m.innerHTML = '<div class="mask-ctx-item" style="padding:8px 12px;border-radius:7px;font-size:13px;cursor:pointer">🔒 ' + escMask(T('cmp_mask_selection', 'Maschera selezione')) + '</div>';
   document.body.appendChild(m);
   const rect = m.getBoundingClientRect();
   m.style.left = Math.max(4,(x+rect.width>window.innerWidth)?x-rect.width:x)+'px';

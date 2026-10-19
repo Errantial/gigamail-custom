@@ -1,4 +1,4 @@
-function T(key, it){ return (window.i18n && window.i18n.t) ? window.i18n.t(key) : it; }
+function T(key, it){ return (window.i18n && window.i18n.t) ? window.i18n.t(key, it) : it; }
 const api = window.ademail || {};
 
 /** Rimuove ':uid' appiccicato al nome cartella IMAP (es. INBOX.SPAM:1 → INBOX.SPAM) */
@@ -120,22 +120,22 @@ function bindUpload() {
     const status = byId('uploadStatus');
     const nameEl = byId('uploadFileName');
     if (nameEl) nameEl.textContent = file.name;
-    if (status) status.textContent = '⚡ Estrazione in corso...';
+    if (status) status.textContent = '⚡ ' + T('app_extracting', 'Estrazione in corso...');
     try {
       const r = await api.uploadFile(file);
       uploadedText = r.text;
-      if (status) status.textContent = `✓ ${r.chars} caratteri (${r.type})`;
+      if (status) status.textContent = `✓ ${r.chars} ${T('app_characters', 'caratteri')} (${r.type})`;
     } catch (e) { if (status) status.textContent = `✕ ${String(e).slice(0, 60)}`; }
   });
 
   on('btnExtractToExcel', 'click', () => {
-    if (!uploadedText) { showToast('Prima carica un file'); return; }
+    if (!uploadedText) { showToast(T('app_upload_file_first', 'Prima carica un file')); return; }
     if (byId('xlData')) byId('xlData').value = uploadedText;
     byId('xlInstruction')?.focus();
   });
 
   on('btnExtractToWord', 'click', () => {
-    if (!uploadedText) { showToast('Prima carica un file'); return; }
+    if (!uploadedText) { showToast(T('app_upload_file_first', 'Prima carica un file')); return; }
     if (byId('wordSource')) byId('wordSource').value = uploadedText;
     byId('wordInstruction')?.focus();
   });
@@ -168,7 +168,7 @@ function bindStaticEvents() {
       if (urlEl) { urlEl.textContent = uri; urlEl.href = uri; }
       setText('loginCode', data.user_code || '');
       setHidden('loginStep1', true); setHidden('loginStep2', false);
-    } catch (e) { showToast(`Errore avvio login: ${e}`); }
+    } catch (e) { showToast(`${T('app_login_start_error', 'Errore avvio login')}: ${e}`); }
   });
 
   on('btnCompleteLogin', 'click', async () => {
@@ -178,8 +178,8 @@ function bindStaticEvents() {
         setHidden('loginOverlay', true);
         setHidden('loginStep1', false); setHidden('loginStep2', true);
         await loadAccounts(); await checkAuth();
-      } else { showToast('Login non completato. Riprova.'); }
-    } catch (e) { showToast(`Errore: ${e}`); }
+      } else { showToast(T('app_login_not_completed', 'Login non completato. Riprova.')); }
+    } catch (e) { showToast(`${T('error', 'Errore')}: ${e}`); }
   });
 
   // Marketing → finestra nativa
@@ -194,14 +194,14 @@ function bindStaticEvents() {
     const filename    = byId('xlFilename')?.value.trim() || null;
     const status      = byId('xlStatus');
     const result      = byId('xlResult');
-    if (!instruction && !data) { if (status) status.textContent = '✕ Inserisci istruzione o dati'; return; }
-    if (status) status.textContent = '⚡ Generazione in corso...';
+    if (!instruction && !data) { if (status) status.textContent = '✕ ' + T('app_enter_instruction_or_data', 'Inserisci istruzione o dati'); return; }
+    if (status) status.textContent = '⚡ ' + T('bulk_generating', 'Generazione in corso...');
     result?.classList.add('hidden');
     try {
       const res = await api.createExcel(data, instruction, filename);
-      if (status) status.textContent = '✓ File creato';
+      if (status) status.textContent = '✓ ' + T('app_file_created', 'File creato');
       if (result) { result.textContent = `📁 ${res.filename}\n${res.path}`; result.classList.remove('hidden'); }
-    } catch (e) { if (status) status.textContent = `✕ Errore: ${e}`; }
+    } catch (e) { if (status) status.textContent = `✕ ${T('error', 'Errore')}: ${e}`; }
   });
 
   on('btnCreateWord', 'click', async () => {
@@ -211,14 +211,14 @@ function bindStaticEvents() {
     const filename    = byId('wordFilename')?.value.trim() || null;
     const status      = byId('wordStatus');
     const result      = byId('wordResult');
-    if (!instruction) { if (status) status.textContent = '✕ Inserisci istruzione'; return; }
-    if (status) status.textContent = '⚡ Generazione in corso...';
+    if (!instruction) { if (status) status.textContent = '✕ ' + T('app_enter_instruction', 'Inserisci istruzione'); return; }
+    if (status) status.textContent = '⚡ ' + T('bulk_generating', 'Generazione in corso...');
     result?.classList.add('hidden');
     try {
       const res = await api.createWord(instruction, source, filename, title);
-      if (status) status.textContent = '✓ File creato';
+      if (status) status.textContent = '✓ ' + T('app_file_created', 'File creato');
       if (result) { result.textContent = `📁 ${res.filename}\n${res.path}`; result.classList.remove('hidden'); }
-    } catch (e) { if (status) status.textContent = `✕ Errore: ${e}`; }
+    } catch (e) { if (status) status.textContent = `✕ ${T('error', 'Errore')}: ${e}`; }
   });
 }
 
@@ -388,7 +388,7 @@ function renderTodo() {
   // Input area
   const inputHtml = `
     <div id="todo-drop-area" style="position:relative;">
-      <div id="todo-drop-overlay" style="display:none;position:absolute;inset:0;border-radius:10px;background:linear-gradient(135deg,rgba(238,185,221,0.9),rgba(176,199,244,0.9));border:2px dashed rgba(0,0,0,0.4);z-index:10;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:rgba(0,0,0,0.6);">📎 Rilascia il file</div>
+      <div id="todo-drop-overlay" style="display:none;position:absolute;inset:0;border-radius:10px;background:linear-gradient(135deg,rgba(238,185,221,0.9),rgba(176,199,244,0.9));border:2px dashed rgba(0,0,0,0.4);z-index:10;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:rgba(0,0,0,0.6);">📎 ${T('app_drop_file', 'Rilascia il file')}</div>
       <div style="display:flex;gap:8px;align-items:center;">
         <input id="todo-input" type="text" placeholder="${T('add_note_ph','Aggiungi nota… o trascina un file')}"
           style="flex:1;border:1px solid rgba(0,0,0,0.14);border-radius:8px;padding:7px 10px;font-size:12px;font-family:inherit;outline:none;background:white;box-shadow:0 2px 8px rgba(0,0,0,0.08);"

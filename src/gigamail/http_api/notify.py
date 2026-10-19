@@ -1,11 +1,13 @@
 """Notifiche, agente, desktop-setup e onboarding della console."""
 import os
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
 
 from gigamail import agent_bridge, policy
 from gigamail.core import accounts as core_accounts
 
+from . import console_click
 from .common import _who
 
 router = APIRouter()
@@ -34,7 +36,24 @@ def notify_status():
         },
         "command": bool(policy._notify_command()),
         "lang": policy.user_lang(),
+        # sends clicked in the console: straight away, or behind the OS prompt
+        "console_send_hello": console_click.send_requires_hello(),
     }
+
+
+class ConsoleSendHelloRequest(BaseModel):
+    enabled: bool
+
+
+@router.post("/console/send-hello")
+def set_console_send_hello(req: ConsoleSendHelloRequest, request: Request):
+    """The user's choice, from the console's own window only: a request
+    without the click secret cannot change it (it would gain nothing, since
+    it meets the prompt anyway, but the choice belongs to the person)."""
+    if not console_click.is_console_click(request.headers):
+        raise HTTPException(403, "Solo dalla console")
+    console_click.set_send_requires_hello(req.enabled)
+    return {"console_send_hello": console_click.send_requires_hello()}
 
 
 @router.post("/notify/desktop-setup")

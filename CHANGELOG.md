@@ -2,6 +2,63 @@
 
 ## Unreleased
 
+- **The console shows the requests waiting for you.** A draft the watcher
+  prepared from a rule, or a send the agent asked for, was visible on
+  Telegram, as a desktop toast and in `gigamail approvals list`, and nowhere
+  in the new console, which listed only the requests of its own agent bar.
+  Automations now opens with *Waiting for you*: who it goes to, the
+  subject, the text and attachments, where the address came from, how long
+  before it expires, with *Approve (Hello)* and *Reject*. A count on the
+  Automations icon appears from any view while something waits. After an
+  approval the console says who completes it: the watcher on its next
+  cycle for a rule's draft, the agent that asked for a tool request.
+  *Recently decided* lists the last 24 hours with the real outcome (sent,
+  send failed, rejected, expired undecided) and the channel that decided,
+  so "did it go out?" has an answer on screen. Backend: `GET
+  /approvals/recent`, `completed_by` on pending requests and on the
+  approval response.
+- **Sending from the console no longer asks Windows Hello.** Send, reply,
+  reply all and forward clicked in a console window go out straight away:
+  the Hello prompt could open behind the windows and leave the button on
+  "Sending…" with nothing to say why. The console proves the click with a
+  secret it makes at every launch and keeps in memory only, handed to its
+  backend over stdin and added only to its own windows' requests. The
+  console token file does not contain it, so the agent or a script holding
+  the token still meets the OS prompt, and the agent's own requests still
+  need your approval. A backend left running by an earlier launch is
+  replaced on start. Audited as "console click". Optional: Automations >
+  *Ask for verification for sends from the console too* keeps the prompt
+  for your own sends as well (off by default; only the console window can
+  change it). See SECURITY.md.
+- **Fix: a mail you open in the console stays read.** Since the backend
+  reads mail without touching its flags (so that the agent and the watcher
+  do not hide a client's reply from your unread), opening a mail in the
+  console only removed the dot on screen: as soon as the list reloaded,
+  switching account for instance, the mail was unread again. Opening a mail,
+  in the reading pane or in its own window, now marks it read on the
+  server, in the right account and folder, also for a mail opened from a
+  link of the agent. The agent's and the watcher's reads still leave it
+  unread.
+- **The mails the agent mentions open with a click.** When the agent in the
+  console lists mails, each subject is a link: a mail of the account on
+  screen opens in the reading pane, a mail of another account in its own
+  window. The agent is asked to link only ids the tools returned, and only
+  links to a mail become clickable: any other link in its answer stays
+  plain text.
+- **The agent in the console answers in the language you write in.** Any
+  language, not only the three of the interface: a question in Italian
+  gets an Italian answer even with the console in English, and the
+  confirmation after an approval follows the request that opened it. The
+  interface's language decides only when the request does not show one
+  (a single word, a name, a number).
+- **The whole console follows the language switch.** Buttons, placeholders,
+  messages, confirmations and empty states that stayed in Italian with the
+  console in English or Chinese now change with it, in the main window and
+  in the mail, reply, new mail, calendar and other windows. The right-click
+  menu, the notifications, the file dialogs and the window titles, which the
+  app shows by itself, follow the chosen language too. A key missing from
+  the dictionary now shows the text written in the code instead of the key
+  name, and a test fails when the console uses a key the dictionary lacks.
 - **Calendar: all-day events, and a grid that fits.** The event form has an
   *All day* box: start and end become dates, first and last day included,
   and Microsoft 365 and Google receive a real all-day event. All-day events

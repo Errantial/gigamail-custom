@@ -4,7 +4,7 @@ import threading
 from typing import List, Optional
 from urllib.parse import quote
 
-from fastapi import APIRouter, HTTPException, Path, Response
+from fastapi import APIRouter, HTTPException, Path, Request, Response
 from pydantic import BaseModel, Field
 
 from gigamail.core import (
@@ -224,18 +224,22 @@ class SendRequest(BaseModel):
 
 
 @router.post("/mail/send")
-def send_mail(req: SendRequest, account_id: Optional[int] = None):
+def send_mail(req: SendRequest, request: Request, account_id: Optional[int] = None):
     args = req.model_dump()
     args["account_id"] = req.account_id or account_id or _active_id()
     if args["account_id"] is None:
         raise HTTPException(400, "Nessun account attivo")
     args["body"] = signature.apply(args["account_id"], args["body"])
+    # Send, reply, reply all and forward from the console all come here: a
+    # click in the console sends without Windows Hello, any other caller
+    # still needs it (http_api/console_click.py).
     result = _human_action(
         "send_mail", args,
         f"Inviare dall'account {args['account_id']} a {req.to} "
         f"(CC: {', '.join(req.cc or [])}; Ccn: {', '.join(req.bcc or [])}) "
         f"la mail {req.subject!r}?",
         lambda a: mail_router.send_message(**a),
+        request=request,
     )
     if result.get("success") and not result.get("dryrun"):
         try:

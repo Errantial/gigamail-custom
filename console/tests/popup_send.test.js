@@ -51,6 +51,9 @@ async function sendPopup(file, response, { followupFails = false } = {}) {
       error(...args) { state.warnings.push(args); },
     },
     alert(message) { state.alerts.push(message); },
+    // the pages' own T(key, it) helper: with no dictionary loaded it returns
+    // the Italian text written in the code
+    T: (_key, it) => it,
     async fetch(url, options) {
       if (options.method === 'DELETE') {
         state.draftDeletes.push(url);

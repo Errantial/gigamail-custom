@@ -34,7 +34,7 @@
     <div class="s-item"        id="btnShowDeleted"   data-label="Cestino" data-i18n-label="trash"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></div>
     <div class="s-item" id="btnCompact" data-label="Modalità compatta" data-i18n-label="compact_mode"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></div>
     <div class="s-item" id="btnShowAsk" data-label="Chiedi alle mail" data-i18n-label="ask_title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="10" r="0.5" fill="currentColor"/><circle cx="12" cy="10" r="0.5" fill="currentColor"/><circle cx="15" cy="10" r="0.5" fill="currentColor"/></svg></div>
-    <div class="s-item" id="btnShowAutomations" data-label="Automazioni" data-i18n-label="automations"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+    <div class="s-item" id="btnShowAutomations" data-label="Automazioni" data-i18n-label="automations"><span class="s-badge" id="pendingBadge" hidden></span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
     <div class="s-item" id="themeSwitch" role="button" tabindex="0" data-label="Tema"></div>
     <div class="s-item" id="langSwitch" data-i18n-title="lang_switch_title" title="Lingua / Language" style="cursor:pointer;font-size:11px;font-weight:700;letter-spacing:1px;text-align:center;line-height:1;color:rgba(0,0,0,0.6)" onclick="window.i18n&&window.i18n.toggleLang()">IT</div>
     <div class="s-avatar"      id="sidebarAvatar"  >S</div>
@@ -95,11 +95,11 @@
             <span data-i18n="calendar">Calendario</span>
             <div style="display:flex;gap:6px;align-items:center">
               <select id="calDays" class="account-select" style="width:90px">
-                <option value="7">7 giorni</option><option value="14">14 giorni</option><option value="30">30 giorni</option>
+                <option value="7" data-i18n="win_days_7">7 giorni</option><option value="14" data-i18n="win_days_14">14 giorni</option><option value="30" data-i18n="win_days_30">30 giorni</option>
               </select>
               <button class="chip-btn" id="btnRefreshCal">↻</button>
               <button class="chip-btn" id="btnSpeakToday" data-requires="/calendar/today/tts">🔊</button>
-              <button class="chip-btn" id="btnClearEvent">+ Evento</button>
+              <button class="chip-btn" id="btnClearEvent">+ <span data-i18n="cal_event">Evento</span></button>
             </div>
           </div>
         </div>
@@ -115,7 +115,13 @@
         <div class="auto-body">
 
           <div class="auto-col">
-            <label class="field-label" data-i18n="rules_title">Regole di risposta</label>
+            <label class="field-label" data-i18n="pending_title">Richieste in attesa</label>
+            <div class="hint" style="margin-bottom:6px" data-i18n="pending_sub">Le bozze preparate dal watcher e le richieste dell'agente. Approvare passa da Windows Hello; rifiutare no.</div>
+            <div id="pendingList"></div>
+            <label class="field-label" style="margin-top:14px" data-i18n="recent_title">Decise di recente</label>
+            <div id="recentList"></div>
+
+            <label class="field-label" style="margin-top:14px" data-i18n="rules_title">Regole di risposta</label>
             <div id="rulesList"></div>
 
             <div class="ai-card" id="ruleForm">
@@ -180,6 +186,8 @@
               <div class="ai-card-row"><select id="agentSelect" class="field-input" style="max-width:200px;margin-right:8px"></select><span class="ai-card-status" id="agentStatus">…</span><button class="chip-btn" id="btnOnboarding" data-i18n="ob_reopen" onclick="window.openOnboarding&&window.openOnboarding()">Guida iniziale</button></div>
               <div class="ai-card-title" style="margin-top:12px" data-i18n="consent_title">Verifica umana (Hello / Touch ID)</div>
               <div class="ai-card-row"><span class="ai-card-status" id="consentStatus">…</span></div>
+              <div class="ai-card-row"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="consoleSendHello"/><span data-i18n="win_console_send_hello">Chiedi la verifica anche per gli invii dalla console</span></label></div>
+              <div class="hint" style="margin-top:4px" data-i18n="win_console_send_hello_hint">Spenta: invia, rispondi e inoltra partono al clic. Le richieste dell'agente passano sempre dalla tua approvazione.</div>
               <div class="ai-card-title" style="margin-top:12px" data-i18n="desktop_title">Notifiche sul PC</div>
               <div class="ai-card-row">
                 <span class="ai-card-status" id="desktopStatus">…</span>
@@ -187,7 +195,7 @@
               </div>
               <div class="ai-card-title" style="margin-top:12px">Telegram</div>
               <div class="ai-card-row"><span class="ai-card-status" id="telegramStatus">…</span><button class="chip-btn" id="btnNotifyRefresh">↻</button></div>
-              <div class="hint" style="margin-top:6px" data-i18n="telegram_hint">Si configura dal terminale (il token del bot non passa da questa finestra): <code>gigamail telegram setup</code>, con <code>--approve</code> per approvare dal telefono (Hello).</div>
+              <div class="hint" style="margin-top:6px" data-i18n-html="telegram_hint">Si configura dal terminale (il token del bot non passa da questa finestra): <code>gigamail telegram setup</code>, con <code>--approve</code> per approvare dal telefono (Hello).</div>
             </div>
           </div>
 
@@ -200,48 +208,48 @@
         <div class="mkt-left">
           <div class="panel-header"><div class="panel-title"><span data-i18n="marketing_mail">Marketing Mail</span></div></div>
           <div class="mkt-section">
-            <label class="field-label">1. DESTINATARI</label>
+            <label class="field-label">1. <span data-i18n="recipients">DESTINATARI</span></label>
             <input type="file" id="bulkFileInput" accept=".csv,.xlsx,.xls" style="display:none"/>
-            <button class="chip-btn w100" id="btnBulkUpload">📂 CARICA CSV / EXCEL</button>
+            <button class="chip-btn w100" id="btnBulkUpload">📂 <span data-i18n="win_load_csv_upper">CARICA CSV / EXCEL</span></button>
             <div id="bulkFileInfo" class="hint"></div>
           </div>
           <div class="mkt-section">
-            <label class="field-label">2. OGGETTO</label>
-            <input type="text" id="bulkSubject" class="field-input" placeholder="Oggetto…"/>
+            <label class="field-label">2. <span data-i18n="subject_word">OGGETTO</span></label>
+            <input type="text" id="bulkSubject" class="field-input" data-i18n-ph="subject_ph" placeholder="Oggetto…"/>
           </div>
           <div class="mkt-section">
-            <label class="field-label">3. FORMATO</label>
+            <label class="field-label">3. <span data-i18n="format_word">FORMATO</span></label>
             <div style="display:flex;gap:4px">
               <button class="tab active" id="btnBulkHtml">HTML</button>
               <button class="tab" id="btnBulkPlain">PLAIN</button>
             </div>
           </div>
           <div class="mkt-section">
-            <label class="field-label">PAUSA (sec)</label>
+            <label class="field-label" data-i18n="pause_sec">PAUSA (sec)</label>
             <div style="display:flex;gap:6px">
               <div style="flex:1"><div class="hint">MIN</div><input type="number" id="bulkSleepMin" class="field-input" value="20" min="5"/></div>
               <div style="flex:1"><div class="hint">MAX</div><input type="number" id="bulkSleepMax" class="field-input" value="40" min="5"/></div>
             </div>
           </div>
-          <div class="mkt-section"><div id="bulkVarsHint" class="hint" style="color:rgba(26,108,245,0.7)">Variabili: {nome}, {email}</div></div>
+          <div class="mkt-section"><div id="bulkVarsHint" class="hint" style="color:rgba(26,108,245,0.7)"><span data-i18n="win_variables">Variabili:</span> {nome}, {email}</div></div>
           <div class="mkt-section">
-            <button class="chip-btn w100" id="btnBulkPreview">👁 PREVIEW</button>
-            <button class="compose-btn" id="btnBulkStart" disabled>▶ AVVIA INVIO</button>
-            <button class="chip-btn w100 danger" id="btnBulkStop" style="display:none">⏹ FERMA</button>
+            <button class="chip-btn w100" id="btnBulkPreview">👁 <span data-i18n="win_preview_upper">PREVIEW</span></button>
+            <button class="compose-btn" id="btnBulkStart" disabled>▶ <span data-i18n="win_start_send_upper">AVVIA INVIO</span></button>
+            <button class="chip-btn w100 danger" id="btnBulkStop" style="display:none">⏹ <span data-i18n="win_stop_upper">FERMA</span></button>
           </div>
         </div>
         <div class="mkt-right">
           <div class="mkt-ai-row">
-            <textarea id="bulkInstruction" class="field-input" style="resize:none;flex:1" rows="2" placeholder="Descrivi la mail da generare con AI…"></textarea>
+            <textarea id="bulkInstruction" class="field-input" style="resize:none;flex:1" rows="2" data-i18n-ph="bulk_instruction_ph" placeholder="Descrivi la mail da generare con AI…"></textarea>
             <button class="compose-btn" style="margin:0;width:auto;padding:8px 14px" id="btnBulkGenerate">⚡ <span data-i18n="generate">GENERA</span></button>
           </div>
           <div id="bulkGenerateStatus" class="hint" style="padding:3px 0"></div>
           <div id="bulkEditorHtml" style="flex:1;display:flex"><textarea id="bulkBodyHtml" class="code-editor" placeholder="<html>…"></textarea></div>
-          <div id="bulkEditorPlain" style="flex:1;display:none"><textarea id="bulkBodyPlain" class="code-editor" placeholder="Testo semplice…"></textarea></div>
+          <div id="bulkEditorPlain" style="flex:1;display:none"><textarea id="bulkBodyPlain" class="code-editor" data-i18n-ph="plain_text_ph" placeholder="Testo semplice…"></textarea></div>
           <div id="bulkProgress" style="display:none" class="bulk-progress">
             <div class="progress-wrap"><div id="bulkProgressBar" class="progress-fill"></div></div>
             <div style="display:flex;justify-content:space-between;margin-top:3px">
-              <span id="bulkProgressLabel" class="hint">In attesa…</span>
+              <span id="bulkProgressLabel" class="hint" data-i18n="waiting">In attesa…</span>
               <span id="bulkProgressCount" class="hint">0/0</span>
             </div>
             <div id="bulkLog" class="bulk-log"></div>
@@ -280,12 +288,12 @@
   <div class="reply-header">
     <div class="reply-row">
       <span class="reply-label" data-i18n="to_label">A:</span>
-      <input type="text" id="replyToInput" class="reply-field" placeholder="destinatario@email.it" autocomplete="off"/>
+      <input type="text" id="replyToInput" class="reply-field" data-i18n-ph="recipient_ph" placeholder="mario.rossi@example.com" autocomplete="off"/>
       <div id="replyToAutocomplete" class="autocomplete-box hidden"></div>
     </div>
     <div class="reply-row">
       <span class="reply-label" data-i18n="cc_label">CC:</span>
-      <input type="text" id="replyCcInput" class="reply-field" placeholder="(opzionale)"/>
+      <input type="text" id="replyCcInput" class="reply-field" data-i18n-ph="optional" placeholder="(opzionale)"/>
     </div>
     <div class="reply-row">
       <span class="reply-label" data-i18n="subject_label">Oggetto:</span>
@@ -294,7 +302,7 @@
   </div>
   <div id="replyDropZone" class="reply-drop-zone">
     <textarea id="replyText" class="reply-textarea" data-i18n-ph="reply_text_ph" placeholder="Scrivi la tua risposta…"></textarea>
-    <div class="drop-overlay" id="replyDropOverlay"><span>📎 Rilascia per allegare</span></div>
+    <div class="drop-overlay" id="replyDropOverlay"><span>📎 <span data-i18n="win_drop_to_attach">Rilascia per allegare</span></span></div>
   </div>
   <div id="replyAttachmentsBox" class="reply-attachments"></div>
   <input type="file" id="replyFileInput" multiple style="display:none"/>
@@ -315,17 +323,17 @@
   <div class="modal">
     <div class="modal-hdr"><span class="modal-title" data-i18n="new_mail">Nuova mail</span><button class="icon-btn" id="btnCloseNewMail">✕</button></div>
     <div class="modal-body">
-      <div class="field-row"><label class="field-label" data-i18n="to_word">A</label><input type="text" id="newMailTo" class="field-input" placeholder="destinatario@email.it" autocomplete="off"/></div>
-      <div class="field-row"><label class="field-label">CC</label><input type="text" id="newMailCc" class="field-input" placeholder="(opzionale)"/></div>
-      <div class="field-row"><label class="field-label">BCC</label><input type="text" id="newMailBcc" class="field-input" placeholder="(opzionale)"/></div>
-      <div class="field-row"><label class="field-label" data-i18n="subject_word">Oggetto</label><input type="text" id="newMailSubject" class="field-input" placeholder="Oggetto…"/></div>
-      <div class="field-row"><label class="field-label" data-i18n="ai_instruction_word">Istruzione AI</label><input type="text" id="newMailInstruction" class="field-input" placeholder="(opzionale)…"/></div>
-      <textarea id="newMailBody" class="field-input" style="resize:vertical;min-height:160px;line-height:1.65" placeholder="Scrivi la mail…"></textarea>
+      <div class="field-row"><label class="field-label" data-i18n="to_word">A</label><input type="text" id="newMailTo" class="field-input" data-i18n-ph="recipient_ph" placeholder="mario.rossi@example.com" autocomplete="off"/></div>
+      <div class="field-row"><label class="field-label">CC</label><input type="text" id="newMailCc" class="field-input" data-i18n-ph="optional" placeholder="(opzionale)"/></div>
+      <div class="field-row"><label class="field-label">BCC</label><input type="text" id="newMailBcc" class="field-input" data-i18n-ph="optional" placeholder="(opzionale)"/></div>
+      <div class="field-row"><label class="field-label" data-i18n="subject_word">Oggetto</label><input type="text" id="newMailSubject" class="field-input" data-i18n-ph="subject_ph" placeholder="Oggetto…"/></div>
+      <div class="field-row"><label class="field-label" data-i18n="ai_instruction_word">Istruzione AI</label><input type="text" id="newMailInstruction" class="field-input" data-i18n-ph="win_optional_ellipsis" placeholder="(opzionale)…"/></div>
+      <textarea id="newMailBody" class="field-input" style="resize:vertical;min-height:160px;line-height:1.65" data-i18n-ph="new_mail_body_simple_ph" placeholder="Scrivi la mail…"></textarea>
       <div id="newMailAttachmentsBox" class="reply-attachments"></div>
       <input type="file" id="newMailFileInput" multiple style="display:none"/>
     </div>
     <div class="modal-ftr">
-      <button class="chip-btn" id="btnAttachFile">📎 Allega</button>
+      <button class="chip-btn" id="btnAttachFile">📎 <span data-i18n="win_attach">Allega</span></button>
       <button class="chip-btn" id="btnGenerateNewMail">⚡ AI</button>
       <div style="margin-left:auto;display:flex;gap:6px">
         <button class="chip-btn" id="btnCancelNewMail" data-i18n="cancel">Annulla</button>
@@ -340,7 +348,7 @@
 <div class="overlay hidden" id="googleOverlay">
   <div class="modal">
     <div class="modal-hdr">
-      <span class="modal-title">Calendario e Drive di Google</span>
+      <span class="modal-title" data-i18n="win_google_services">Calendario e Drive di Google</span>
       <button class="icon-btn" id="btnCloseGoogle">&#10005;</button>
     </div>
     <div class="modal-body" id="googleBody"></div>
@@ -351,7 +359,7 @@
 <div class="overlay hidden" id="zoomOverlay">
   <div class="modal">
     <div class="modal-hdr">
-      <span class="modal-title">Zoom per le video call</span>
+      <span class="modal-title" data-i18n="win_zoom_title">Zoom per le video call</span>
       <button class="icon-btn" id="btnCloseZoom">&#10005;</button>
     </div>
     <div class="modal-body" id="zoomBody"></div>
@@ -363,7 +371,7 @@
   <div class="modal">
     <div class="modal-hdr"><span class="modal-title" data-i18n="add_account">Aggiungi account</span><button class="icon-btn" id="btnCloseImap">✕</button></div>
     <div class="modal-body">
-      <div class="field-row"><label class="field-label" data-i18n="name_label">Nome</label><input type="text" id="imapName" class="field-input" placeholder="Es: Lavoro"/></div>
+      <div class="field-row"><label class="field-label" data-i18n="name_label">Nome</label><input type="text" id="imapName" class="field-input" data-i18n-ph="example_work" placeholder="Es: Lavoro"/></div>
       <div class="field-row"><label class="field-label" data-i18n="email_label">Email</label><input type="email" id="imapEmail" class="field-input"/></div>
       <div class="field-row"><label class="field-label" data-i18n="password_label">Password</label><input type="password" id="imapPassword" class="field-input"/></div>
       <div class="field-row"><label class="field-label" data-i18n="provider_label">Provider</label>
@@ -387,8 +395,8 @@
         <button style="flex:1;padding:9px;background:rgba(26,108,245,0.08);border:1px solid rgba(26,108,245,0.25);border-radius:var(--radius-sm);font-size:12px;font-weight:600;font-family:var(--font);color:var(--accent);cursor:pointer" id="btnAddMicrosoft">⚡ Microsoft 365</button>
         <button style="flex:1;padding:9px;background:rgba(234,67,53,0.07);border:1px solid rgba(234,67,53,0.22);border-radius:var(--radius-sm);font-size:12px;font-weight:600;font-family:var(--font);color:rgba(200,50,40,0.85);cursor:pointer" id="btnAddGmail">G Gmail / Google</button>
       </div>
-      <button style="width:100%;padding:9px;background:transparent;border:1px solid rgba(0,0,0,0.14);border-radius:var(--radius-sm);font-size:12px;font-weight:600;font-family:var(--font);cursor:pointer" id="btnAddGoogleServices">Calendario e Drive di Google</button>
-      <button style="width:100%;padding:9px;background:rgba(45,140,255,0.07);border:1px solid rgba(45,140,255,0.25);border-radius:var(--radius-sm);font-size:12px;font-weight:600;font-family:var(--font);color:rgba(20,100,210,0.9);cursor:pointer" id="btnAddZoom">Zoom per le video call</button>
+      <button style="width:100%;padding:9px;background:transparent;border:1px solid rgba(0,0,0,0.14);border-radius:var(--radius-sm);font-size:12px;font-weight:600;font-family:var(--font);cursor:pointer" id="btnAddGoogleServices" data-i18n="win_google_services">Calendario e Drive di Google</button>
+      <button style="width:100%;padding:9px;background:rgba(45,140,255,0.07);border:1px solid rgba(45,140,255,0.25);border-radius:var(--radius-sm);font-size:12px;font-weight:600;font-family:var(--font);color:rgba(20,100,210,0.9);cursor:pointer" id="btnAddZoom" data-i18n="win_zoom_title">Zoom per le video call</button>
       <div style="height:1px;background:rgba(0,0,0,0.08)"></div>
       <div style="display:flex;gap:6px;justify-content:flex-end">
         <button class="chip-btn" id="btnCloseLogin" data-i18n="cancel">Annulla</button>
@@ -541,22 +549,22 @@
 <div class="overlay hidden" id="loginOverlay">
   <div class="modal" style="max-width:420px">
     <div class="modal-hdr">
-      <span class="modal-title">Microsoft 365 — Login</span>
+      <span class="modal-title" data-i18n="ms_login">Microsoft 365 — Login</span>
       <button class="icon-btn" onclick="document.getElementById('loginOverlay').classList.add('hidden')">✕</button>
     </div>
     <div class="modal-body">
       <div id="loginStep1">
-        <p style="font-size:13px;color:rgba(0,0,0,0.55);margin-bottom:14px">Clicca per avviare l'autenticazione Microsoft 365 via browser.</p>
-        <button class="compose-btn" style="margin:0;width:100%" id="btnStartLogin">⚡ AVVIA LOGIN</button>
+        <p style="font-size:13px;color:rgba(0,0,0,0.55);margin-bottom:14px" data-i18n="ms_login_desc">Clicca per avviare l'autenticazione Microsoft 365 via browser.</p>
+        <button class="compose-btn" style="margin:0;width:100%" id="btnStartLogin">⚡ <span data-i18n="win_start_login_upper">AVVIA LOGIN</span></button>
       </div>
       <div id="loginStep2" class="hidden" style="display:flex;flex-direction:column;gap:12px">
-        <p style="font-size:13px;color:rgba(0,0,0,0.55)">Vai su questo indirizzo nel browser:</p>
+        <p style="font-size:13px;color:rgba(0,0,0,0.55)" data-i18n="ms_goto">Vai su questo indirizzo nel browser:</p>
         <a href="https://microsoft.com/devicelogin" id="loginUrl"
            style="color:var(--accent);font-size:13px;font-weight:600;word-break:break-all;cursor:pointer">https://microsoft.com/devicelogin</a>
-        <p style="font-size:13px;color:rgba(0,0,0,0.55)">Inserisci il codice:</p>
+        <p style="font-size:13px;color:rgba(0,0,0,0.55)" data-i18n="ms_enter_code">Inserisci il codice:</p>
         <div id="loginCode" style="font-size:26px;font-weight:700;letter-spacing:6px;color:rgba(0,0,0,0.82);text-align:center;padding:14px;background:rgba(26,108,245,0.08);border-radius:var(--radius-sm);border:1px solid rgba(26,108,245,0.2);font-family:monospace"></div>
-        <p style="font-size:11px;color:rgba(0,0,0,0.55)">Dopo aver inserito il codice nel browser, clicca qui:</p>
-        <button class="compose-btn" style="margin:0;width:100%" id="btnCompleteLogin">✓ HO INSERITO IL CODICE</button>
+        <p style="font-size:11px;color:rgba(0,0,0,0.55)" data-i18n="ms_after_code">Dopo aver inserito il codice nel browser, clicca qui:</p>
+        <button class="compose-btn" style="margin:0;width:100%" id="btnCompleteLogin">✓ <span data-i18n="win_code_entered_upper">HO INSERITO IL CODICE</span></button>
       </div>
     </div>
   </div>
@@ -567,8 +575,8 @@
   <div class="modal" style="max-width:400px">
     <div class="modal-hdr"><span class="modal-title" data-i18n="new_folder">Nuova cartella</span><button class="icon-btn" id="btnCloseFolderPanel">✕</button></div>
     <div class="modal-body">
-      <div class="field-row"><label class="field-label">Nome</label><input type="text" id="folderNameInput" class="field-input" placeholder="Es: Clienti"/></div>
-      <div class="field-row"><label class="field-label" data-i18n="keywords_label">Parole chiave</label><input type="text" id="folderKeywordsInput" class="field-input" placeholder="Es: fattura, cliente"/></div>
+      <div class="field-row"><label class="field-label" data-i18n="name_label">Nome</label><input type="text" id="folderNameInput" class="field-input" data-i18n-ph="example_clients" placeholder="Es: Clienti"/></div>
+      <div class="field-row"><label class="field-label" data-i18n="keywords_label">Parole chiave</label><input type="text" id="folderKeywordsInput" class="field-input" data-i18n-ph="example_kw" placeholder="Es: fattura, cliente"/></div>
       <div id="folderStatus" class="hint"></div>
     </div>
     <div class="modal-ftr">
@@ -604,7 +612,7 @@
       <div class="field-row"><label class="field-label" data-i18n="attendees_label">Partecipanti</label><input type="text" id="eventAttendees" class="field-input" placeholder="email1, email2…"/></div>
     </div>
     <div class="modal-ftr">
-      <button class="chip-btn danger" id="btnDeleteEvent" style="display:none">🗑 Elimina</button>
+      <button class="chip-btn danger" id="btnDeleteEvent" style="display:none">🗑 <span data-i18n="delete_cap">Elimina</span></button>
       <div style="margin-left:auto;display:flex;gap:6px">
         <button class="chip-btn" id="btnCancelEvent" data-i18n="cancel">Annulla</button>
         <button class="compose-btn" style="margin:0;width:auto;padding:8px 18px" id="btnSaveEvent" data-i18n="save">Salva</button>
@@ -615,25 +623,25 @@
 
 <!-- CONTEXT MENU MAIL -->
 <div class="ade-context-menu hidden" id="mailContextMenu">
-  <button class="ctx-item" data-action="open-popup">📨 Apri in popup</button>
+  <button class="ctx-item" data-action="open-popup">📨 <span data-i18n="win_open_popup">Apri in popup</span></button>
   <div class="ctx-item ctx-has-submenu" data-action="snooze">
-    💤 Snooze
+    💤 <span data-i18n="snooze">Snooze</span>
     <span class="ctx-arrow">›</span>
     <div class="ctx-submenu">
-      <button class="ctx-item" data-snooze="1h">1 ora</button>
-      <button class="ctx-item" data-snooze="3h">3 ore</button>
+      <button class="ctx-item" data-snooze="1h" data-i18n="win_snooze_1h">1 ora</button>
+      <button class="ctx-item" data-snooze="3h" data-i18n="win_snooze_3h">3 ore</button>
       <button class="ctx-item" data-snooze="tonight" data-i18n="snooze_tonight">Stasera 18:00</button>
       <button class="ctx-item" data-snooze="tomorrow" data-i18n="snooze_tomorrow">Domani mattina</button>
       <button class="ctx-item" data-snooze="monday" data-i18n="snooze_monday">Lunedì prossimo</button>
       <button class="ctx-item" data-snooze="nextweek" data-i18n="snooze_nextweek">Settimana prossima</button>
       <div class="ctx-divider"></div>
-      <button class="ctx-item" data-snooze="custom">📅 Personalizzato…</button>
+      <button class="ctx-item" data-snooze="custom">📅 <span data-i18n="win_custom_ellipsis">Personalizzato…</span></button>
     </div>
   </div>
-  <button class="ctx-item" data-action="mark-read">✓ Segna come letta</button>
-  <button class="ctx-item" data-action="mark-unread">○ Segna come non letta</button>
+  <button class="ctx-item" data-action="mark-read">✓ <span data-i18n="win_mark_read">Segna come letta</span></button>
+  <button class="ctx-item" data-action="mark-unread">○ <span data-i18n="win_mark_unread">Segna come non letta</span></button>
   <div class="ctx-divider"></div>
-  <button class="ctx-item danger" data-action="delete">🗑 Elimina</button>
+  <button class="ctx-item danger" data-action="delete">🗑 <span data-i18n="delete_cap">Elimina</span></button>
 </div>
 
 <!-- SNOOZE CUSTOM DATETIME PICKER -->
@@ -645,7 +653,7 @@
     </div>
     <div class="modal-body">
       <div class="field-row">
-        <label class="field-label">Data e ora</label>
+        <label class="field-label" data-i18n="date_time_label">Data e ora</label>
         <input type="datetime-local" id="snoozeCustomDt" class="field-input"/>
       </div>
       <div class="hint" id="snoozeCustomHint"></div>
@@ -689,6 +697,7 @@
 <script src="renderer_mail.js"     defer></script>
 <script src="renderer.js"          defer></script>
 <script src="renderer_sender_history.js" defer></script>
+<script src="approvals_view.js"    defer></script>
 <script src="renderer_automations.js" defer></script>
 <script src="popup_bridge.js"      defer></script>
 <script src="renderer_onboarding.js" defer></script>
@@ -766,6 +775,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 // ══ SNOOZE + CONTEXT MENU ══════════════════════════════════════
 (function(){
+  const T = (key, it) => (window.i18n && window.i18n.t) ? window.i18n.t(key, it) : it;
   const ctxMenu = document.getElementById('mailContextMenu');
   const snoozeCustomOverlay = document.getElementById('snoozeCustomOverlay');
   const snoozeCustomDt = document.getElementById('snoozeCustomDt');
@@ -824,15 +834,15 @@ document.addEventListener('DOMContentLoaded',()=>{
           day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'
         });
         // toast
-        if(window.showToast) window.showToast(`💤 Snoozed fino a ${wakeStr}`, 'success');
+        if(window.showToast) window.showToast(T('win_snoozed_until', '💤 Snoozed fino a {time}').replace('{time}', wakeStr), 'success');
         // ricarica lista
         snoozedUids.add(String(ctxTarget.uid));
         if(ctxTarget.element) ctxTarget.element.style.display = 'none';
       } else {
-        alert('Errore snooze: ' + (d.error||'sconosciuto'));
+        alert(T('win_snooze_error', 'Errore snooze') + ': ' + (d.error||T('win_unknown', 'sconosciuto')));
       }
     } catch(e) {
-      alert('Errore snooze: ' + e.message);
+      alert(T('win_snooze_error', 'Errore snooze') + ': ' + e.message);
     }
     hideMenu();
   }
@@ -949,9 +959,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   snoozeCustomCancel?.addEventListener('click', () => snoozeCustomOverlay.classList.add('hidden'));
   snoozeCustomConfirm?.addEventListener('click', () => {
     const dt = snoozeCustomDt.value;
-    if(!dt){ alert('Seleziona data e ora'); return; }
+    if(!dt){ alert(T('win_pick_date_time', 'Seleziona data e ora')); return; }
     const ts = Math.floor(new Date(dt).getTime()/1000);
-    if(ts <= Math.floor(Date.now()/1000)){ alert('Data nel passato'); return; }
+    if(ts <= Math.floor(Date.now()/1000)){ alert(T('win_date_in_past', 'Data nel passato')); return; }
     snoozeCustomOverlay.classList.add('hidden');
     applySnooze(ts);
   });

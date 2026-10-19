@@ -11,7 +11,7 @@
   const API = (typeof window !== 'undefined' && (window.GIGAMAIL_API || window.__ADE_MAIL_API__)) || 'http://127.0.0.1:8002';
 
   function _t(key, fallback) {
-    return (window.i18n && window.i18n.t) ? window.i18n.t(key) : fallback;
+    return (window.i18n && window.i18n.t) ? window.i18n.t(key, fallback) : fallback;
   }
 
   function _esc(s) {

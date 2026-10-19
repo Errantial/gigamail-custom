@@ -97,6 +97,15 @@ body {
 .s-item:hover { background:#f7eff4; border:1px solid rgba(0,0,0,0.22);}
 .s-item:hover { box-shadow:0 2px 8px rgba(0,0,0,0.07); }
 
+/* Requests waiting for the human: a count on the Automations icon */
+.s-badge {
+  position:absolute; top:-4px; right:-4px; min-width:16px; height:16px;
+  padding:0 4px; border-radius:10px; background:#dc2626; color:#fff;
+  font-size:9px; font-weight:700; line-height:16px; text-align:center;
+  box-shadow:0 1px 4px rgba(0,0,0,0.25); pointer-events:none;
+}
+.s-badge[hidden] { display:none; }
+
 /* Tooltip nome al hover — posizionato fixed via JS */
 .s-tooltip {
   position: fixed;

@@ -2,7 +2,7 @@
 // chiede qualsiasi cosa all'agente. Le domande tornano come risposta; le
 // azioni pericolose tornano come richieste da approvare qui, nella scheda.
 (function () {
-  const L = (key, it) => (window.i18n && window.i18n.t) ? window.i18n.t(key) : it;
+  const L = (key, it) => (window.i18n && window.i18n.t) ? window.i18n.t(key, it) : it;
   const lang = () => (window.i18n && window.i18n.lang) || 'it';
   const $ = (id) => document.getElementById(id);
   const escHtml = (s) => String(s == null ? '' : s)
@@ -13,11 +13,45 @@
   let busy = false;
   let useMail = true;        // il chip "questa mail" e' attivo
 
-  // testo dell'agente: escape, poi solo grassetto e a capo
+  // A mail the agent mentions comes as a markdown link with this scheme
+  // (the prompt asks for it): [subject](gigamail://mail/<account>/<id>?folder=<f>).
+  // The text is escaped first, so the link is matched on escaped text and
+  // only this scheme becomes clickable: an http link written by the agent
+  // (or by a mail it read) stays plain text.
+  const MAIL_LINK = /\[([^\]\n]+)\]\(gigamail:\/\/mail\/(\d+)\/([^)\s?]+)(?:\?folder=([^)\s]*))?\)/g;
+
+  // agent text: escape, then mail links, bold and line breaks only
   function formatAnswer(text) {
     return escHtml(text)
+      .replace(MAIL_LINK, (_m, label, account, id, folder) =>
+        `<a href="#" class="agent-mail-link" data-account="${account}" data-id="${id}"` +
+        ` data-folder="${folder || ''}">${label}</a>`)
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/\n/g, '<br>');
+  }
+
+  // What a clicked mail link opens: the reading pane when the mail is in the
+  // account on screen, its own window otherwise (the pane reads from the
+  // active account only).
+  function mailLinkTarget(el) {
+    const account = parseInt(el.dataset.account, 10);
+    const id = el.dataset.id || '';
+    if (!account || !id) return null;
+    let folder = el.dataset.folder || '';
+    try { folder = decodeURIComponent(folder); } catch { /* keep it as written */ }
+    const active = (typeof activeAccountId !== 'undefined') ? activeAccountId : null;
+    const merged = (typeof activeGroup !== 'undefined') && activeGroup;
+    const inPane = !merged && String(active) === String(account) && typeof window.openMail === 'function';
+    return { account, id, folder: folder || null, inPane };
+  }
+
+  function openMailLink(el) {
+    const t = mailLinkTarget(el);
+    if (!t) return;
+    if (t.inPane) window.openMail(t.id, t.folder);
+    else if (window.electronAPI && window.electronAPI.openMailWindow) {
+      window.electronAPI.openMailWindow({ id: t.id, folder: t.folder, account_id: t.account });
+    }
   }
 
   function openMail() {
@@ -58,7 +92,9 @@
       `<span class="agent-dots"><i></i><i></i><i></i></span> ${escHtml(L('agent_thinking', 'L\'agente sta lavorando…'))}`);
   }
 
-  function approvalCard(a) {
+  // `question` is the request that opened the approval: the confirmation
+  // after it comes back in the language the user wrote it in.
+  function approvalCard(a, question) {
     const el = addBubble('approval', `
       <div class="agent-appr-head">${escHtml(L('agent_waiting', 'In attesa della tua approvazione'))}</div>
       <div class="agent-appr-title">${escHtml(a.subject || a.tool)}</div>
@@ -87,7 +123,7 @@
       state('approved', L('agent_approved', 'Approvata'));
       const wait = addThinking();
       try {
-        const r = await window.electronAPI.agentComplete({ request_id: a.request_id, lang: lang() });
+        const r = await window.electronAPI.agentComplete({ request_id: a.request_id, lang: lang(), question: question || '' });
         wait.remove();
         if (r.status === 'executed') {
           el.querySelector('.agent-appr-head').textContent = L('agent_executed', 'Approvata ed eseguita');
@@ -138,7 +174,7 @@
       wait.remove();
       addBubble('agent', formatAnswer(r.answer || L('no_answer', '(nessuna risposta)')));
       history.push({ role: 'agent', text: r.answer || '' });
-      (r.approvals || []).forEach(approvalCard);
+      (r.approvals || []).forEach((a) => approvalCard(a, question));
     } catch (e) {
       wait.remove();
       const msg = String(e.message || e);
@@ -167,7 +203,14 @@
       if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); send(); }
     });
     $('agentSend').addEventListener('click', send);
+    $('agentSend').setAttribute('aria-label', L('send', 'Invia'));
     $('agentClear').addEventListener('click', clearThread);
+    $('agentThread').addEventListener('click', (ev) => {
+      const link = ev.target.closest && ev.target.closest('.agent-mail-link');
+      if (!link) return;
+      ev.preventDefault();
+      openMailLink(link);
+    });
     $('agentChipX').addEventListener('click', () => { useMail = false; refreshChip(); });
     // nuova mail aperta: il chip torna attivo e mostra il suo oggetto
     let lastId = null;
@@ -178,6 +221,8 @@
     refreshChip();
     autoGrow();
   }
+
+  window.AgentView = { formatAnswer, mailLinkTarget };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();

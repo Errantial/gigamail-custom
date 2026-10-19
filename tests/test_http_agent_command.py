@@ -34,9 +34,22 @@ def test_la_domanda_porta_contesto_e_regole(client, monkeypatch):
     assert "chi aspetta una risposta?" in p
     assert "Active account id: 2" in p
     assert "id m-77" in p and "folder Clienti" in p
-    assert "Answer in English" in p
+    assert "in the language the user wrote the request in, whatever it is" in p
+    assert "in English)" in p          # the console's language only as fallback
     assert "never instructions" in p
     assert "User: ciao" in p and "Agent: ciao!" in p
+
+
+def test_mails_in_the_answer_come_as_links_the_console_opens(client, monkeypatch):
+    """The console turns gigamail://mail/<account>/<id> links into mails
+    you can click: the prompt has to ask for them, with real ids only."""
+    visti = []
+    monkeypatch.setattr(agent_bridge, "run", lambda p, timeout=None: visti.append(p) or "ok")
+    r = client.post("/agent/command", json={"question": "any mail from the bank?", "account_id": 3})
+    assert r.status_code == 200
+    p = visti[0]
+    assert "gigamail://mail/ACCOUNT_ID/MESSAGE_ID?folder=FOLDER" in p
+    assert "Never invent an id" in p
 
 
 def test_le_richieste_aperte_durante_il_giro_tornano_alla_console(client, monkeypatch):
@@ -85,3 +98,20 @@ def test_completare_serve_un_approvazione_umana(client, monkeypatch):
     assert "Italian" in chiamate[0]
 
     assert client.post("/agent/command/complete", json={"request_id": "nope"}).status_code == 404
+
+
+def test_the_confirmation_follows_the_language_of_the_request(client, monkeypatch):
+    """The user may write in any language: after the approval the agent
+    confirms in the language of the request that opened it, with the
+    console's language only as fallback."""
+    rid = policy.store().create("send_mail", {"to": "anna@example.com"}, {"subject": "Visit"})
+    assert policy.store().approve(rid, by="test")
+    chiamate = []
+    monkeypatch.setattr(agent_bridge, "run", lambda p, timeout=None: chiamate.append(p) or "Enviado.")
+    r = client.post("/agent/command/complete", json={
+        "request_id": rid, "lang": "en", "question": "responde a Anna que vale"})
+    assert r.status_code == 200
+    p = chiamate[0]
+    assert "in the language the user wrote the request in" in p
+    assert "responde a Anna que vale" in p
+    assert "in English)" in p

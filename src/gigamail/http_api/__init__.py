@@ -86,6 +86,16 @@ def health():
             "src": _SRC_DIR}
 
 
+@app.get("/console/human")
+def console_human(request: Request):
+    """Whether this backend knows the click secret of the console asking.
+    A console that finds a backend left running by an earlier launch asks
+    this and replaces it when the answer is no: an old backend cannot tell
+    the new console's clicks apart, and every send would ask Windows Hello."""
+    from .console_click import is_console_click
+    return {"known": is_console_click(request.headers)}
+
+
 # Un router per dominio: stessi path di prima, nessun prefisso.
 from . import (  # noqa: E402 — dopo app, per l'ordine di lettura
     accounts,
@@ -111,4 +121,8 @@ from .common import _active_id, _who  # noqa: E402,F401
 
 def main() -> None:
     import uvicorn
+
+    from . import console_click
+    # The console that starts this backend passes its click secret on stdin.
+    console_click.set_secret(console_click.read_from_stdin())
     uvicorn.run(app, host="127.0.0.1", port=PORT, log_level="warning")

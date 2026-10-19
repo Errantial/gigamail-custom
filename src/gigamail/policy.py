@@ -278,6 +278,31 @@ class ApprovalStore:
             out.append(d)
         return out
 
+    def list_decided(self, since_ts: float, limit: int = 50) -> List[Dict[str, Any]]:
+        """Requests that are no longer waiting: approved, rejected, executed
+        (with the provider's outcome) or expired undecided, newest first.
+        The console's "recently decided" list: the answer to "did it go
+        out?" without opening the audit log."""
+        now = time.time()
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM approvals WHERE"
+                " (status != ? AND COALESCE(decided_at, created_at) > ?)"
+                " OR (status = ? AND expires_at <= ? AND expires_at > ?)"
+                " ORDER BY COALESCE(decided_at, expires_at) DESC LIMIT ?",
+                (PENDING, since_ts, PENDING, now, since_ts, limit),
+            ).fetchall()
+        out = []
+        for row in rows:
+            d = dict(row)
+            d["args"] = json.loads(d.pop("args_json"))
+            d["preview"] = json.loads(d.pop("preview_json"))
+            d["expired"] = now > d["expires_at"]
+            prj = d.pop("provider_result_json", None)
+            d["provider_result"] = json.loads(prj) if prj else None
+            out.append(d)
+        return out
+
     def _decide(self, request_id: str, status: str, by: str) -> bool:
         """Transizione pending -> approved/rejected, atomica: solo la prima
         decisione vince, anche se console e CLI arrivano insieme."""

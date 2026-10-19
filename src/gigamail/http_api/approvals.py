@@ -1,6 +1,7 @@
 """Approvazioni: il canale fuori banda (Hello / Touch ID) e l'audit."""
 import json
 import os
+import time
 
 from fastapi import APIRouter, HTTPException
 
@@ -17,10 +18,38 @@ router = APIRouter()
 # console, e non esistono come tool MCP: l'agente puo' creare richieste
 # e leggerne lo stato, ma non puo' approvarle.
 
+def _completed_by(request_id: str) -> str:
+    """Who sends an approved request: "watcher" for a draft born from a
+    rule (the watcher executes it on its next cycle), "agent" for a tool
+    request (the agent that asked completes it with the request_id). The
+    console says this after an approval, instead of implying "sent"."""
+    try:
+        from gigamail.core import rules as rules_mod
+        if rules_mod.store().find_by_request(request_id):
+            return "watcher"
+    except Exception:
+        pass
+    return "agent"
+
+
+def _with_origin(rec):
+    rec["completed_by"] = _completed_by(rec["request_id"])
+    return rec
+
+
 @router.get("/approvals")
 def list_approvals():
     """Richieste in attesa di approvazione umana."""
-    return policy.store().list_pending()
+    return [_with_origin(r) for r in policy.store().list_pending()]
+
+
+@router.get("/approvals/recent")
+def recent_approvals(hours: float = 24):
+    """Requests decided (or expired undecided) in the last `hours`: the
+    console's "recently decided" list, with the execution outcome."""
+    hours = max(0.0, min(float(hours), 24 * 30))
+    since = time.time() - hours * 3600
+    return [_with_origin(r) for r in policy.store().list_decided(since)]
 
 
 @router.get("/approvals/{request_id}")
@@ -52,7 +81,8 @@ def approve_request(request_id: str):
         raise HTTPException(403, "Verifica utente non superata o annullata")
     if not policy.store().approve(request_id, by=_who()):
         raise HTTPException(409, "Richiesta non approvabile (già decisa o scaduta)")
-    return {"success": True, "request_id": request_id, "status": "approved"}
+    return {"success": True, "request_id": request_id, "status": "approved",
+            "completed_by": _completed_by(request_id)}
 
 
 @router.post("/approvals/{request_id}/reject")

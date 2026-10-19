@@ -411,10 +411,20 @@ class AgentCommandRequest(BaseModel):
 class AgentCompleteRequest(BaseModel):
     request_id: str
     lang: str = "it"
+    question: str = ""   # the request that led to the approval: sets the answer's language
 
 
 def _lingua(lang: str) -> str:
     return _LINGUE.get((lang or "it")[:2], "Italian")
+
+
+def _answer_language(lang: str) -> str:
+    """The agent answers in the language the user wrote in, whatever it is:
+    the console's own language (the UI's, three of them) only decides when
+    the text does not show one, such as a single word, a name or a number."""
+    return ("in the language the user wrote the request in, whatever it is "
+            "(if the request does not show a language, as a single word, a "
+            f"name or a number, in {_lingua(lang)})")
 
 
 def _prompt_comando(req: AgentCommandRequest, aid: Optional[int]) -> str:
@@ -423,8 +433,15 @@ def _prompt_comando(req: AgentCommandRequest, aid: Optional[int]) -> str:
         "GigaMail MCP tools (server ade-mail) to search, read and act on the "
         "user's mail, calendar and documents.",
         "Rules:",
-        f"- Answer in {_lingua(req.lang)}, concisely: a few sentences or a short list.",
-        "- When you mention a mail, give its subject and sender.",
+        f"- Answer {_answer_language(req.lang)}, concisely: a few sentences or a short list.",
+        "- When you mention a mail, give its subject and sender, and write the "
+        "subject as a link the console opens: "
+        "[subject](gigamail://mail/ACCOUNT_ID/MESSAGE_ID?folder=FOLDER). "
+        "ACCOUNT_ID is the account you read it from (the active account when "
+        "you did not pass one), MESSAGE_ID is the id exactly as the tool "
+        "returned it, FOLDER is the folder the tool reported, percent-encoded "
+        "(leave out ?folder= when you do not know it). Never invent an id: "
+        "without one, write the subject as plain text.",
         "- Sending, replying, forwarding, deleting and moving mail need the "
         "user's approval. Call the tool normally: it returns approval_required "
         "and a request_id. You cannot approve it. Stop there and say in one "
@@ -501,12 +518,15 @@ def agent_command_complete(req: AgentCompleteRequest):
         raise HTTPException(404, "Richiesta inesistente")
     if rec["status"] != policy.APPROVED:
         raise HTTPException(409, f"Richiesta non approvata (stato: {rec['status']})")
+    domanda = (req.question or "").strip()[:500]
+    lingua = (f"{_answer_language(req.lang)}. The user's request was: {domanda!r}"
+              if domanda else f"in {_lingua(req.lang)}")
     prompt = (
         f"The user approved request {req.request_id} ({rec['tool']}) in the "
         f"GigaMail console. Complete it now: call the {rec['tool']} tool again "
         f"with request_id=\"{req.request_id}\" (GigaMail executes the arguments "
-        "stored with the request). Then confirm in one sentence, in "
-        f"{_lingua(req.lang)}, what was done. Do nothing else."
+        "stored with the request). Then confirm in one sentence what was done, "
+        f"{lingua}. Do nothing else."
     )
     try:
         risposta = (agent_bridge.run(prompt) or "").strip()

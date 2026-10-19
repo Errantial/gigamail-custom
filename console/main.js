@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const Database = require('better-sqlite3');
 const { restartReason, pidFromNetstat, pidFromLsof } = require('./backend_reuse');
 const appPaths = require('./app_paths');
+const { mt, setLang } = require('./main_i18n');
 
 let mainWindow;
 // Finestre di composizione come figlie della principale: Windows le tiene
@@ -39,6 +40,12 @@ function loadOrCreateToken() {
   return token;
 }
 const API_TOKEN = loadOrCreateToken();
+// Click secret: proves a request comes from a window of this console, so a
+// send clicked here needs no Windows Hello. Made at every launch, kept in
+// memory only, handed to the backend on stdin and added only to requests of
+// our own windows. The token file above is readable by any process of the
+// user, an agent included; this secret is not (http_api/console_click.py).
+const HUMAN_SECRET = crypto.randomBytes(32).toString('hex');
 
 // ── Uscite verso il sistema ────────────────────────────────────────────────
 // Solo http/https/mailto possono lasciare l'app. Qualunque altro schema
@@ -84,13 +91,13 @@ app.on('web-contents-created', (_e, contents) => {
 
     const template = [];
     if (isEditable) {
-      template.push({ role: 'cut', enabled: editFlags.canCut, label: 'Taglia' });
+      template.push({ role: 'cut', enabled: editFlags.canCut, label: mt('menu_cut') });
     }
-    template.push({ role: 'copy', enabled: editFlags.canCopy || hasSelection, label: 'Copia' });
+    template.push({ role: 'copy', enabled: editFlags.canCopy || hasSelection, label: mt('menu_copy') });
     if (isEditable) {
-      template.push({ role: 'paste', enabled: editFlags.canPaste, label: 'Incolla' });
+      template.push({ role: 'paste', enabled: editFlags.canPaste, label: mt('menu_paste') });
       template.push({ type: 'separator' });
-      template.push({ role: 'selectAll', label: 'Seleziona tutto' });
+      template.push({ role: 'selectAll', label: mt('menu_select_all') });
     }
 
     if (template.length) {
@@ -178,7 +185,7 @@ function showMailNotification(accountName, count) {
   if (!Notification.isSupported()) return;
   const notif = new Notification({
     title: `GigaMail — ${accountName}`,
-    body: `${count} nuov${count === 1 ? 'a mail' : 'e mail'}`,
+    body: mt(count === 1 ? 'new_mail_one' : 'new_mail_many', { count }),
     silent: false,
   });
   notif.on('click', () => {
@@ -202,8 +209,8 @@ async function checkFollowups() {
     for (const item of due) {
       if (!Notification.isSupported()) continue;
       const notif = new Notification({
-        title: 'Follow-up necessario',
-        body: `${item.subject || 'Mail senza oggetto'} → ${item.to_addr || ''}`,
+        title: mt('followup_title'),
+        body: `${item.subject || mt('no_subject')} → ${item.to_addr || ''}`,
         silent: false,
       });
       notif.on('click', () => {
@@ -288,8 +295,11 @@ function startPythonServer() {
         PYTHONNOUSERSITE: '1',
         ADE_CONSOLE_TOKEN: API_TOKEN,
         ADE_CONSOLE_PORT: String(API_PORT),
+        ADE_CONSOLE_HUMAN_STDIN: '1',   // the click secret comes on stdin, below
       },
     });
+    try { serverProcess.stdin.end(HUMAN_SECRET + String.fromCharCode(10)); }
+    catch (e) { console.error('[GIGAMAIL] click secret not passed: every send will ask Windows Hello', e.message); }
     serverProcess.stdout?.on('data', (d) => console.log('[SERVER]', d.toString().trim()));
     serverProcess.stderr?.on('data', (d) => console.error('[SERVER ERR]', d.toString().trim()));
     serverProcess.on('exit', (code) => console.log('[SERVER] exit', code));
@@ -319,7 +329,8 @@ function startPythonServer() {
           start();
           return;
         }
-        const why = restartReason(health, app.getVersion(), realDir(srcDir));
+        const why = restartReason(health, app.getVersion(), realDir(srcDir))
+          || (await backendKnowsClicks() ? '' : "it does not know this console's click secret");
         if (!why) {
           console.log(`[GIGAMAIL] Backend console gia' attivo su porta ${API_PORT}`);
           resolve();
@@ -339,6 +350,22 @@ function startPythonServer() {
     req.on('error', start);
     req.setTimeout(1000, () => req.destroy(new Error('timeout')));
     req.end();
+  });
+}
+
+/** Whether the backend on the port knows this launch's click secret. A
+ *  backend left running by an earlier launch does not: kept, it would ask
+ *  Windows Hello for every send. Any doubt (old backend, no answer) is no. */
+function backendKnowsClicks() {
+  return new Promise((resolve) => {
+    const req = http.get(`${API}/console/human`,
+      { timeout: 1000, headers: { 'X-ADE-Token': API_TOKEN, 'X-ADE-Human': HUMAN_SECRET } }, (res) => {
+        let body = '';
+        res.on('data', (d) => { body += d; });
+        res.on('end', () => { try { resolve(res.statusCode === 200 && JSON.parse(body).known === true); } catch (_) { resolve(false); } });
+      });
+    req.on('error', () => resolve(false));
+    req.on('timeout', () => { req.destroy(); resolve(false); });
   });
 }
 
@@ -453,6 +480,11 @@ app.whenReady().then(async () => {
     const u = details.url;
     if (u.startsWith(`http://127.0.0.1:${API_PORT}/`) || u.startsWith(`http://localhost:${API_PORT}/`)) {
       details.requestHeaders['X-ADE-Token'] = API_TOKEN;
+      // only pages of the console itself (file://) carry the click secret
+      const wc = details.webContents;
+      if (wc && !wc.isDestroyed() && String(wc.getURL()).startsWith('file:')) {
+        details.requestHeaders['X-ADE-Human'] = HUMAN_SECRET;
+      }
     }
     callback({ requestHeaders: details.requestHeaders });
   });
@@ -555,8 +587,8 @@ const COMPACT_WIDTH = 350;
 ipcMain.handle('pick-files', async () => {
   const r = await dialog.showOpenDialog(mainWindow, {
     properties: ['openFile', 'multiSelections'],
-    filters: [{ name: 'Documenti', extensions: ['pdf', 'docx', 'xlsx', 'txt', 'md', 'csv'] },
-              { name: 'Tutti i file', extensions: ['*'] }],
+    filters: [{ name: mt('files_documents'), extensions: ['pdf', 'docx', 'xlsx', 'txt', 'md', 'csv'] },
+              { name: mt('files_all'), extensions: ['*'] }],
   });
   return r.canceled ? [] : r.filePaths;
 });
@@ -579,6 +611,10 @@ ipcMain.handle('toggle-compact', () => {
 
 // ── FINESTRE MAIL FIGLIE ──────────────────────────────────────────────────────
 const mailWindows = new Map(); // id -> BrowserWindow
+
+// The main window tells which language it applied: notifications, menus and
+// dialogs shown from here follow it.
+ipcMain.on('set-lang', (_event, lang) => { setLang(lang); });
 
 ipcMain.on('open-mail-window', (event, data) => {
   const key = `${data.account_id}:${data.id}`;
@@ -642,7 +678,7 @@ ipcMain.on('mail-window-open-reply', (event, data) => {
     frame: false,
     transparent: true,
     backgroundColor: '#00000000',
-    title: 'Nuova risposta',
+    title: mt('title_reply'),
     parent: childParent(),   // resta sopra la principale: non finisce dietro
     webPreferences: {
       additionalArguments: [`--gigamail-api=${API}`],  // ADE_CONSOLE_PORT fino ai renderer
@@ -676,7 +712,7 @@ ipcMain.on('open-new-mail-window', (event, data) => {
     minWidth: 480, minHeight: 500,
     frame: false, transparent: false, backgroundColor: '#EBF2FA',
     resizable: true,
-    title: 'Nuova mail',
+    title: mt('title_new_mail'),
     parent: childParent(),
     webPreferences: {
       additionalArguments: [`--gigamail-api=${API}`],  // ADE_CONSOLE_PORT fino ai renderer
@@ -707,7 +743,7 @@ ipcMain.on('open-reply-window', (event, data) => {
     minWidth: 420, minHeight: 400,
     frame: false, transparent: false, backgroundColor: '#EBF2FA',
     resizable: true,
-    title: 'Nuova risposta',
+    title: mt('title_reply'),
     parent: childParent(),   // resta sopra la principale: non finisce dietro
     webPreferences: {
       additionalArguments: [`--gigamail-api=${API}`],  // ADE_CONSOLE_PORT fino ai renderer
@@ -766,7 +802,7 @@ ipcMain.on('open-calendar-window', () => {
   calendarWindow = new BrowserWindow({
     width: 900, height: 700, minWidth: 700, minHeight: 500,
     frame: false, transparent: true, backgroundColor: '#00000000',
-    title: 'ADE Calendario',
+    title: mt('title_calendar'),
     webPreferences: {
       additionalArguments: [`--gigamail-api=${API}`],  // ADE_CONSOLE_PORT fino ai renderer
       preload: path.join(__dirname, 'preload_calendar.js'),
@@ -792,7 +828,7 @@ ipcMain.on('open-marketing-window', () => {
   marketingWindow = new BrowserWindow({
     width: 1000, height: 680, minWidth: 700, minHeight: 500,
     frame: false, transparent: true, backgroundColor: '#00000000',
-    title: 'ADE Marketing',
+    title: mt('title_marketing'),
     webPreferences: {
       additionalArguments: [`--gigamail-api=${API}`],  // ADE_CONSOLE_PORT fino ai renderer
       preload: path.join(__dirname, 'preload_marketing.js'),
@@ -823,7 +859,7 @@ ipcMain.on('open-ask-window', (event, data) => {
     x: main.x + Math.floor((main.width - 760) / 2),
     y: main.y + Math.floor((main.height - 720) / 2),
     frame: false, transparent: true, backgroundColor: '#00000000',
-    title: 'Chiedi alle mail',
+    title: mt('title_ask'),
     webPreferences: {
       additionalArguments: [`--gigamail-api=${API}`],  // ADE_CONSOLE_PORT fino ai renderer
       preload: path.join(__dirname, 'preload_ask.js'),
@@ -854,7 +890,7 @@ autoUpdater.on('update-downloaded', (info) => {
   if (Notification.isSupported()) {
     new Notification({
       title: 'GigaMail',
-      body: `Aggiornamento ${info?.version || ''} pronto: si installa alla prossima chiusura.`,
+      body: mt('update_ready', { version: info?.version || '' }),
       silent: true,
     }).show();
   }

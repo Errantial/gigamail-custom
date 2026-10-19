@@ -118,7 +118,7 @@ function openReplyModal(defaultTo, defaultSubject) {
     const ccBadge = document.createElement('div');
     ccBadge.id = 'replyCcBadge';
     ccBadge.style.cssText = 'font-size:11px;color:#8A8280;font-family:var(--mono,monospace);padding:4px 0 2px;';
-    ccBadge.textContent = 'CC: ' + currentReplyCc.join(', ');
+    ccBadge.textContent = T('cc_label', 'CC:') + ' ' + currentReplyCc.join(', ');
     byId('replyToInput')?.parentElement?.insertAdjacentElement('afterend', ccBadge);
   }
 
@@ -195,13 +195,13 @@ function _openReplyModalLegacy(defaultTo, defaultSubject) {
   fields.style.cssText = 'padding:16px 20px 8px;flex-shrink:0;display:flex;flex-direction:column;gap:10px;background:#FFFFFF;';
   fields.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;position:relative;">
-      <label style="font-size:10px;letter-spacing:1.5px;color:#8A8280;width:64px;flex-shrink:0;font-family:var(--mono,monospace);">A</label>
-      <input type="text" id="replyToInput" placeholder="destinatario@email.it" autocomplete="off"
+      <label style="font-size:10px;letter-spacing:1.5px;color:#8A8280;width:64px;flex-shrink:0;font-family:var(--mono,monospace);">${T('to_word', 'A')}</label>
+      <input type="text" id="replyToInput" placeholder="${T('recipient_ph', 'mario.rossi@example.com')}" autocomplete="off"
         style="flex:1;background:#F4F2EE;border:1px solid #E2DDD6;border-radius:2px;padding:8px 10px;color:#1A1614;font-size:13px;outline:none;font-family:inherit;" />
       <div id="replyToAutocomplete" class="autocomplete-list hidden"></div>
     </div>
     <div style="display:flex;align-items:center;gap:10px;">
-      <label style="font-size:10px;letter-spacing:1.5px;color:#8A8280;width:64px;flex-shrink:0;font-family:var(--mono,monospace);">OGGETTO</label>
+      <label style="font-size:10px;letter-spacing:1.5px;color:#8A8280;width:64px;flex-shrink:0;font-family:var(--mono,monospace);">${T('cmp_subject_upper', 'OGGETTO')}</label>
       <input type="text" id="replySubjectInput" placeholder="${T('reply_subject_ph','Oggetto risposta...')}"
         style="flex:1;background:#F4F2EE;border:1px solid #E2DDD6;border-radius:2px;padding:8px 10px;color:#1A1614;font-size:13px;outline:none;font-family:inherit;" />
     </div>`;
@@ -212,7 +212,7 @@ function _openReplyModalLegacy(defaultTo, defaultSubject) {
   taWrap.style.cssText = 'flex:1;padding:8px 20px 4px;display:flex;flex-direction:column;min-height:0;background:#FFFFFF;';
   const ta = document.createElement('textarea');
   ta.id = 'replyText';
-  ta.placeholder = 'Scrivi cosa vuoi rispondere...';
+  ta.placeholder = T('cmp_reply_what_ph', 'Scrivi cosa vuoi rispondere...');
   ta.style.cssText = [
     'flex:1','width:100%','resize:none',
     'background:#F4F2EE','border:1px solid #E2DDD6','border-radius:2px',
@@ -234,10 +234,10 @@ function _openReplyModalLegacy(defaultTo, defaultSubject) {
     <input type="file" id="replyFileInput" multiple style="display:none" />
     <button class="btn-voice" id="btnReplyVoice" title="${T('ade_voice','ADE voice')}">🎙 ADE</button>
     <button class="btn btn-secondary" id="btnReplyAttach">📎</button>
-    <button class="btn btn-secondary" id="btnGenerateReply">⚡ GENERA BOZZA</button>
+    <button class="btn btn-secondary" id="btnGenerateReply">⚡ ${T('cmp_generate_draft_upper', 'GENERA BOZZA')}</button>
     <div style="flex:1"></div>
     <button class="btn btn-secondary" id="btnHideReply">${T('cancel_upper','ANNULLA')}</button>
-    <button class="btn btn-primary" id="btnSendReply">↩ INVIA</button>`;
+    <button class="btn btn-primary" id="btnSendReply">↩ ${T('cmp_send_upper', 'INVIA')}</button>`;
   box.appendChild(footer);
 
   overlay.appendChild(box);
@@ -301,7 +301,7 @@ async function generateReply() {
   if (!replyText || !selectedMailId) return;
   const instruction = replyText.value.trim();
 
-  replyText.value = 'Generazione bozza...';
+  replyText.value = T('cmp_generating_draft', 'Generazione bozza…');
   try {
     let result;
     if (!instruction) {
@@ -313,8 +313,8 @@ async function generateReply() {
       );
       // Mostra fonte nel placeholder come hint
       const source = result.source === 'storico'
-        ? `Bozza da storico (${result.matched_sent} mail precedenti)`
-        : 'Bozza dal contenuto della mail';
+        ? T('cmp_draft_from_history', 'Bozza da storico ({n} mail precedenti)').replace('{n}', result.matched_sent)
+        : T('cmp_draft_from_content', 'Bozza dal contenuto della mail');
       replyText.placeholder = source;
       // Pre-compila destinatario e oggetto se vuoti
       if (result.reply_to && byId('replyToInput') && !byId('replyToInput').value) {
@@ -342,7 +342,7 @@ async function generateReply() {
       _showSuggestedAttachments(suggested);
     }
 
-  } catch (e) { replyText.value = `Errore: ${e}`; }
+  } catch (e) { replyText.value = `${T('error', 'Errore')}: ${e}`; }
 }
 
 function _showSuggestedAttachments(attachments) {
@@ -362,14 +362,14 @@ function _showSuggestedAttachments(attachments) {
 
   banner.innerHTML = `
     <div style="font-size:10px;font-weight:600;letter-spacing:1.5px;color:#3730A3;margin-bottom:2px;">
-      📎 ALLEGATI SUGGERITI
+      📎 ${T('suggested_attachments', 'ALLEGATI SUGGERITI')}
     </div>
     <div style="font-size:10px;color:#6366F1;">${T('select_attach_auto','Seleziona i file da allegare automaticamente')}</div>
     ${items}
     <div style="margin-top:8px;">
       <button class="btn btn-secondary" id="btnAddSuggestedAttach"
         style="font-size:10px;padding:4px 10px;color:#3730A3;border-color:#C7D2FE;">
-        + AGGIUNGI SELEZIONATI
+        + ${T('add_selected', 'AGGIUNGI SELEZIONATI')}
       </button>
     </div>`;
 
@@ -390,7 +390,7 @@ function _showSuggestedAttachments(attachments) {
       }
     });
     banner.remove();
-    showToast(`${checked.length} allegato/i aggiunto/i`);
+    showToast(`${checked.length} ${T('cmp_attachments_added', 'allegato/i aggiunto/i')}`);
   });
 }
 
@@ -406,7 +406,7 @@ async function _addAttachmentToReply(filePath, fileName) {
     });
     renderReplyAttachments();
   } catch(e) {
-    showToast(`Errore allegato ${fileName}: ${e.message}`);
+    showToast(`${T('cmp_attachment_error', 'Errore allegato')} ${fileName}: ${e.message}`);
   }
 }
 
@@ -414,13 +414,13 @@ async function sendReply() {
   const replyTo = byId('replyToInput');
   const replySubject = byId('replySubjectInput');
   const replyText = byId('replyText');
-  if (!replyText || !selectedMailId) { showToast('Errore: nessuna mail selezionata'); return; }
+  if (!replyText || !selectedMailId) { showToast(T('cmp_no_mail_selected', 'Errore: nessuna mail selezionata')); return; }
   const to = String(replyTo?.value || '').trim();
   const subject = String(replySubject?.value || '').trim();
   const body = replyText.value.trim();
-  if (!to) { showToast('Inserisci il destinatario'); replyTo?.focus(); return; }
-  if (!subject) { showToast('Inserisci l\'oggetto'); replySubject?.focus(); return; }
-  if (!body) { showToast('Scrivi il corpo della mail'); replyText?.focus(); return; }
+  if (!to) { showToast(T('cmp_enter_recipient', 'Inserisci il destinatario')); replyTo?.focus(); return; }
+  if (!subject) { showToast(T('insert_subject', "Inserisci l'oggetto della mail")); replySubject?.focus(); return; }
+  if (!body) { showToast(T('write_body', 'Scrivi il corpo della mail')); replyText?.focus(); return; }
   const keepThread =
     to.toLowerCase() === String(currentReplyDefaultTo || '').trim().toLowerCase() &&
     subject === String(currentReplyDefaultSubject || '').trim();
@@ -438,11 +438,11 @@ async function sendReply() {
     );
     closeReplyModal();
     if (result?.success && result?.sent_copy_saved === false) {
-      showToast('Mail inviata, ma non sono riuscito a salvarne una copia in Inviate.');
+      showToast(T('cmp_sent_copy_not_saved', 'Mail inviata, ma non sono riuscito a salvarne una copia in Inviate.'));
     } else {
-      showToast('Mail inviata!');
+      showToast(T('cmp_mail_sent', 'Mail inviata!'));
     }
-  } catch (e) { showToast(`Errore invio: ${e}`); }
+  } catch (e) { showToast(`${T('cmp_send_error', 'Errore invio')}: ${e}`); }
 }
 
 // ============================================================
@@ -455,12 +455,12 @@ async function generateNewMailDraft() {
   if (!bodyEl || !statusEl) return;
   const instruction = bodyEl.value.trim();
   if (!instruction) return;
-  statusEl.textContent = '⚡ Generazione in corso...';
+  statusEl.textContent = '⚡ ' + T('bulk_generating', 'Generazione in corso...');
   try {
     const result = await api.replyDraft('new', instruction, activeAccountId);
     bodyEl.value = result.draft || '';
-    statusEl.textContent = '✓ Bozza generata';
-  } catch (e) { statusEl.textContent = `✕ Errore: ${e}`; }
+    statusEl.textContent = '✓ ' + T('cmp_draft_generated', 'Bozza generata');
+  } catch (e) { statusEl.textContent = `✕ ${T('error', 'Errore')}: ${e}`; }
 }
 
 function renderPendingAttachments() {
@@ -505,8 +505,8 @@ async function sendNewMail() {
   const status  = byId('newMailStatus');
   const cc      = ComposeView.splitAddresses(ccRaw);
   const bcc     = ComposeView.splitAddresses(bccRaw);
-  if (!to || !subject || !body) { if (status) status.textContent = '✕ Compila destinatario, oggetto e testo'; return; }
-  if (status) status.textContent = '⚡ Invio in corso...';
+  if (!to || !subject || !body) { if (status) status.textContent = '✕ ' + T('cmp_fill_to_subject_body', 'Compila destinatario, oggetto e testo'); return; }
+  if (status) status.textContent = '⚡ ' + T('cmp_sending', 'Invio in corso...');
   try {
     const result = await api.sendMail(
       to,
@@ -522,14 +522,14 @@ async function sendNewMail() {
     );
     // Simulazione (#14): niente e' partito, quindi testo e bozza restano.
     if (result.success && result.dryrun) {
-      if (status) status.textContent = 'Simulazione: nessuna mail inviata.';
+      if (status) status.textContent = T('cmp_dryrun_no_send', 'Simulazione: nessuna mail inviata.');
       return;
     }
     if (result.success) {
       if (status) {
         status.textContent = result.sent_copy_saved === false
-          ? '✓ Mail inviata, ma non salvata in Inviate'
-          : '✓ Mail inviata!';
+          ? '✓ ' + T('cmp_sent_not_saved_short', 'Mail inviata, ma non salvata in Inviate')
+          : '✓ ' + T('cmp_mail_sent', 'Mail inviata!');
       }
       autosaveSignature = '';
       if (inlineDraftId) {
@@ -547,8 +547,8 @@ async function sendNewMail() {
         pendingAttachments = [];
         renderPendingAttachments();
       }, 1200);
-    } else if (status) { status.textContent = '✕ Invio fallito'; }
-  } catch (e) { if (status) status.textContent = `✕ Errore: ${e}`; }
+    } else if (status) { status.textContent = '✕ ' + T('cmp_send_failed', 'Invio fallito'); }
+  } catch (e) { if (status) status.textContent = `✕ ${T('error', 'Errore')}: ${e}`; }
 }
 
 async function autosaveDraft() {

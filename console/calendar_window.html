@@ -284,9 +284,9 @@
 <div class="titlebar">
   <div class="tb-title">📅 <span data-i18n="cal_title">GIGA Calendario</span></div>
   <div class="tb-buttons">
-    <button class="tb-btn minimize" id="btnMin">▽</button>
-    <button class="tb-btn maximize" id="btnMax">□</button>
-    <button class="tb-btn close"   id="btnClose">✕</button>
+    <button class="tb-btn minimize" id="btnMin" data-i18n-title="hide" title="Nascondi">▽</button>
+    <button class="tb-btn maximize" id="btnMax" data-i18n-title="fullscreen" title="Tutto schermo">□</button>
+    <button class="tb-btn close"   id="btnClose" data-i18n-title="close" title="Chiudi">✕</button>
   </div>
 </div>
 
@@ -303,7 +303,7 @@
       </div>
     </div>
     <div class="upcoming-list" id="upcomingList">
-      <div class="loading">Caricamento…</div>
+      <div class="loading" data-i18n="loading">Caricamento…</div>
     </div>
   </div>
 
@@ -313,7 +313,7 @@
     <button class="cal-nav-btn" id="btnNextMonth">›</button>
     <div class="cal-month-label" id="calMonthLabel"></div>
     <button class="cal-today-btn" id="btnToday" data-i18n="cal_today">Oggi</button>
-    <button class="cal-today-btn" id="btnRefreshCal" data-i18n-title="refresh" title="Aggiorna (Ctrl+R)">↻</button>
+    <button class="cal-today-btn" id="btnRefreshCal" data-i18n-title="win_refresh_shortcut" title="Aggiorna (Ctrl+R)">↻</button>
     <button class="add-btn" id="btnAddEvent">+ <span data-i18n="cal_event">Evento</span></button>
   </div>
 
@@ -329,7 +329,7 @@
   <div class="event-box">
     <div class="event-hdr">
       <span id="eventModalTitle" data-i18n="cal_new_event">Nuovo evento</span>
-      <button class="btn" id="btnModalClose" style="padding:3px 8px">✕</button>
+      <button class="btn" id="btnModalClose" style="padding:3px 8px" data-i18n-title="close" title="Chiudi">✕</button>
     </div>
     <div class="event-body">
       <input type="hidden" id="eventId"/>
@@ -357,14 +357,14 @@
       <div class="event-field">
         <div class="event-label" data-i18n="invite_label">Invita</div>
         <div style="display:flex;gap:6px;align-items:center;">
-          <input type="text" id="eventAttendeesInput" class="event-input" placeholder="email@esempio.com" style="flex:1"/>
+          <input type="text" id="eventAttendeesInput" class="event-input" data-i18n-ph="win_attendee_email_ph" placeholder="mario.rossi@example.com" style="flex:1"/>
           <button class="btn" id="btnAddAttendee" style="padding:5px 12px;white-space:nowrap;flex-shrink:0;">+ <span data-i18n="cal_add_attendee">Aggiungi</span></button>
         </div>
         <div id="eventAttendeesList" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;min-height:0;"></div>
       </div>
     </div>
     <div class="event-ftr">
-      <button class="btn danger" id="btnDeleteEvent" style="display:none">🗑 <span data-i18n="cal_delete">Elimina</span></button>
+      <button class="btn danger" id="btnDeleteEvent" style="display:none">🗑 <span data-i18n="delete_cap">Elimina</span></button>
       <div style="flex:1"></div>
       <button class="btn" id="btnCancelEvent" data-i18n="cancel">Annulla</button>
       <button class="btn primary" id="btnSaveEvent" data-i18n="save">Salva</button>
@@ -389,8 +389,10 @@ _loadActiveAccount();
 window.addEventListener('error', (e) => {
   console.error('[CAL ERROR]', e.message, e.filename, e.lineno);
   const list = document.getElementById('upcomingList');
-  if (list && list.innerHTML.includes('Caricamento')) {
-    list.innerHTML = `<div class="loading" style="color:#dc2626">Errore JS: ${e.message} (linea ${e.lineno})</div>`;
+  // T is declared further down: a handler that runs before it must not touch it.
+  const tr = (k, it) => (window.i18n && window.i18n.t) ? window.i18n.t(k, it) : it;
+  if (list && list.innerHTML.includes(tr('loading', 'Caricamento…'))) {
+    list.innerHTML = `<div class="loading" style="color:#dc2626">${tr('win_js_error', 'Errore JS')}: ${e.message} (${tr('win_line', 'linea')} ${e.lineno})</div>`;
   }
 });
 
@@ -400,7 +402,7 @@ let _currentMonth = new Date().getMonth(); // 0-based
 
 // Nomi di giorni e mesi nella lingua della UI (Intl), settimana da lunedi'.
 const LOCALE = () => (window.i18n && window.i18n.locale) || 'it-IT';
-const T = (k, it) => (window.i18n && window.i18n.t) ? window.i18n.t(k) : it;
+const T = (k, it) => (window.i18n && window.i18n.t) ? window.i18n.t(k, it) : it;
 function dayNames() {
   const f = new Intl.DateTimeFormat(LOCALE(), { weekday: 'short' });
   return [1, 2, 3, 4, 5, 6, 7].map(d => {
@@ -515,7 +517,7 @@ function renderUpcoming() {
     return `<div class="upcoming-item" data-id="${esc(e.id||'')}">
       <div class="upcoming-dot"></div>
       <div class="upcoming-info">
-        <div class="upcoming-title">${esc(e.subject||e.title||'(senza titolo)')}</div>
+        <div class="upcoming-title">${esc(e.subject||e.title||T('win_untitled', '(senza titolo)'))}</div>
         <div class="upcoming-meta">${esc(loc)}</div>
       </div>
       <div class="upcoming-date">${esc(fmtEventWhen(e))}</div>
@@ -609,7 +611,7 @@ function makeCell(day, month, otherMonth, isToday = false) {
   if (dayEvents.length > 3) {
     const more = document.createElement('div');
     more.className = 'cal-more';
-    more.textContent = `+${dayEvents.length - 3} altri`;
+    more.textContent = T('win_more_events', '+{n} altri').replace('{n}', dayEvents.length - 3);
     cell.appendChild(more);
   }
 
@@ -755,8 +757,8 @@ document.getElementById('btnSaveEvent')?.addEventListener('click', async () => {
   const location = document.getElementById('eventLocation').value.trim();
   const body     = document.getElementById('eventBody').value.trim();
 
-  if (!subject) { alert('Inserisci il titolo'); return; }
-  if (!start)   { alert('Inserisci la data di inizio'); return; }
+  if (!subject) { alert(T('win_enter_title', 'Inserisci il titolo')); return; }
+  if (!start)   { alert(T('win_enter_start', 'Inserisci la data di inizio')); return; }
 
   function toLocalISO(dtStr) {
     if (!dtStr) return '';
@@ -793,18 +795,18 @@ document.getElementById('btnSaveEvent')?.addEventListener('click', async () => {
     }
     closeEventModal();
     await loadEvents();
-  } catch(err) { alert('Errore salvataggio: ' + err.message); }
+  } catch(err) { alert(T('win_save_error', 'Errore salvataggio') + ': ' + err.message); }
 });
 
 document.getElementById('btnDeleteEvent')?.addEventListener('click', async () => {
   const id = document.getElementById('eventId').value;
-  if (!id || !confirm('Eliminare questo evento?')) return;
+  if (!id || !confirm(T('win_event_delete_confirm', 'Eliminare questo evento?'))) return;
   try {
     const urlDel = `${API}/calendar/${encodeURIComponent(id)}` + (_activeAccountId ? `?account_id=${_activeAccountId}` : '');
     await fetch(urlDel, { method:'DELETE' });
     closeEventModal();
     await loadEvents();
-  } catch(err) { alert('Errore: ' + err.message); }
+  } catch(err) { alert(T('error', 'Errore') + ': ' + err.message); }
 });
 
 // ── FILTRI UPCOMING ──
@@ -877,12 +879,12 @@ function hideCtxMenu() {
 
 async function deleteEventById(id) {
   if (!id) return;
-  if (!confirm('Eliminare questo evento?')) return;
+  if (!confirm(T('win_event_delete_confirm', 'Eliminare questo evento?'))) return;
   try {
     const urlDel = `${API}/calendar/${encodeURIComponent(id)}` + (_activeAccountId ? `?account_id=${_activeAccountId}` : '');
     await fetch(urlDel, { method:'DELETE' });
     await loadEvents();
-  } catch(err) { alert('Errore eliminazione: ' + err.message); }
+  } catch(err) { alert(T('win_delete_error', 'Errore eliminazione') + ': ' + err.message); }
 }
 
 function followUpEvent(ev) {

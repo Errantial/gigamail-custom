@@ -28,12 +28,12 @@ const MailView = (() => {
     const preview = m.bodyPreview || m.body_text || '';
     const unread  = (m.isRead === false) ? 'unread' : '';
     const folder  = m.folder ? ` · ${m.folder}` : '';
-    const attIcon = hasAttachments(m) ? '<span class="mail-attach-icon" title="Contiene allegati">📎</span> ' : '';
+    const attIcon = hasAttachments(m) ? '<span class="mail-attach-icon" title="' + T('mv_has_attachments','Contiene allegati') + '">📎</span> ' : '';
     const f = esc(cleanFolder(m.folder) || '');
     return `
       <div class="mail-item ${unread}" data-id="${esc(m.id)}" data-folder="${f}" data-account-id="${esc(accountId || '')}">
         <div class="mail-subject">
-          ${attIcon}${esc(m.subject || '(nessun oggetto)')}
+          ${attIcon}${esc(m.subject || T('no_subject','(nessun oggetto)'))}
           <button class="mail-delete-btn" data-id="${esc(m.id)}" data-folder="${f}" title="${T('delete','Elimina')}">✕</button>
         </div>
         <div class="mail-meta">
@@ -61,7 +61,7 @@ const MailView = (() => {
       <div class="mail-item local-draft" data-draft-id="${id}">
         <div class="mail-subject">
           <span class="local-draft-badge" title="${esc(hint)}">${mark}</span>
-          ${esc(d.subject || '(nessun oggetto)')}
+          ${esc(d.subject || T('no_subject','(nessun oggetto)'))}
           <button class="mail-delete-btn local-draft-delete" data-draft-id="${id}" title="${T('delete','Elimina')}">✕</button>
         </div>
         <div class="mail-meta">
@@ -81,7 +81,7 @@ const MailView = (() => {
     return `
         <div class="mail-attachments">
           ${atts.map((a, idx) => `
-            <div class="attachment-chip" data-att-index="${idx}" style="cursor:pointer;user-select:none" title="Click: apri • Tasto destro: opzioni">
+            <div class="attachment-chip" data-att-index="${idx}" style="cursor:pointer;user-select:none" title="${T('attach_opts_title','Click: apri • Tasto destro: opzioni')}">
               📎 ${esc(a.name)} (${Math.round((a.size||0)/1024)}KB)
             </div>
           `).join('')}
@@ -93,10 +93,10 @@ const MailView = (() => {
     const { sender, senderName, ttsUrl, inSpam, inDrafts } = ctx;
     return `
         <div class="mail-detail-header">
-          <div class="mail-detail-subject">${esc(msg.subject || '(nessun oggetto)')}</div>
+          <div class="mail-detail-subject">${esc(msg.subject || T('no_subject','(nessun oggetto)'))}</div>
           <div class="mail-detail-meta">${T('from_label','Da')}: ${esc(senderName)} &lt;${esc(sender)}&gt; — ${esc(fmtDate(msg.receivedDateTime || msg.sentDateTime))}</div>
           ${(msg.toRecipients||[]).length ? `<div class="mail-detail-meta" style="font-size:11px;opacity:0.7">${T('to_label','A:')} ${addressList(msg.toRecipients)}</div>` : ''}
-          ${(msg.ccRecipients||[]).length ? `<div class="mail-detail-meta" style="font-size:11px;opacity:0.7">CC: ${addressList(msg.ccRecipients)}</div>` : ''}
+          ${(msg.ccRecipients||[]).length ? `<div class="mail-detail-meta" style="font-size:11px;opacity:0.7">${T('cc_label','CC:')} ${addressList(msg.ccRecipients)}</div>` : ''}
           <div class="mail-detail-actions">
             <audio id="mailAudio" src="${esc(ttsUrl)}" style="display:none"></audio>
             <button class="btn" id="btnAscolta" data-requires="/mail/{message_id}/tts">◉ ${T('listen','ASCOLTA')}</button>
@@ -191,13 +191,13 @@ async function deleteMail(id, folder, accountId) {
       method: 'DELETE'
     });
     if (!res.ok) throw new Error(await res.text());
-    showToast('Mail eliminata', 'success');
+    showToast(T('mv_mail_deleted','Mail eliminata'), 'success');
     const ofAccount = activeGroup ? `[data-account-id="${account}"]` : '';
     document.querySelector(`.mail-item[data-id="${CSS.escape(String(id))}"]${ofAccount}`)?.remove();
     if (selectedMailId === id && Number(account) === Number(activeAccountId)) resetMailDetail();
     currentMailList = currentMailList.filter(m => !(m.id === id && (m._accountId || account) === account));
   } catch (e) {
-    showToast('Errore eliminazione: ' + e.message, 'error');
+    showToast(T('mv_delete_error','Errore eliminazione') + ': ' + e.message, 'error');
   }
 }
 
@@ -232,7 +232,7 @@ async function renderLocalDrafts() {
         await api.deleteLocalDraft(btn.dataset.draftId);
         btn.closest('.local-draft')?.remove();
         showToast(T('draft_deleted','Bozza eliminata'), 'success');
-      } catch (err) { showToast('Errore eliminazione: ' + err.message, 'error'); }
+      } catch (err) { showToast(T('mv_delete_error','Errore eliminazione') + ': ' + err.message, 'error'); }
     });
   });
 }
@@ -251,7 +251,7 @@ async function continueMailboxDraft(msg, id, folder) {
     }, activeAccountId);
     await openLocalDraft(saved.id);
     if (currentFolder === 'drafts') refreshCurrentFolder();
-  } catch (e) { showToast('Errore: ' + e.message, 'error'); }
+  } catch (e) { showToast(T('error','Errore') + ': ' + e.message, 'error'); }
 }
 
 async function openLocalDraft(draftId) {
@@ -271,12 +271,25 @@ async function openLocalDraft(draftId) {
     inlineDraftId = draftId;
     autosaveSignature = '';
     setHidden('newMailPanel', false);
-  } catch (e) { showToast('Bozza non trovata', 'error'); }
+  } catch (e) { showToast(T('mv_draft_not_found','Bozza non trovata'), 'error'); }
 }
 
 // ============================================================
 // OPEN MAIL
 // ============================================================
+
+// The human opened the mail: mark it read on the server too, without waiting
+// for it. Reading alone does not (the backend peeks), so without this the
+// mail came back unread as soon as the list reloaded. A failure leaves the
+// mail as the server has it.
+function markOpenedRead(msg, id, folder, listUnread) {
+  const R = window.MailRender;
+  if (!R || !api.markRead || !R.shouldMarkRead(msg, listUnread)) return;
+  const target = R.markReadTarget(msg, id, folder);
+  if (!target) return;
+  Promise.resolve(api.markRead(target.id, activeAccountId, target.folder))
+    .catch((e) => console.warn('[mark read]', (e && e.message) || e));
+}
 
 async function openMail(id, overrideFolder = null) {
   overrideFolder = cleanFolder(overrideFolder);
@@ -287,13 +300,15 @@ async function openMail(id, overrideFolder = null) {
   window._currentMailFolder = overrideFolder || null;
   window._activeAccountId   = activeAccountId;
   updateVoiceContext(id, 0);
+  // what the list showed for this mail; null when it is not in the list
+  let listUnread = null;
   document.querySelectorAll('.mail-item').forEach(el => {
     // Two accounts can hold a mail with the same id: in a merged view the
     // account has to match too.
     const same = el.dataset.id === id &&
       (!activeGroup || String(el.dataset.accountId) === String(activeAccountId));
     el.classList.toggle('selected', same);
-    if (same) el.classList.remove('unread');
+    if (same) { listUnread = el.classList.contains('unread'); el.classList.remove('unread'); }
   });
 
   const detail = byId('mailDetail');
@@ -305,6 +320,7 @@ async function openMail(id, overrideFolder = null) {
     // Usa cartella esplicita (da search results) o quella corrente
     const folderValue = overrideFolder || getCurrentFolderRequestValue();
     const msg = await api.readMail(id, activeAccountId, folderValue);
+    markOpenedRead(msg, id, folderValue, listUnread);
 
     const sender     = msg.from?.emailAddress?.address || '?';
     const senderName = msg.from?.emailAddress?.name || sender;
@@ -330,7 +346,7 @@ async function openMail(id, overrideFolder = null) {
           user-select:none;
         ">
           <button id="btnPopOut" title="${T('open_in_window','Apri in finestra')}" style="-webkit-app-region:no-drag;width:28px;height:28px;border-radius:7px;background:#f3e6f0;border:1px solid rgba(0,0,0,0.14);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;color:rgba(0,0,0,0.6);box-shadow:0 2px 8px rgba(0,0,0,0.07);flex-shrink:0;">⤢</button>
-          <div style="flex:1;font-size:11px;font-weight:500;color:rgba(0,0,0,0.75);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(msg.subject || '(nessun oggetto)')}</div>
+          <div style="flex:1;font-size:11px;font-weight:500;color:rgba(0,0,0,0.75);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(msg.subject || T('no_subject','(nessun oggetto)'))}</div>
         </div>
         <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;min-height:0;">
         ${MailView.detailHeaderHtml(msg, { sender, senderName, ttsUrl, inSpam: currentFolder === 'spam', inDrafts: currentFolder === 'drafts' })}
@@ -365,7 +381,7 @@ async function openMail(id, overrideFolder = null) {
           autoHeight: true,
         });
       } else {
-        mailBodyEl.innerHTML = bodyHtml || '<p class="mail-paragraph mail-empty-body">(messaggio senza contenuto testuale)</p>';
+        mailBodyEl.innerHTML = bodyHtml || '<p class="mail-paragraph mail-empty-body">' + T('mv_no_text_body','(messaggio senza contenuto testuale)') + '</p>';
       }
     }
 
@@ -381,13 +397,13 @@ async function openMail(id, overrideFolder = null) {
       }
       async function openAtt(att) {
         try { const b = await fetchBytes(att); const res = await window.electronAPI?.openAttachment(att.name, b);
-          if (res && !res.ok && !res.canceled) alert('Impossibile aprire: ' + (res.error||'errore')); }
-        catch(e){ alert('Errore apertura: ' + e.message); }
+          if (res && !res.ok && !res.canceled) alert(T('mv_cannot_open','Impossibile aprire') + ': ' + (res.error||T('mv_error_lower','errore'))); }
+        catch(e){ alert(T('mv_open_error','Errore apertura') + ': ' + e.message); }
       }
       async function saveAtt(att) {
         try { const b = await fetchBytes(att); const res = await window.electronAPI?.saveAttachmentAs(att.name, b);
-          if (res && !res.ok && !res.canceled) alert('Impossibile salvare: ' + (res.error||'errore')); }
-        catch(e){ alert('Errore salvataggio: ' + e.message); }
+          if (res && !res.ok && !res.canceled) alert(T('mv_cannot_save','Impossibile salvare') + ': ' + (res.error||T('mv_error_lower','errore'))); }
+        catch(e){ alert(T('mv_save_error','Errore salvataggio') + ': ' + e.message); }
       }
       function hideMenu(){ document.getElementById('attachCtxMenu')?.remove(); }
       function showMenu(x, y, att) {
@@ -395,7 +411,7 @@ async function openMail(id, overrideFolder = null) {
         const m = document.createElement('div');
         m.id = 'attachCtxMenu';
         m.style.cssText = 'position:fixed;z-index:99999;min-width:160px;background:#fff;border:1px solid rgba(0,0,0,0.14);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,0.35);padding:5px;font-family:inherit';
-        m.innerHTML = '<div class="att-ctx-item" data-act="open" style="padding:8px 12px;border-radius:7px;font-size:13px;cursor:pointer">📂 Apri</div><div class="att-ctx-item" data-act="save" style="padding:8px 12px;border-radius:7px;font-size:13px;cursor:pointer">💾 Salva con nome…</div>';
+        m.innerHTML = '<div class="att-ctx-item" data-act="open" style="padding:8px 12px;border-radius:7px;font-size:13px;cursor:pointer">📂 ' + T('mv_att_open','Apri') + '</div><div class="att-ctx-item" data-act="save" style="padding:8px 12px;border-radius:7px;font-size:13px;cursor:pointer">💾 ' + T('mv_att_save_as','Salva con nome…') + '</div>';
         document.body.appendChild(m);
         const rect = m.getBoundingClientRect();
         m.style.left = Math.max(4, (x+rect.width>window.innerWidth)?x-rect.width:x) + 'px';
@@ -431,7 +447,7 @@ async function openMail(id, overrideFolder = null) {
           btnAscolta.textContent = '◉ ' + T('listen','ASCOLTA'); isPlaying = false;
         } else {
           setVoicePlaybackActive(true);
-          mailAudio.play(); btnAscolta.textContent = '◻ STOP'; isPlaying = true;
+          mailAudio.play(); btnAscolta.textContent = '◻ ' + T('mv_stop_upper','STOP'); isPlaying = true;
         }
       });
       mailAudio.onended = () => { setVoicePlaybackActive(false); btnAscolta.textContent = '◉ ' + T('listen','ASCOLTA'); isPlaying = false; };
@@ -463,10 +479,10 @@ async function openMail(id, overrideFolder = null) {
         const url  = URL.createObjectURL(blob);
         btn._audio = new Audio(url);
         setVoicePlaybackActive(true);
-        btn._audio.play(); btn._playing = true; btn.textContent = '◻ STOP';
+        btn._audio.play(); btn._playing = true; btn.textContent = '◻ ' + T('mv_stop_upper','STOP');
         btn._audio.onended = () => { setVoicePlaybackActive(false); btn.textContent = '📋 ' + T('summarize_upper','RIASSUMI'); btn._playing = false; URL.revokeObjectURL(url); };
         btn._audio.onpause = () => { setVoicePlaybackActive(false); };
-      } catch (e) { showToast(`Errore TTS: ${e}`); }
+      } catch (e) { showToast(T('mv_tts_error','Errore TTS') + `: ${e}`); }
     });
 
     if (!window.Features || Features.has('/mail/{message_id}/folder_suggestion')) {
@@ -484,7 +500,7 @@ async function openMail(id, overrideFolder = null) {
         banner.className = 'reply-suggestion-banner';
         const previewText = (s.draft || '').slice(0, 120) + (s.draft?.length > 120 ? '...' : '');
         banner.innerHTML =
-          '<div class="mail-suggestion-title">' + confLabel + ' RISPOSTA SUGGERITA (usata ' + s.frequency + ' volte)</div>' +
+          '<div class="mail-suggestion-title">' + confLabel + ' ' + T('mv_suggested_reply','RISPOSTA SUGGERITA') + ' ' + T('mv_used_times','(usata {n} volte)').replace('{n}', () => s.frequency) + '</div>' +
           '<div class="suggestion-preview">' + esc(previewText) + '</div>' +
           '<div class="mail-suggestion-actions">' +
           '<button class="btn btn-secondary" id="btnUseSuggestion">'+T('use_draft','USA QUESTA BOZZA')+'</button>' +
@@ -511,13 +527,13 @@ async function openMail(id, overrideFolder = null) {
 
     // SPAM
     byId('btnSpam')?.addEventListener('click', async () => {
-      if (!confirm('Spostare in spam?')) return;
+      if (!confirm(T('move_to_spam','Spostare in spam?'))) return;
       try {
         await api.spamMail(id, activeAccountId, currentFolder);
         document.querySelector(`[data-id="${id}"]`)?.remove();
         resetMailDetail();
         await refreshCurrentFolder();
-      } catch (e) { showToast(`Errore spam: ${e}`); }
+      } catch (e) { showToast(T('mv_spam_error','Errore spam') + `: ${e}`); }
     });
 
     // NON È SPAM — endpoint dedicato che blocca l'auto-route
@@ -534,8 +550,10 @@ async function openMail(id, overrideFolder = null) {
         // Rimuovi dalla lista tutte le mail visibili (potrebbero essere state spostate in bulk)
         await refreshCurrentFolder();
         resetMailDetail();
-        showToast(moved > 1 ? `✅ ${moved} mail spostate in INBOX` : '✅ Mail spostata in INBOX');
-      } catch (e) { showToast(`Errore: ${e}`); }
+        showToast('✅ ' + (moved > 1
+          ? T('mv_moved_to_inbox_many','{n} mail spostate in INBOX').replace('{n}', () => moved)
+          : T('mv_moved_to_inbox_one','Mail spostata in INBOX')));
+      } catch (e) { showToast(T('error','Errore') + `: ${e}`); }
     });
 
     // ELIMINA
@@ -545,7 +563,7 @@ async function openMail(id, overrideFolder = null) {
         await api.deleteMail(id, activeAccountId);
         document.querySelector(`[data-id="${id}"]`)?.remove();
         resetMailDetail();
-      } catch (e) { showToast(`Errore elimina: ${e}`); }
+      } catch (e) { showToast(T('mv_delete_error','Errore eliminazione') + `: ${e}`); }
     });
 
     byId('btnMarkUnread')?.addEventListener('click', async () => {
@@ -556,8 +574,8 @@ async function openMail(id, overrideFolder = null) {
         document.querySelectorAll('.mail-item').forEach(el => {
           if (el.dataset.id === selectedMailId) el.classList.add('unread');
         });
-        showToast('Marcata come non letta');
-      } catch(e) { showToast('Errore: ' + e); }
+        showToast(T('mv_marked_unread','Marcata come non letta'));
+      } catch(e) { showToast(T('error','Errore') + ': ' + e); }
     });
 
     byId('btnShowReply')?.addEventListener('click', () => {
@@ -636,7 +654,7 @@ async function openMail(id, overrideFolder = null) {
 
   } catch (e) {
     detail.className = '';
-    detail.innerHTML = `<div style="padding:20px;color:var(--red);font-family:var(--mono);font-size:11px">Errore: ${esc(String(e))}</div>`;
+    detail.innerHTML = `<div style="padding:20px;color:var(--red);font-family:var(--mono);font-size:11px">${T('error','Errore')}: ${esc(String(e))}</div>`;
   }
 }
 
@@ -721,7 +739,7 @@ function bindMailEvents() {
   on('btnRefreshMail', 'click', async () => {
     try {
       await fetch(`${window.GIGAMAIL_API}/cache/clear`, { method: 'POST' });
-      showToast('🔄 Cache identity svuotata');
+      showToast('🔄 ' + T('mv_identity_cache_cleared','Cache identity svuotata'));
     } catch(e) {}
     await refreshCurrentFolder();
   });
@@ -760,7 +778,7 @@ function bindMailEvents() {
   on('folderKeywordsInput', 'input', () => { folderKeywordsDirty = true; });
   on('btnRefreshCustomFolders', 'click', async () => {
     await refreshCurrentFolder();
-    showToast('📬 Aggiornato');
+    showToast('📬 ' + T('mv_refreshed','Aggiornato'));
   });
   on('btnCloseMoveMailPanel', 'click', () => setHidden('moveMailPanel', true));
   // La X in alto ha un id suo: senza questo la finestra Sposta non si chiudeva.

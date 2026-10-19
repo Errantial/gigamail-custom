@@ -55,12 +55,12 @@ async function saveImapAccount() {
   const imapHost = byId('imapHost')?.value.trim() || null;
   const smtpHost = byId('smtpHost')?.value.trim() || null;
   const status   = byId('imapStatus');
-  if (!name || !email || !password) { if (status) status.textContent = '✕ Compila nome, email e password'; return; }
-  if (status) status.textContent = '⚡ Connessione in corso...';
+  if (!name || !email || !password) { if (status) status.textContent = '✕ ' + T('ob_imap_missing', 'Compila nome, email e password.'); return; }
+  if (status) status.textContent = '⚡ ' + T('app_connecting', 'Connessione in corso...');
   try {
     const result = await api.addImapAccount(name, email, password, provider, imapHost, null, smtpHost, null);
     if (result.success) {
-      if (status) status.textContent = '✓ Account aggiunto';
+      if (status) status.textContent = '✓ ' + T('app_account_added', 'Account aggiunto');
       activeAccountId = result.account_id;
       setTimeout(async () => {
         setHidden('imapOverlay', true);
@@ -68,7 +68,7 @@ async function saveImapAccount() {
         await refreshCurrentFolder();
       }, 800);
     } else if (status) {
-      status.textContent = `✕ Errore: ${result.detail || 'connessione fallita'}`;
+      status.textContent = `✕ ${T('error', 'Errore')}: ${result.detail || T('app_connection_failed', 'connessione fallita')}`;
     }
   } catch (e) { if (status) status.textContent = `✕ ${String(e).slice(0, 80)}`; }
 }
@@ -79,9 +79,9 @@ async function deleteCurrentAccount(accountId) {
   const sel = byId('accountSelect');
   const label = sel?.selectedOptions?.[0]?.textContent || `account ${accountId}`;
   const ok = confirm(
-    `Eliminare "${label}"?\n\n` +
-    `Verranno rimossi l'account e tutte le sue mail indicizzate localmente.\n` +
-    `Le mail sui server (Microsoft/IMAP) NON vengono toccate.`
+    T('app_confirm_delete_account', 'Eliminare "{name}"?').replace('{name}', () => label) + '\n\n' +
+    T('app_delete_account_local', "Verranno rimossi l'account e tutte le sue mail indicizzate localmente.") + '\n' +
+    T('app_delete_account_server', 'Le mail sui server (Microsoft/IMAP) NON vengono toccate.')
   );
   if (!ok) return;
 
@@ -89,7 +89,7 @@ async function deleteCurrentAccount(accountId) {
     const r = await fetch(`${window.GIGAMAIL_API}/accounts/${accountId}`, { method: 'DELETE' });
     if (!r.ok) {
       const err = await r.text();
-      alert(`Errore eliminazione: ${err.slice(0, 200)}`);
+      alert(`${T('app_delete_error', 'Errore eliminazione')}: ${err.slice(0, 200)}`);
       return;
     }
     const data = await r.json();
@@ -101,7 +101,7 @@ async function deleteCurrentAccount(accountId) {
     await refreshCurrentFolder().catch(() => {});
   } catch (e) {
     console.error('deleteCurrentAccount:', e);
-    alert(`Errore: ${String(e).slice(0, 200)}`);
+    alert(`${T('error', 'Errore')}: ${String(e).slice(0, 200)}`);
   }
 }
 
@@ -194,9 +194,11 @@ function bindAccountEvents() {
     if (prov) { prov.value = 'gmail'; prov.dispatchEvent(new Event('change')); }
     // Mostra hint password app
     const status = document.getElementById('imapStatus');
-    if (status) status.innerHTML = '<span style="color:rgba(180,40,30,0.8)">Gmail richiede una <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color:var(--accent)">password per le app</a> (non la password Google normale)</span>';
+    if (status) status.innerHTML = '<span style="color:rgba(180,40,30,0.8)">' + T('app_gmail_needs', 'Gmail richiede una') +
+      ' <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color:var(--accent)">' + T('app_app_password', 'password per le app') +
+      '</a> ' + T('app_gmail_not_normal_password', '(non la password Google normale)') + '</span>';
     const nameEl = document.getElementById('imapName');
-    if (nameEl && !nameEl.value) nameEl.placeholder = 'Es: Gmail Lavoro';
+    if (nameEl && !nameEl.value) nameEl.placeholder = T('app_gmail_name_ph', 'Es: Gmail Lavoro');
     const emailEl = document.getElementById('imapEmail');
     if (emailEl) emailEl.focus();
   });

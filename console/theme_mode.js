@@ -20,7 +20,10 @@
     try { const m = localStorage.getItem(KEY); return ORDER.includes(m) ? m : 'system'; } catch (_) { return 'system'; }
   }
   function label(m) {
-    const lang = (document.documentElement.getAttribute('lang') || 'it').slice(0, 2);
+    // The active UI language wins over the <html lang> attribute, which
+    // i18n.js only updates once the page has loaded.
+    const lang = String((window.i18n && window.i18n.lang)
+      || document.documentElement.getAttribute('lang') || 'it').slice(0, 2);
     return (LABELS[lang] || LABELS.en)[m];
   }
   function apply() {
@@ -37,6 +40,11 @@
   apply();
   if (mq && mq.addEventListener) mq.addEventListener('change', apply);
   window.addEventListener('storage', (e) => { if (e.key === KEY) apply(); });
+  // i18n.applyLang sets <html lang> on every language switch: relabel the
+  // button then, instead of waiting for the next click.
+  if (window.MutationObserver) {
+    new MutationObserver(apply).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+  }
   document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('themeSwitch');
     if (btn) {

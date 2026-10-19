@@ -45,6 +45,8 @@ async function apiBlob(url, options = {}) {
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  // the language the page applied: the main process shows its own texts in it
+  setLang:        (lang) => ipcRenderer.send('set-lang', lang),
   // barra dell'agente nella scheda di destra
   agentCommand:   (body) => apiJson(`${API}/agent/command`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
   agentComplete:  (body) => apiJson(`${API}/agent/command/complete`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
@@ -145,6 +147,16 @@ contextBridge.exposeInMainWorld('ademail', {
     if (folder) params.push(`folder=${encodeURIComponent(folder)}`);
     if (params.length) url += `?${params.join('&')}`;
     return apiJson(url);
+  },
+
+  // the human opened the mail: mark it read on the server (reading does not)
+  markRead: (id, accountId = null, folder = null) => {
+    let url = `${API}/mail/${encodeURIComponent(id)}/read`;
+    const params = [];
+    if (accountId) params.push(`account_id=${encodeURIComponent(accountId)}`);
+    if (folder) params.push(`folder=${encodeURIComponent(folder)}`);
+    if (params.length) url += `?${params.join('&')}`;
+    return apiJson(url, { method: 'POST' });
   },
 
   getSummary: (id, accountId = null, folder = null) => {
