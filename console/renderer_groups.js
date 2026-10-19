@@ -91,9 +91,7 @@ const AccountGroups = (() => {
     const split = group
       ? `<span data-split-group="${esc(group.id)}" title="${esc(T('split_accounts_hint', 'Torna a vederli separati'))}" style="cursor:pointer;text-decoration:underline;">${esc(T('split_accounts', 'Separa'))}</span>`
       : '';
-    return `<div data-tile="1" data-account-id="${esc(first.id)}"${group ? ` data-group-id="${esc(group.id)}"` : ''}${canGroup ? ` draggable="true" title="${esc(T('merge_hint', 'Trascina su un altro account per unirli'))}"` : ''} style="background:white;border:1px solid rgba(0,0,0,0.14);border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.07);padding:12px 14px;cursor:pointer;transition:box-shadow 0.15s;min-width:0;overflow:hidden;"
-        onmouseover="this.style.boxShadow='0 6px 20px rgba(0,0,0,0.22)'"
-        onmouseout="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.07)'">
+    return `<div data-tile="1" data-account-id="${esc(first.id)}"${group ? ` data-group-id="${esc(group.id)}"` : ''}${canGroup ? ` draggable="true" title="${esc(T('merge_hint', 'Trascina su un altro account per unirli'))}"` : ''} style="background:white;border:1px solid rgba(0,0,0,0.14);border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.07);padding:12px 14px;cursor:pointer;transition:box-shadow 0.15s;min-width:0;overflow:hidden;" class="dash-tile">
         <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;">
           <div style="width:9px;height:9px;border-radius:50%;background:${dotColor};border:1.5px solid rgba(0,0,0,0.2);flex-shrink:0;"></div>
           <div style="font-size:12px;font-weight:500;color:rgba(0,0,0,0.82);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(title)}</div>

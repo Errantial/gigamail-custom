@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **The console windows refuse inline scripts.** Their
+  Content-Security-Policy no longer allows `'unsafe-inline'` in
+  `script-src`: the scripts of the seven pages moved to their own files
+  (`*_page.js`, `window_resize.js`) and every `onclick=` / `onmouseover=`,
+  in the pages and in the HTML the console builds, became a listener or a
+  CSS rule. With a send from the console no longer asking Windows Hello,
+  code slipped into a page could have sent mail; now the browser does not
+  run it. A test fails if an inline script or handler comes back.
+- **Fix: a calendar event's title could inject HTML into the dashboard.**
+  The *Upcoming events* card wrote the title unescaped; an invitation,
+  which Outlook adds to the calendar by itself, could carry markup. It is
+  escaped now, like the notes of the dashboard list.
 - **The console shows the requests waiting for you.** A draft the watcher
   prepared from a rule, or a send the agent asked for, was visible on
   Telegram, as a desktop toast and in `gigamail approvals list`, and nowhere

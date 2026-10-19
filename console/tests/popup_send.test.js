@@ -6,7 +6,8 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 async function sendPopup(file, response, { followupFails = false } = {}) {
-  const html = fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
+  // The page's script lives in <page>_page.js (the CSP forbids inline scripts).
+  const html = fs.readFileSync(path.join(__dirname, '..', file.replace(/\.html$/, '_page.js')), 'utf8');
   function handler(name) {
     // I due handler sono dichiarazioni top-level, terminate da una graffa
     // non indentata. Si esegue il sorgente della UI, non una sua copia.

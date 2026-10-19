@@ -177,7 +177,7 @@ function formatMailBodyHtml(text) {
   function parseLine(line) {
     // Markdown links [text](url)
     line = line.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, t, u) =>
-      `<a href="${u}" style="color:#185FA5;text-decoration:underline;" onclick="event.preventDefault();window.electronAPI?.openExternal?.('${u}')">${t}</a>`
+      `<a href="${u}" class="mail-link" target="_blank" rel="noopener noreferrer">${t}</a>`
     );
     // Bold **text** or __text__
     line = line.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
@@ -852,7 +852,7 @@ async function renderDashboard() {
         <div class="ob-empty">
           <div class="ob-empty-title">${T('ob_empty_title','Nessun account collegato')}</div>
           <div class="ob-empty-body">${T('ob_empty_body','Collega una casella per iniziare.')}</div>
-          <button class="compose-btn ob-cta-inline" onclick="window.openOnboarding&&window.openOnboarding()">${T('ob_empty_cta','Configura GigaMail')}</button>
+          <button class="compose-btn ob-cta-inline" data-open-onboarding="1">${T('ob_empty_cta','Configura GigaMail')}</button>
         </div>`).replace('<div style="background:white', '<div style="grid-column:1/-1;background:white');
       bindDashboardTiles(accGrid, dashTiles);
     }
@@ -880,9 +880,9 @@ async function renderDashboard() {
     }
 
     const evRows = upcoming.length ? upcoming.map(e =>
-      `<div onclick="window.electronAPI?.openCalendarWindow?.()" style="display:flex;align-items:center;gap:8px;padding:6px 9px;background:rgba(0,0,0,0.04);border-radius:8px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='rgba(0,0,0,0.08)'" onmouseout="this.style.background='rgba(0,0,0,0.04)'">
+      `<div class="dash-ev-row" data-open-calendar="1" style="display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:8px;cursor:pointer;transition:background 0.15s;">
         <div style="width:7px;height:7px;border-radius:50%;background:linear-gradient(135deg,#eeb9dd,#b0c7f4);border:1px solid rgba(0,0,0,0.2);flex-shrink:0;"></div>
-        <div style="font-size:11px;color:rgba(0,0,0,0.82);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.subject||e.title||T('cal_event','Evento')}</div>
+        <div style="font-size:11px;color:rgba(0,0,0,0.82);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(e.subject||e.title||T('cal_event','Evento'))}</div>
         <div style="font-size:10px;color:rgba(0,0,0,0.55);white-space:nowrap;">${fmtEvDate(e.start?.dateTime||e.start?.date)}</div>
       </div>`
     ).join('') : '<div style="font-size:11px;color:rgba(0,0,0,0.55);text-align:center;padding:8px 0;">'+T('no_upcoming','Nessun appuntamento in arrivo')+'</div>';
@@ -895,8 +895,7 @@ async function renderDashboard() {
         <div style="font-size:10px;color:rgba(0,0,0,0.55);">${now.toLocaleDateString(LOCALE(),{day:'numeric',month:'long',year:'numeric'})}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:5px;">${evRows}</div>
-      <div style="font-size:10px;color:rgba(0,0,0,0.55);text-align:right;margin-top:8px;cursor:pointer;"
-        onclick="window.electronAPI?.openCalendarWindow?.()">${T('open_calendar','Apri calendario →')}</div>
+      <div data-open-calendar="1" style="font-size:10px;color:rgba(0,0,0,0.55);text-align:right;margin-top:8px;cursor:pointer;">${T('open_calendar','Apri calendario →')}</div>
     `);
   } catch {
     const calDiv = byId('dash-calendar');
@@ -1069,3 +1068,12 @@ async function openCustomFolder(folderId, label) {
 // ============================================================
 // AUTH
 // ============================================================
+// Dashboard links: delegated on the document, so they keep working when the
+// dashboard is restored from its cached HTML (renderDashboard._last). The CSP
+// forbids onclick="..." in the markup.
+document.addEventListener('click', (e) => {
+  const t = e.target && e.target.closest ? e.target : null;
+  if (!t) return;
+  if (t.closest('[data-open-calendar]')) window.electronAPI?.openCalendarWindow?.();
+  else if (t.closest('[data-open-onboarding]')) window.openOnboarding && window.openOnboarding();
+});

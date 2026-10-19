@@ -391,9 +391,8 @@ function renderTodo() {
       <div id="todo-drop-overlay" style="display:none;position:absolute;inset:0;border-radius:10px;background:linear-gradient(135deg,rgba(238,185,221,0.9),rgba(176,199,244,0.9));border:2px dashed rgba(0,0,0,0.4);z-index:10;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:rgba(0,0,0,0.6);">📎 ${T('app_drop_file', 'Rilascia il file')}</div>
       <div style="display:flex;gap:8px;align-items:center;">
         <input id="todo-input" type="text" placeholder="${T('add_note_ph','Aggiungi nota… o trascina un file')}"
-          style="flex:1;border:1px solid rgba(0,0,0,0.14);border-radius:8px;padding:7px 10px;font-size:12px;font-family:inherit;outline:none;background:white;box-shadow:0 2px 8px rgba(0,0,0,0.08);"
-          onkeydown="if(event.key==='Enter')window._todoAdd()"/>
-        <button onclick="window._todoAdd()" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(0,0,0,0.14);background:#f3e6f0;font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.12);">+</button>
+          style="flex:1;border:1px solid rgba(0,0,0,0.14);border-radius:8px;padding:7px 10px;font-size:12px;font-family:inherit;outline:none;background:white;box-shadow:0 2px 8px rgba(0,0,0,0.08);"/>
+        <button id="todo-add-btn" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(0,0,0,0.14);background:#f3e6f0;font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.12);">+</button>
       </div>
     </div>`;
 
@@ -406,9 +405,9 @@ function renderTodo() {
     const icon   = isFile ? fileIcon(item.text) : '📝';
     return `<div style="display:flex;align-items:center;gap:8px;padding:7px 9px;background:${item.done?'rgba(0,0,0,0.03)':'rgba(0,0,0,0.04)'};border-radius:8px;border:0.5px solid rgba(0,0,0,0.08);${item.done?'opacity:0.5':''}">
       <span style="font-size:13px;flex-shrink:0;">${icon}</span>
-      <span style="flex:1;font-size:11px;color:rgba(0,0,0,0.8);${item.done?'text-decoration:line-through;color:rgba(0,0,0,0.55)':''};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.text}</span>
-      <button onclick="window._todoToggle('${item.id}')" style="background:none;border:none;cursor:pointer;font-size:13px;flex-shrink:0;opacity:0.5;" title="${item.done?T('reactivate','Riattiva'):T('done','Fatto')}">${item.done?'↩':'✓'}</button>
-      <button onclick="window._todoDelete('${item.id}')" style="background:none;border:none;cursor:pointer;font-size:12px;flex-shrink:0;opacity:0.35;" title="${T('delete','Elimina')}">✕</button>
+      <span style="flex:1;font-size:11px;color:rgba(0,0,0,0.8);${item.done?'text-decoration:line-through;color:rgba(0,0,0,0.55)':''};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(item.text)}</span>
+      <button data-todo-act="toggle" data-todo-id="${esc(item.id)}" style="background:none;border:none;cursor:pointer;font-size:13px;flex-shrink:0;opacity:0.5;" title="${item.done?T('reactivate','Riattiva'):T('done','Fatto')}">${item.done?'↩':'✓'}</button>
+      <button data-todo-act="delete" data-todo-id="${esc(item.id)}" style="background:none;border:none;cursor:pointer;font-size:12px;flex-shrink:0;opacity:0.35;" title="${T('delete','Elimina')}">✕</button>
     </div>`;
   }
 
@@ -419,6 +418,12 @@ function renderTodo() {
     </div>` : '';
 
   wrap.innerHTML = `<div style="${cardStyle}">${inputHtml}${listHtml}</div>`;
+  byId('todo-input')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') window._todoAdd(); });
+  byId('todo-add-btn')?.addEventListener('click', () => window._todoAdd());
+  wrap.querySelectorAll('[data-todo-act]').forEach((b) => b.addEventListener('click', () => {
+    if (b.dataset.todoAct === 'toggle') window._todoToggle(b.dataset.todoId);
+    else window._todoDelete(b.dataset.todoId);
+  }));
 
   // Drag & drop
   const dropArea = byId('todo-drop-area');

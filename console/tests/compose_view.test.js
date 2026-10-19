@@ -25,20 +25,23 @@ function renderInto(w, html) {
   return host;
 }
 
-test('attachmentChipsHtml: nome escapato, bottone con la nostra espressione', () => {
+test('attachmentChipsHtml: nome escapato, rimozione via data-att-index (niente onclick)', () => {
   const w = load();
   const html = w.ComposeView.attachmentChipsHtml(
-    [{ name: HOSTILE + '.pdf', size: 3000 }, { name: 'ok.docx', size: 0 }],
-    (i) => `removeX(${i})`, 'cursor:default');
+    [{ name: HOSTILE + '.pdf', size: 3000 }, { name: 'ok.docx', size: 0 }], 'cursor:default');
   assert.ok(!/<img/.test(html), 'nessun tag iniettato');
   assert.ok(html.includes('&lt;img src=x onerror='), 'nome escapato');
-  assert.ok(html.includes('onclick="removeX(0)"') && html.includes('onclick="removeX(1)"'));
+  assert.ok(!/onclick=/.test(html), 'nessun handler inline: la CSP li blocca');
   assert.ok(html.includes('(3KB)') && html.includes('(0KB)'));
   const host = renderInto(w, html);
   assert.equal(host.querySelectorAll('img').length, 0);
   assert.equal(host.querySelectorAll('.attachment-chip').length, 2);
   assert.equal(host.querySelector('.attachment-chip').getAttribute('style'), 'cursor:default');
-  assert.equal(w.ComposeView.attachmentChipsHtml([], () => ''), '');
+  const removed = [];
+  w.ComposeView.bindChipRemovals(host, (i) => removed.push(i));
+  host.querySelectorAll('[data-att-index]')[1].click();
+  assert.deepEqual(removed, [1]);
+  assert.equal(w.ComposeView.attachmentChipsHtml([]), '');
 });
 
 test('autocompleteItemsHtml: nome e email escapati, data-email integro', () => {

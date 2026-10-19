@@ -124,7 +124,12 @@ OpenClaw and Hermes all hold a shell — so "out of band from MCP" was not
   requests from its own `file://` pages. The token file does not contain it,
   so an agent or a script holding the console token still meets the OS
   prompt. What it does not stop: a program running as you that reads
-  another process's memory, or drives the console's window. A backend left
+  another process's memory, or drives the console's window. Code injected
+  into a console page would carry the secret too, so the console windows
+  run under a Content-Security-Policy whose `script-src` allows no inline
+  code: no `<script>` blocks in the pages and no `on*=` handlers, also in
+  the HTML the scripts generate (`console/tests/csp.test.js`). A text that
+  slips past escaping stays text. A backend left
   running by an earlier launch does not know the new secret, and the
   console replaces it on start. The user can keep the OS prompt for
   console sends too (Automations, off by default); only a request carrying

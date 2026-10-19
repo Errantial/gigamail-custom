@@ -7,12 +7,14 @@
 // nomi dalla rubrica passano tutti da esc().
 
 const ComposeView = (() => {
-  /** Chip degli allegati con il bottone di rimozione (onclick e' codice nostro, non dati). */
-  function attachmentChipsHtml(atts, removeExpr, chipStyle) {
+  /** Chip degli allegati con il bottone di rimozione. Il bottone porta solo
+   *  l'indice (data-att-index): il click lo collega bindChipRemovals, perche'
+   *  la CSP non ammette handler inline. */
+  function attachmentChipsHtml(atts, chipStyle) {
     return (atts || []).map((a, i) => `
     <span class="attachment-chip"${chipStyle ? ` style="${chipStyle}"` : ''}>
       📎 ${esc(a.name)} (${Math.round((a.size || 0)/1024)}KB)
-      <button onclick="${removeExpr(i)}" style="background:none;border:none;cursor:pointer;color:var(--red);margin-left:4px">✕</button>
+      <button data-att-index="${i}" style="background:none;border:none;cursor:pointer;color:var(--red);margin-left:4px">✕</button>
     </span>`).join('');
   }
 
@@ -54,7 +56,13 @@ const ComposeView = (() => {
     return parts.map((part) => part.trim()).filter(Boolean).join('; ');
   }
 
-  return { attachmentChipsHtml, autocompleteItemsHtml, suggestedAttachmentsHtml,
+  /** Collega i bottoni ✕ dei chip appena scritti in `box`. */
+  function bindChipRemovals(box, onRemove) {
+    box.querySelectorAll('[data-att-index]').forEach((b) =>
+      b.addEventListener('click', () => onRemove(Number(b.dataset.attIndex))));
+  }
+
+  return { attachmentChipsHtml, bindChipRemovals, autocompleteItemsHtml, suggestedAttachmentsHtml,
            splitAddresses, addressToken, mergeAddressSuggestion };
 })();
 if (typeof window !== 'undefined') window.ComposeView = ComposeView;
@@ -63,7 +71,8 @@ function renderReplyAttachments() {
   const box = byId('replyAttachmentsBox');
   if (!box) return;
   if (!replyAttachments.length) { box.innerHTML = ''; return; }
-  box.innerHTML = ComposeView.attachmentChipsHtml(replyAttachments, (i) => `replyAttachments.splice(${i},1);renderReplyAttachments()`);
+  box.innerHTML = ComposeView.attachmentChipsHtml(replyAttachments);
+  ComposeView.bindChipRemovals(box, (i) => { replyAttachments.splice(i, 1); renderReplyAttachments(); });
 }
 
 // ============================================================
@@ -467,7 +476,8 @@ function renderPendingAttachments() {
   const box = byId('pendingAttachmentsBox');
   if (!box) return;
   if (!pendingAttachments.length) { box.innerHTML = ''; return; }
-  box.innerHTML = ComposeView.attachmentChipsHtml(pendingAttachments, (i) => `removePendingAttachment(${i})`, 'cursor:default');
+  box.innerHTML = ComposeView.attachmentChipsHtml(pendingAttachments, 'cursor:default');
+  ComposeView.bindChipRemovals(box, removePendingAttachment);
 }
 
 function removePendingAttachment(idx) {
