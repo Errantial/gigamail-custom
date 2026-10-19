@@ -127,6 +127,18 @@ def main() -> None:
     import uvicorn
 
     from . import console_click
-    # The console that starts this backend passes its click secret on stdin.
-    console_click.set_secret(console_click.read_from_stdin())
+    # The console that starts this backend passes its click secret in the
+    # environment and on stdin. The environment copy is dropped right away.
+    da_env = console_click.read_from_env()
+    da_stdin = console_click.read_from_stdin()
+    console_click.set_secret(da_stdin or da_env)
+    # One line in the console's terminal: when Approve or Send still ask
+    # Windows Hello, this says why.
+    try:
+        hello = console_click.send_requires_hello()
+    except Exception:
+        hello = True
+    print(f"[console] click secret: {'received' if console_click.has_secret() else 'NOT received'}"
+          f" (env={'yes' if da_env else 'no'}, stdin={'yes' if da_stdin else 'no'});"
+          f" Hello also for console clicks: {'on' if hello else 'off'}", flush=True)
     uvicorn.run(app, host="127.0.0.1", port=PORT, log_level="warning")

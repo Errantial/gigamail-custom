@@ -189,3 +189,16 @@ def test_approve_without_the_secret_still_meets_the_os_prompt(client, monkeypatc
     assert client.post(f"/approvals/{rid}/approve", headers={"X-ADE-Human": SECRET}).status_code == 403
     assert len(asked) == 3   # the user asked for the prompt on console clicks too
     policy.set_store(None)
+
+
+def test_the_secret_also_comes_from_the_environment_and_leaves_it(monkeypatch):
+    """On Windows the venv launcher did not always pass the stdin line on:
+    the console puts the secret in the environment too, and the backend
+    removes it at once so the agents it starts do not inherit it."""
+    import os
+    monkeypatch.setenv(console_click.ENV_NAME, SECRET)
+    assert console_click.read_from_env() == SECRET
+    assert console_click.ENV_NAME not in os.environ
+    monkeypatch.setenv(console_click.ENV_NAME, "short")
+    assert console_click.read_from_env() == ""
+    assert console_click.ENV_NAME not in os.environ

@@ -296,6 +296,11 @@ function startPythonServer() {
         ADE_CONSOLE_TOKEN: API_TOKEN,
         ADE_CONSOLE_PORT: String(API_PORT),
         ADE_CONSOLE_HUMAN_STDIN: '1',   // the click secret comes on stdin, below
+        // ...and here too: on Windows the venv's python.exe is a launcher that
+        // starts the real interpreter, and the stdin line did not always reach
+        // it (Approve kept asking Windows Hello). The backend deletes this
+        // variable as soon as it reads it, before it starts any agent.
+        ADE_CONSOLE_HUMAN: HUMAN_SECRET,
       },
     });
     try { serverProcess.stdin.end(HUMAN_SECRET + String.fromCharCode(10)); }

@@ -24,6 +24,7 @@ import sys
 
 HEADER = "X-ADE-Human"
 STDIN_FLAG = "ADE_CONSOLE_HUMAN_STDIN"
+ENV_NAME = "ADE_CONSOLE_HUMAN"
 _MIN_LEN, _MAX_LEN = 32, 256
 
 _secret = ""
@@ -79,4 +80,12 @@ def read_from_stdin(stream=None) -> str:
     except Exception:
         return ""
     value = (line or "").strip()
+    return value if _MIN_LEN <= len(value) <= _MAX_LEN else ""
+
+
+def read_from_env() -> str:
+    """The secret the console also puts in the backend's environment. It is
+    removed from os.environ here, at start, so no process the backend
+    launches later (the agent, a draft) inherits it."""
+    value = (os.environ.pop(ENV_NAME, "") or "").strip()
     return value if _MIN_LEN <= len(value) <= _MAX_LEN else ""
