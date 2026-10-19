@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **The bundled MCP server starts on every installed copy.** pip wrote the
+  build machine's Python path into `gigamail-server` (`D:\a\...` on
+  Windows, `/Users/runner/...` on macOS), so the server inside the desktop
+  app never started: not for Codex, not for the agent bar. The build now
+  rewrites those scripts to start the Python next to them
+  (`console/relocate_scripts.py`). Until this release, point Codex at the
+  app's Python with `-m gigamail.server`, as in
+  [CODEX_SETUP.md](CODEX_SETUP.md).
+- **How to set up GigaMail with Codex.** [CODEX_SETUP.md](CODEX_SETUP.md)
+  walks a non-developer through it: desktop app, mailbox, Codex sign-in,
+  plugin and server, first prompts, approvals and privacy.
+
 - **Waiting for you has its own icon.** The requests waiting for your
   approval moved out of Automations into their own view, with an icon
   right under Automations that carries the count. Automations keeps the

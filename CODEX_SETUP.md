@@ -77,21 +77,24 @@ codex plugin add gigamail@gigamail
 ```
 
 Then tell Codex where the GigaMail server is. It ships inside the app you
-installed in step 1:
+installed in step 1, and it must use the same data folder as the app, so
+that Codex sees your accounts and the app sees Codex's requests:
 
-- **Windows** (default install folder):
+- **Windows** (default install folder), in PowerShell:
 
   ```powershell
-  codex mcp add gigamail -- "$env:LOCALAPPDATA\Programs\GigaMail\resources\python\Scripts\gigamail-server.exe"
+  codex mcp add gigamail --env GIGAMAIL_ROOT="$env:APPDATA\ADE" -- "$env:LOCALAPPDATA\Programs\GigaMail\resources\python\python.exe" -m gigamail.server
   ```
 
 - **macOS**:
 
   ```bash
-  codex mcp add gigamail -- /Applications/GigaMail.app/Contents/Resources/python/bin/gigamail-server
+  codex mcp add gigamail --env GIGAMAIL_ROOT="$HOME/.ade" -- /Applications/GigaMail.app/Contents/Resources/python/bin/python3 -m gigamail.server
   ```
 
-If you installed GigaMail in another folder, use that folder in the path.
+This replaces the plugin's default server entry with one pointing at the
+app. If you installed GigaMail in another folder, use that folder in the
+path. Run `codex mcp get gigamail` to check what Codex will start.
 
 Developers who prefer Python can instead run `pip install "gigamail[all]"`
 and use `codex mcp add gigamail -- gigamail-server`.
@@ -134,7 +137,7 @@ controls.
 
 - **Codex says it has no GigaMail tools**: start a new Codex session, and
   run `codex mcp list` to check that `gigamail` is listed and enabled. If
-  it is not, repeat step 4 and check the path to `gigamail-server`.
+  it is not, repeat step 4 and check the path to the app's Python.
 - **Codex sees no accounts**: open the GigaMail app once and check the
   account is listed there. Codex and the app share the same accounts.
 - **IMAP login fails**: check the server names and ports with your

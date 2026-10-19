@@ -59,6 +59,10 @@ echo "[2/3] installing gigamail[all] from $REPO ..."
 # (48.0.1) and on Apple Silicon the latest, as before.
 "$PY" -m pip install --no-build-isolation --only-binary=cryptography "$REPO[all]" 2>&1 | grep -vE "^\s*(Requirement already|Collecting|Downloading|Using cached|Installing collected|Successfully)" || true
 "$PY" -c "import gigamail" || { echo "pip install failed: see the lines above"; exit 1; }
+# pip writes this machine's absolute python path into bin/gigamail-server,
+# a folder no user has: without this the server does not start (Codex, the
+# agent bar). See relocate_scripts.py.
+"$PY" "$HERE/relocate_scripts.py" "$OUT" || { echo "relocate_scripts failed"; exit 1; }
 
 # Apple Silicon refuses native code without a signature, even an ad-hoc
 # one. Wheels from PyPI are usually signed by their build tools, but not

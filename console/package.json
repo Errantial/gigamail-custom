@@ -54,6 +54,7 @@
       "!python-embedded/**",
       "!sign.js",
       "!afterpack.js",
+      "!relocate_scripts.py",
       "!mac/**"
     ],
     "extraResources": [
