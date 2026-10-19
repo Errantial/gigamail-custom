@@ -6,6 +6,11 @@
   approval moved out of Automations into their own view, with an icon
   right under Automations that carries the count. Automations keeps the
   rules, the watcher and the settings.
+- **What was sent, or refused, on one click.** A card under *Recently
+  decided* opens on the request as GigaMail stored it: from, to, CC,
+  subject, the full text, attachments, who it was accepted for or the
+  provider's error, when it was asked and when and where it was decided.
+  The same payload the send executes, so what you read is what went.
 - **Blue instead of pink, if you prefer.** A button in the icon bar, under
   the theme one, switches the console's accent between pink and a calmer
   blue, in light and dark, in every window; the choice is kept. The

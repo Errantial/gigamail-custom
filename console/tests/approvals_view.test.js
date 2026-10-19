@@ -169,3 +169,19 @@ test('Waiting for you has its own view and icon, which carries the badge', () =>
   assert.ok(auto.includes("api('/approvals')") && auto.includes("/approvals/recent"));
   assert.ok(auto.includes("$('pendingList')?.addEventListener('click', onPendingAction)"));
 });
+
+
+test('a recently decided card opens on what was sent, escaped', () => {
+  const t = (k, f) => f;
+  const rec = { ...AGENT_SEND, status: 'executed', execution_outcome: 'ok', decided_by: 'console:tester', decided_at: NOW,
+    created_at: NOW - 60, provider_result: { accepted: ['anna.bianchi@example.com'] } };
+  const html = V.recentCard(rec, t, NOW);
+  assert.ok(html.startsWith('\n      <details class="ai-card recent-card"'));
+  assert.ok(html.includes('<summary>') && html.includes('class="recent-detail"'));
+  assert.ok(html.includes('anna.bianchi@example.com'));
+  assert.ok(html.includes('Visit &lt;b&gt;tomorrow&lt;/b&gt;'));     // subject escaped in the detail too
+  assert.ok(!html.includes('<b>tomorrow</b>'));
+  assert.ok(html.includes('class="recent-body">Hello</pre>'));
+  const failed = V.recentCard({ ...rec, execution_outcome: 'failed', provider_result: { error: 'SMTP <550>' } }, t, NOW);
+  assert.ok(failed.includes('SMTP &lt;550&gt;'));
+});

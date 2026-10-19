@@ -44,6 +44,12 @@
       decidedBy: String(rec.decided_by || ''),
       decidedAt: rec.decided_at || null,
       outcome: String(rec.execution_outcome || ''),
+      from: addressOf(p.from),
+      cc: addressOf(p.cc),
+      bcc: addressOf(p.bcc),
+      createdAt: rec.created_at || null,
+      error: rec.provider_result && typeof rec.provider_result === 'object'
+        ? String(rec.provider_result.error || '') : '',
       accepted: rec.provider_result && typeof rec.provider_result === 'object'
         ? rec.provider_result.accepted : undefined,
     };
@@ -63,7 +69,7 @@
     if (chan === 'console') return t('by_console', 'console');
     if (chan === 'telegram') return t('by_telegram', 'Telegram');
     if (chan === 'cli') return t('by_cli', 'terminale');
-    return by ? esc(by) : '';
+    return by ? String(by) : '';   // plain text: callers escape
   }
 
   function fmtTime(ts) {
@@ -127,19 +133,54 @@
       </div>`;
   }
 
+  function fmtDateTime(ts) {
+    if (!ts) return '';
+    const d = new Date(ts * 1000);
+    const p2 = (n) => String(n).padStart(2, '0');
+    return `${p2(d.getDate())}/${p2(d.getMonth() + 1)} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+  }
+
+  // What was sent, or what was refused: the request as GigaMail stored it
+  // (the same payload the send executes), opened by clicking the card.
+  function detailHtml(s, t) {
+    const row = (label, value) => (value
+      ? `<div class="recent-row"><span class="recent-k">${esc(label)}</span><span class="recent-v">${esc(value)}</span></div>` : '');
+    const accepted = Array.isArray(s.accepted) ? s.accepted.join(', ') : '';
+    return `<div class="recent-detail">
+        ${row(t('detail_from', 'Da'), s.from)}
+        ${row(t('detail_to', 'A'), s.to)}
+        ${row('CC', s.cc)}
+        ${row('CCN', s.bcc)}
+        ${row(t('detail_subject', 'Oggetto'), s.subject)}
+        ${s.attachments.length ? row(t('detail_attachments', 'Allegati'), s.attachments.join(', ')) : ''}
+        ${s.body ? `<pre class="recent-body">${esc(s.body)}</pre>` : ''}
+        ${row(t('detail_accepted', 'Accettata per'), accepted)}
+        ${row(t('detail_error', 'Errore'), s.error)}
+        ${row(t('detail_requested', 'Richiesta'), fmtDateTime(s.createdAt))}
+        ${row(t('detail_decided', 'Decisa'), [fmtDateTime(s.decidedAt), s.decidedBy ? fmtBy(s.decidedBy, t) : ''].filter(Boolean).join(' · '))}
+        <div class="recent-row"><span class="recent-k">id</span><span class="recent-v hint">${esc(s.tool)} · ${esc(s.id)}</span></div>
+      </div>`;
+  }
+
   function recentCard(rec, t, now) {
     const s = summarize(rec, now);
     const o = outcomeOf(s, t);
-    const by = s.decidedBy ? ` · ${fmtBy(s.decidedBy, t)}` : '';
+    const by = s.decidedBy ? ` · ${esc(fmtBy(s.decidedBy, t))}` : '';
     const when = fmtTime(s.decidedAt || rec.expires_at);
+    // <details>: a click opens what was sent (or refused), no script needed
     return `
-      <div class="ai-card recent-card" data-request="${esc(s.id)}">
-        ${head(s, t)}
-        <div class="ai-card-row" style="margin-top:6px">
-          <span class="ai-card-status ${o.cls}">${o.text}</span>
-          <span class="hint">${esc(when)}${by}</span>
-        </div>
-      </div>`;
+      <details class="ai-card recent-card" data-request="${esc(s.id)}">
+        <summary>
+          ${head(s, t)}
+          <div class="ai-card-row" style="margin-top:6px">
+            <span class="ai-card-status ${o.cls}">${o.text}</span>
+            <span class="hint">${esc(when)}${by}</span>
+            <span style="flex:1"></span>
+            <span class="hint recent-more">${esc(t('detail_open', 'dettagli'))}</span>
+          </div>
+        </summary>
+        ${detailHtml(s, t)}
+      </details>`;
   }
 
   // Sidebar badge: how many requests wait, capped so the dot stays a dot.
@@ -148,7 +189,7 @@
     return n > 9 ? '9+' : String(n);
   }
 
-  const ApprovalsView = { summarize, pendingCard, recentCard, outcomeOf, fmtEta, badgeText, addressOf };
+  const ApprovalsView = { summarize, pendingCard, recentCard, detailHtml, outcomeOf, fmtEta, badgeText, addressOf };
   if (typeof window !== 'undefined') window.ApprovalsView = ApprovalsView;
   if (typeof module !== 'undefined' && module.exports) module.exports = ApprovalsView;
 })();

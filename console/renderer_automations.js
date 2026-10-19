@@ -376,9 +376,12 @@
         ? pending.map((r) => AV().pendingCard(r, L)).join('')
         : `<div class="hint">${L('pending_none', 'Nessuna richiesta in attesa.')}</div>`;
       if (recentBox) {
+        // the list redraws every 30s: a card the user opened stays open
+        const open = new Set([...recentBox.querySelectorAll('details[open]')].map((d) => d.dataset.request));
         recentBox.innerHTML = recent.length
           ? recent.map((r) => AV().recentCard(r, L)).join('')
           : `<div class="hint">${L('recent_none', 'Niente nelle ultime 24 ore.')}</div>`;
+        recentBox.querySelectorAll('details[data-request]').forEach((d) => { if (open.has(d.dataset.request)) d.open = true; });
       }
     } catch (e) {
       box.innerHTML = `<div class="hint">${T('Errore', 'Error', '错误')}: ${escapeHtml(e.message)}</div>`;
