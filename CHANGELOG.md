@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **The agent uses your personal Zoom link.** With no Zoom app connected
+  but the personal meeting link saved in the console, `create_zoom_meeting`
+  now returns that link at once: nothing to create, no approval, the agent
+  puts it in the mail (which still asks for approval). The watcher already
+  did this; the agent's tool only knew the Zoom API and answered "Zoom not
+  connected". With neither, the tool says so without opening a request,
+  and the agent asks for the link.
 - **The agent bar remembers, and can be stopped.** The conversation in the
   agent bar, approval cards included, is kept on this computer and comes
   back after a restart; the agent gets its last turns as context, so "and

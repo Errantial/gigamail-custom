@@ -903,8 +903,11 @@ def delete_event(
     Creating the meeting sends nothing to anyone: Zoom does not invite
     participants, and the waiting room is on. Share the join_url with
     send_mail or reply_mail, which need their own approval. Returns
-    {id, join_url, password} on execution. Requires Zoom to be connected
-    from the GigaMail console (Add account > Zoom)."""))
+    {id, join_url, password} on execution. With no Zoom app connected but a
+    personal meeting link saved in the console, it returns that link at
+    once ({join_url, fixed_link: true}): nothing is created and no approval
+    is needed; put the link in the mail. With neither, it says so: ask the
+    user for their personal Zoom link."""))
 def create_zoom_meeting(
     topic: Annotated[str, Field(description="Meeting title shown in Zoom, e.g. 'Video call with Mario Rossi'.")],
     start: Annotated[str, Field(description="Start, ISO 8601 local time (Europe/Rome), e.g. 2026-09-16T16:00:00.")],
@@ -912,6 +915,23 @@ def create_zoom_meeting(
     agenda: Annotated[str, Field(description="Optional agenda text stored with the meeting.")] = "",
     request_id: RequestId = None,
 ) -> dict:
+    if not request_id and not zoom.configurato():
+        # Most users never create a Zoom app: they send their personal link,
+        # the same for every call. The watcher already used it; the agent's
+        # tool only knew the API and answered "Zoom not connected".
+        from gigamail.core import video_call
+        fisso = video_call.link_fisso()
+        if fisso:
+            audit("create_zoom_meeting", {"topic": topic, "start": start}, "zoom_fixed_link")
+            return {"join_url": fisso, "password": "", "fixed_link": True,
+                    "note": "No Zoom app connected: this is the user's personal meeting "
+                            "link, the same for every call. Nothing was created. Put it "
+                            "in the mail (send_mail / reply_mail need approval)."}
+        return {"error": "zoom_not_connected",
+                "note": "No Zoom app and no personal meeting link saved. Ask the user "
+                        "for their personal Zoom link (zoom.us/my/... or /j/...) and use "
+                        "it in the mail; they can save it once in the console "
+                        "(Add account > Zoom > personal link)."}
     args = {"topic": topic, "start": start,
             "duration_minutes": duration_minutes, "agenda": agenda}
     return policy.execute_dangerous(
