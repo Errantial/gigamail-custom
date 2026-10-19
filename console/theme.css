@@ -305,3 +305,10 @@ html:not([data-theme="dark"]) .mail-list .mail-item + .mail-item::before {
 .custom-folder-row:hover .custom-folder-identity, .custom-folder-row:hover .custom-folder-delete,
 .custom-folder-row:focus-within .custom-folder-identity, .custom-folder-row:focus-within .custom-folder-delete {
   max-width: 20px; padding: 0 2px !important; opacity: 1 !important; }
+
+/* icone della barra laterale nel colore d'accento, come i pulsanti della finestra */
+.s-item { color: var(--gm-pink) !important; }
+.s-item:hover { background: var(--gm-tint) !important; color: var(--gm-pink-dn) !important; }
+.s-item svg, .s-item svg * { color: inherit !important; }
+html[data-theme="dark"] body .s-item { color: var(--gm-pink-hi) !important; }
+html[data-theme="dark"] body .s-item:hover { background: var(--gm-tint) !important; color: #fff !important; }
