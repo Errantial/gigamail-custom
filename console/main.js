@@ -348,7 +348,7 @@ function startPythonServer() {
       });
     });
     req.on('error', start);
-    req.setTimeout(1000, () => req.destroy(new Error('timeout')));
+    req.setTimeout(5000, () => req.destroy(new Error('timeout')));
     req.end();
   });
 }
@@ -359,7 +359,7 @@ function startPythonServer() {
 function backendKnowsClicks() {
   return new Promise((resolve) => {
     const req = http.get(`${API}/console/human`,
-      { timeout: 1000, headers: { 'X-ADE-Token': API_TOKEN, 'X-ADE-Human': HUMAN_SECRET } }, (res) => {
+      { timeout: 5000, headers: { 'X-ADE-Token': API_TOKEN, 'X-ADE-Human': HUMAN_SECRET } }, (res) => {
         let body = '';
         res.on('data', (d) => { body += d; });
         res.on('end', () => { try { resolve(res.statusCode === 200 && JSON.parse(body).known === true); } catch (_) { resolve(false); } });

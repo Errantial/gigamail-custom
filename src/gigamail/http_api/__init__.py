@@ -79,7 +79,11 @@ _SRC_DIR = _src_dir()
 
 
 @app.get("/health")
-def health():
+# async: runs on the event loop, not in the thread pool that the mail
+# endpoints share. With Graph answering slowly (seen live: 502s), the sync
+# version waited behind them, the console's 1s check timed out, the console
+# took the port for free and started a second backend that could not bind.
+async def health():
     from gigamail import __version__
     return {"status": "ok", "service": "gigamail-console", "version": __version__,
             "pid": os.getpid(), "stale": code_stamp() != _LOADED_STAMP,
@@ -87,7 +91,7 @@ def health():
 
 
 @app.get("/console/human")
-def console_human(request: Request):
+async def console_human(request: Request):
     """Whether this backend knows the click secret of the console asking.
     A console that finds a backend left running by an earlier launch asks
     this and replaces it when the answer is no: an old backend cannot tell
