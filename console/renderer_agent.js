@@ -158,6 +158,7 @@
     approved: ['approved', 'agent_approved', 'Approvata'],
     executed: ['approved', 'agent_executed', 'Approvata ed eseguita'],
     'not-run': ['not-run', 'agent_not_run', 'Approvata, ma non eseguita'],
+    failed: ['not-run', 'agent_run_failed', 'Approvata, ma l\'esecuzione è fallita'],
     rejected: ['rejected', 'agent_rejected', 'Rifiutata: non verrà eseguita'],
   };
 
@@ -222,7 +223,10 @@
         wait.remove();
         // What GigaMail recorded, not what the agent wrote: an agent that
         // could not call the tool may still answer "done".
-        state(r.status === 'executed' ? 'executed' : 'not-run');
+        // "executed" means the request was used; the outcome says whether the
+        // provider accepted it. A failed send must not read as done.
+        state(r.status === 'executed' && r.outcome !== 'failed' ? 'executed'
+          : r.status === 'executed' ? 'failed' : 'not-run');
         if (r.cancelled) {
           say('note', L('agent_stopped', 'Fermato.'));
         } else {
