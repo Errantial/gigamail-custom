@@ -255,3 +255,22 @@ def test_find_claude_desktop_layouts(monkeypatch, tmp_path):
     # A version folder without any exe (e.g. a half-finished update) is skipped.
     (base / "2.1.2000" / "0123456789ab").mkdir(parents=True)
     assert agent_bridge._find_claude() == str(newer_direct)
+
+
+def test_the_agent_runs_the_gigamail_server_of_this_install(tmp_path, monkeypatch):
+    """The plugin starts ${GIGAMAIL_SERVER:-gigamail-server}: the agent the
+    console launches gets the server next to the console's own Python, not
+    whatever gigamail-server the PATH finds first."""
+    import sys
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    (fake_bin / "python").write_text("")
+    server = fake_bin / "gigamail-server"
+    server.write_text("")
+    monkeypatch.setattr(sys, "executable", str(fake_bin / "python"))
+    monkeypatch.delenv("GIGAMAIL_SERVER", raising=False)
+    env = agent_bridge._env_for_child({"agent": "codex", "command": ["codex"]})
+    assert env["GIGAMAIL_SERVER"] == str(server)
+    monkeypatch.setenv("GIGAMAIL_SERVER", "/custom/server")
+    env = agent_bridge._env_for_child({"agent": "codex", "command": ["codex"]})
+    assert env is None or env.get("GIGAMAIL_SERVER") == "/custom/server"

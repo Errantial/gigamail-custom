@@ -9,6 +9,11 @@
   did this; the agent's tool only knew the Zoom API and answered "Zoom not
   connected". With neither, the tool says so without opening a request,
   and the agent asks for the link.
+- **The agent the console starts uses the console's GigaMail.** The plugin
+  starts `${GIGAMAIL_SERVER:-gigamail-server}`; the console now sets
+  `GIGAMAIL_SERVER` to the server of its own installation, so the agent
+  does not pick an older `gigamail-server` found first on the PATH. A
+  value you set yourself is left alone.
 - **The agent bar remembers, and can be stopped.** The conversation in the
   agent bar, approval cards included, is kept on this computer and comes
   back after a restart; the agent gets its last turns as context, so "and

@@ -342,15 +342,31 @@ def _env_for_child(cfg: dict) -> dict | None:
     is dropped from the child's environment only. The key stays when
     there is no login (it is then the only way to authenticate) and when
     ANTHROPIC_BASE_URL points at a gateway that needs it."""
-    if _agent_of(cfg) != "claude":
-        return None
-    if "ANTHROPIC_API_KEY" not in os.environ or os.environ.get("ANTHROPIC_BASE_URL"):
-        return None
-    if not _claude_login_present():
-        return None
-    env = dict(os.environ)
-    del env["ANTHROPIC_API_KEY"]
+    env = None
+    if (_agent_of(cfg) == "claude" and "ANTHROPIC_API_KEY" in os.environ
+            and not os.environ.get("ANTHROPIC_BASE_URL") and _claude_login_present()):
+        env = dict(os.environ)
+        del env["ANTHROPIC_API_KEY"]
+    server = _our_server()
+    if server and not os.environ.get("GIGAMAIL_SERVER"):
+        env = env if env is not None else dict(os.environ)
+        env["GIGAMAIL_SERVER"] = server
     return env
+
+
+def _our_server() -> str:
+    """The gigamail-server of this very installation, next to the Python
+    running the console's backend. The plugin starts
+    ${GIGAMAIL_SERVER:-gigamail-server}: without this the agent launched by
+    the console could run another GigaMail found on the PATH (an older pip
+    install), whose tools answer differently from the console's code."""
+    import sys
+    folder = os.path.dirname(sys.executable)
+    for name in ("gigamail-server.exe", "gigamail-server"):
+        for cand in (os.path.join(folder, name), os.path.join(folder, "Scripts", name)):
+            if os.path.isfile(cand):
+                return cand
+    return ""
 
 
 def run(prompt: str, timeout: int | None = None, run_id: str | None = None) -> str:
