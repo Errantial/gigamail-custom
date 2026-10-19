@@ -19,7 +19,10 @@ inject = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(inject)
 
 CLIENT_ID = "123-abc.apps.googleusercontent.com"
-SECRET = "GOCSPX-example-value"
+# Ends with "example" on purpose: the plugin security scanner reads a bare
+# `SECRET = "..."` as a hardcoded secret unless the value is a recognised
+# placeholder, and the injector only checks the GOCSPX- prefix.
+SECRET = "GOCSPX-value-example"
 
 
 @pytest.fixture()
