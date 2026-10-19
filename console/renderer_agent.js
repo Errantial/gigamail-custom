@@ -189,15 +189,28 @@
     if (entry.s && entry.s !== 'pending' && STATES[entry.s]) { state(entry.s); return el; }
     el.querySelector('[data-act="approve"]').addEventListener('click', async (ev) => {
       if (busy) return;
-      ev.currentTarget.disabled = true;
+      const btn = ev.currentTarget;
+      btn.disabled = true;
+      // A click in the console approves at once. If the backend still asks
+      // the OS verification (the option in Automations, or a backend that
+      // does not know this console), its prompt can sit behind the windows.
+      const hint = setTimeout(() => {
+        const h = document.createElement('div');
+        h.className = 'agent-appr-sum agent-appr-wait';
+        h.textContent = L('agent_hello_wait', 'In attesa della verifica di Windows Hello: se non la vedi, è dietro le finestre (Alt+Tab).');
+        el.querySelector('.agent-appr-actions').before(h);
+      }, 3000);
       try {
-        // la verifica Windows Hello / Touch ID la chiede il backend
         await window.electronAPI.approveRequest(a.request_id);
       } catch (e) {
-        ev.currentTarget.disabled = false;
+        clearTimeout(hint);
+        el.querySelector('.agent-appr-wait')?.remove();
+        btn.disabled = false;
         say('error', `${L('agent_not_approved', 'Non approvata')}: ${e.message || e}`);
         return;
       }
+      clearTimeout(hint);
+      el.querySelector('.agent-appr-wait')?.remove();
       state('approved');
       const wait = addThinking();
       setBusy(true);

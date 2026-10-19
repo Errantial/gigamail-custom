@@ -12,7 +12,7 @@
 (function () {
   const DICT = {
     it: {
-      agentbar_title: "Agente", agent_stop: "Ferma", agent_stopped: "Fermato: l'agente non ha finito il lavoro.", agent_clear: "Pulisci", agent_ph: "Chiedi qualsiasi cosa all'agente…",
+      agentbar_title: "Agente", agent_hello_wait: "In attesa della verifica di Windows Hello: se non la vedi, è dietro le finestre (Alt+Tab).", agent_stop: "Ferma", agent_stopped: "Fermato: l'agente non ha finito il lavoro.", agent_clear: "Pulisci", agent_ph: "Chiedi qualsiasi cosa all'agente…",
       agent_this_mail: "Questa mail", agent_thinking: "L'agente sta lavorando…",
       agent_waiting: "In attesa della tua approvazione", agent_approve: "Approva", agent_reject: "Rifiuta",
       agent_approved: "Approvata", agent_executed: "Approvata ed eseguita", agent_not_run: "Approvata, ma non eseguita: GigaMail non ha registrato l'esecuzione", agent_rejected: "Rifiutata: non verrà eseguita",
@@ -551,7 +551,7 @@
       by_cli: "terminale",
     },
     en: {
-      agentbar_title: "Agent", agent_stop: "Stop", agent_stopped: "Stopped: the agent did not finish.", agent_clear: "Clear", agent_ph: "Ask the agent anything…",
+      agentbar_title: "Agent", agent_hello_wait: "Waiting for the Windows Hello check: if you do not see it, it is behind the windows (Alt+Tab).", agent_stop: "Stop", agent_stopped: "Stopped: the agent did not finish.", agent_clear: "Clear", agent_ph: "Ask the agent anything…",
       agent_this_mail: "This mail", agent_thinking: "The agent is working…",
       agent_waiting: "Waiting for your approval", agent_approve: "Approve", agent_reject: "Reject",
       agent_approved: "Approved", agent_executed: "Approved and run", agent_not_run: "Approved, but not run: GigaMail recorded no execution", agent_rejected: "Rejected: it will not run",
@@ -1074,7 +1074,7 @@
       by_cli: "terminal",
     },
     zh: {
-      agentbar_title: "智能体", agent_stop: "停止", agent_stopped: "已停止：智能体未完成任务。", agent_clear: "清空", agent_ph: "向智能体提问任何问题…",
+      agentbar_title: "智能体", agent_hello_wait: "正在等待 Windows Hello 验证：如果看不到，它在其他窗口后面（Alt+Tab）。", agent_stop: "停止", agent_stopped: "已停止：智能体未完成任务。", agent_clear: "清空", agent_ph: "向智能体提问任何问题…",
       agent_this_mail: "这封邮件", agent_thinking: "智能体正在处理…",
       agent_waiting: "等待你的批准", agent_approve: "批准", agent_reject: "拒绝",
       agent_approved: "已批准", agent_executed: "已批准并执行", agent_not_run: "已批准，但未执行：GigaMail 没有执行记录", agent_rejected: "已拒绝：不会执行",

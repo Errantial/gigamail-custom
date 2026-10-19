@@ -388,12 +388,19 @@ async function stopBackend(pid) {
   const target = parseInt(pid, 10) || backendPid();
   if (!target) return false;
   try { process.kill(target); } catch (_) { /* already gone, or not ours to kill */ }
+  if (process.platform === 'win32') {
+    // and its children: the venv's python.exe launcher starts the real one
+    try { execFileSync('taskkill', ['/PID', String(target), '/T', '/F'], { windowsHide: true, stdio: 'ignore' }); } catch (_) { /* gone */ }
+  }
   for (let i = 0; i < 25; i++) {
+    // Only a refused connection means the port is free. A slow answer (a
+    // timeout) is a backend still alive: counting it as stopped started the
+    // new backend on a busy port, and the window stayed on the old one.
     const alive = await new Promise((resolve) => {
-      const req = http.get(`${API}/health`, { timeout: 400, headers: { 'X-ADE-Token': API_TOKEN } },
+      const req = http.get(`${API}/health`, { timeout: 1500, headers: { 'X-ADE-Token': API_TOKEN } },
         (res) => { res.resume(); resolve(true); });
-      req.on('error', () => resolve(false));
-      req.on('timeout', () => { req.destroy(); resolve(false); });
+      req.on('error', (e) => resolve(e && e.code !== 'ECONNREFUSED'));
+      req.on('timeout', () => { req.destroy(new Error('timeout')); });
     });
     if (!alive) return true;
     await new Promise((r) => setTimeout(r, 200));
