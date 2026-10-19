@@ -345,7 +345,7 @@ async function openMail(id, overrideFolder = null) {
           border-bottom:1px solid rgba(0,0,0,0.08);
           user-select:none;
         ">
-          <button id="btnPopOut" title="${T('open_in_window','Apri in finestra')}" style="-webkit-app-region:no-drag;width:28px;height:28px;border-radius:7px;background:#f3e6f0;border:1px solid rgba(0,0,0,0.14);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;color:rgba(0,0,0,0.6);box-shadow:0 2px 8px rgba(0,0,0,0.07);flex-shrink:0;">⤢</button>
+          <button id="btnPopOut" title="${T('open_in_window','Apri in finestra')}" style="-webkit-app-region:no-drag;width:28px;height:28px;border-radius:7px;background:#f3e6f0;border:1px solid rgba(0,0,0,0.14);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;color:rgba(0,0,0,0.6);box-shadow:0 2px 8px rgba(0,0,0,0.07);flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
           <div style="flex:1;font-size:11px;font-weight:500;color:rgba(0,0,0,0.75);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(msg.subject || T('no_subject','(nessun oggetto)'))}</div>
         </div>
         <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;min-height:0;">

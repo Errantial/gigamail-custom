@@ -168,3 +168,6 @@ html[data-theme="dark"] #view-automations .ai-card-status.warn, html[data-theme=
 html[data-theme="dark"] #view-pending .ai-card-status.ok { color: var(--gm-green) !important; }
 html[data-theme="dark"] #view-pending .ai-card-status.err { color: #ff7b7b !important; }
 html[data-theme="dark"] .recent-body { background: var(--gm-card) !important; }
+html[data-theme="dark"] #btnPopOut svg, html[data-theme="dark"] #btnPopOut svg *,
+html[data-theme="dark"] #btnDockBack svg, html[data-theme="dark"] #btnDockBack svg * { color: inherit !important; }
+html[data-theme="dark"] #btnPopOut { color: var(--gm-pink) !important; background: var(--gm-tint) !important; border-color: var(--gm-tint-line) !important; }

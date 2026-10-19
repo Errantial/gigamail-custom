@@ -275,3 +275,8 @@ html[data-accent="blue"] {
 .recent-v { flex: 1; color: var(--gm-ink); word-break: break-word; }
 .recent-body { white-space: pre-wrap; font: 12.5px/1.5 var(--font, inherit); color: var(--gm-ink); background: var(--gm-fill);
   border-radius: 10px; padding: 10px 12px; margin: 6px 0; max-height: 320px; overflow: auto; }
+
+/* apri in finestra: icona nel colore d'accento, come gli altri pulsanti */
+#btnPopOut { color: var(--gm-pink) !important; background: var(--gm-tint) !important;
+  border: 1px solid var(--gm-tint-line) !important; box-shadow: none !important; }
+#btnPopOut:hover { background: var(--gm-pink) !important; color: #fff !important; }
