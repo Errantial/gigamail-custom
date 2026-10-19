@@ -11,16 +11,10 @@
 (function () {
   const API = window.GIGAMAIL_API || 'http://127.0.0.1:8002';
   const STEPS = ['welcome', 'account', 'identity', 'agent', 'done'];
-  const MCP_SNIPPET = '{\n  "mcpServers": {\n    "gigamail": { "command": "gigamail-server" }\n  }\n}';
-  // Codex legge ~/.codex/config.toml; il comando `codex mcp add` scrive la
-  // stessa cosa senza aprire il file. GIGAMAIL_ROOT: la cartella dati della
-  // console, cosi' server e console vedono gli stessi account e approvazioni.
-  function codexSnippet(root) {
-    const r = String(root || '%APPDATA%\\ADE').replace(/\\/g, '\\\\');
-    return `codex mcp add gigamail --env GIGAMAIL_ROOT="${root || '%APPDATA%\\ADE'}" -- gigamail-server\n\n# or in ~/.codex/config.toml:\n[mcp_servers.gigamail]\ncommand = "gigamail-server"\n\n[mcp_servers.gigamail.env]\nGIGAMAIL_ROOT = "${r}"`;
-  }
+  const { mcpSnippet, codexSnippet, cliCommand } = window.McpSnippets;
+  const MCP_SNIPPET = mcpSnippet(null);
   let currentSnippet = MCP_SNIPPET;
-  const TG_COMMAND = 'gigamail telegram setup';
+  let TG_COMMAND = cliCommand(null, 'telegram setup');
 
   const api = window.ademail || {};
   const $ = (id) => document.getElementById(id);
@@ -338,7 +332,7 @@
       if (ag.agent) sel.value = ag.agent;
     }
     const isCodex = ag.agent === 'codex';
-    currentSnippet = isCodex ? codexSnippet(ag.root) : MCP_SNIPPET;
+    currentSnippet = isCodex ? codexSnippet(ag) : mcpSnippet(ag);
     setText('obMcpSnippet', currentSnippet);
     setText('obMcpLabel', T(isCodex ? 'ob_agent_mcp_codex' : 'ob_agent_mcp', ''));
   }
@@ -349,6 +343,8 @@
     try {
       const st = await apiJson('/notify/status');
       const ag = st.agent || {};
+      TG_COMMAND = cliCommand(ag, 'telegram setup');
+      setText('obTgCommand', TG_COMMAND);
       agentReady = !!ag.available;
       renderAgentChoice(ag);
       setStatus('obAgentStatus',

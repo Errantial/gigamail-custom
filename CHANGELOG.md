@@ -10,6 +10,13 @@
   (`console/relocate_scripts.py`). Until this release, point Codex at the
   app's Python with `-m gigamail.server`, as in
   [CODEX_SETUP.md](CODEX_SETUP.md).
+- **The onboarding gives commands that run on the desktop app.** The
+  agent step told you to register `gigamail-server` and to run
+  `gigamail telegram setup`, names only a pip install puts on the PATH.
+  It now shows the app's own Python with `-m gigamail.server` and the
+  console's data folder, for Codex (command and `config.toml`) and for
+  Claude, and the Telegram command the same way, in the onboarding and in
+  the settings.
 - **How to set up GigaMail with Codex.** [CODEX_SETUP.md](CODEX_SETUP.md)
   walks a non-developer through it: desktop app, mailbox, Codex sign-in,
   plugin and server, first prompts, approvals and privacy.

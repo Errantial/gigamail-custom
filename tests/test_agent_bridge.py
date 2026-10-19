@@ -79,6 +79,13 @@ def test_status_riporta_comando(monkeypatch):
     assert st["command"] == PY
 
 
+def test_status_riporta_il_python_del_backend(monkeypatch):
+    # L'onboarding lo fa usare ai client MCP: -m gigamail.server con il
+    # Python dell'app, perche' gigamail-server non e' nel PATH dell'utente.
+    monkeypatch.setenv("ADE_AGENT_CMD", json.dumps([PY, "{prompt}"]))
+    assert agent_bridge.status()["python"] == sys.executable
+
+
 # ── agenti noti: Claude Code e Codex CLI ──────────────────────────────────
 
 def test_comando_codex_ha_exec_output_e_prompt():

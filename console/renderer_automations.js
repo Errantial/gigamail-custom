@@ -309,6 +309,10 @@
               `chat ${tg.chat_id} — approval ${tg.approve ? 'ENABLED' : 'not enabled (notify, reject, edit only)'}`,
               `chat ${tg.chat_id} — 审批${tg.approve ? '已启用' : '未启用（仅通知、拒绝、修改）'}`)
           : T('non configurato', 'not configured', '未配置'));
+      // Il comando nel suggerimento: con il Python dell'app, perche' `gigamail`
+      // non e' nel PATH di chi usa l'app desktop (mcp_snippets.js).
+      const tgCode = document.querySelector('[data-i18n-html="telegram_hint"] code');
+      if (tgCode && window.McpSnippets) tgCode.textContent = McpSnippets.cliCommand(ag, 'telegram setup');
     } catch (e) {
       set('agentStatus', 'err', e.message);
     }

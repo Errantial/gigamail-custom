@@ -25,6 +25,7 @@ stampano anche il resto (Codex).
 import glob
 import json
 import os
+import sys
 import shutil
 import subprocess
 import tempfile
@@ -284,6 +285,10 @@ def status() -> dict:
         "agent": cfg["agent"],
         "agents": available_agents(),
         "root": str(app_root()),
+        # The Python running this backend: in the desktop app the bundled
+        # one. The onboarding tells MCP clients to start the server with it
+        # (-m gigamail.server), since gigamail-server is on no user's PATH.
+        "python": sys.executable,
     }
 
 
