@@ -881,7 +881,7 @@ async function renderDashboard() {
 
     const evRows = upcoming.length ? upcoming.map(e =>
       `<div class="dash-ev-row" data-open-calendar="1" style="display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:8px;cursor:pointer;transition:background 0.15s;">
-        <div style="width:7px;height:7px;border-radius:50%;background:linear-gradient(135deg,#eeb9dd,#b0c7f4);border:1px solid rgba(0,0,0,0.2);flex-shrink:0;"></div>
+        <div class="dash-ev-dot" style="width:7px;height:7px;border-radius:50%;flex-shrink:0;"></div>
         <div style="font-size:11px;color:rgba(0,0,0,0.82);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(e.subject||e.title||T('cal_event','Evento'))}</div>
         <div style="font-size:10px;color:rgba(0,0,0,0.55);white-space:nowrap;">${fmtEvDate(e.start?.dateTime||e.start?.date)}</div>
       </div>`

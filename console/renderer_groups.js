@@ -99,11 +99,11 @@ const AccountGroups = (() => {
         <div style="font-size:10px;color:rgba(0,0,0,0.55);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(emails)}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:7px;">
           <div style="background:rgba(0,0,0,0.04);border-radius:8px;padding:7px 9px;">
-            <div style="font-size:20px;font-weight:500;line-height:1;color:${s.unread > 0 ? '#993556' : 'rgba(0,0,0,0.82)'};">${Number(s.unread) || 0}</div>
+            <div class="dash-num${s.unread > 0 ? ' dash-unread' : ''}" style="font-size:20px;font-weight:500;line-height:1;">${Number(s.unread) || 0}</div>
             <div style="font-size:9px;color:rgba(0,0,0,0.55);margin-top:2px;">${T('unread', 'Non lette')}</div>
           </div>
           <div style="background:rgba(0,0,0,0.04);border-radius:8px;padding:7px 9px;">
-            <div style="font-size:20px;font-weight:500;line-height:1;color:rgba(0,0,0,0.82);">${Number(s.sentToday) || 0}</div>
+            <div class="dash-num" style="font-size:20px;font-weight:500;line-height:1;">${Number(s.sentToday) || 0}</div>
             <div style="font-size:9px;color:rgba(0,0,0,0.55);margin-top:2px;">${T('sent_today', 'Inviate oggi')}</div>
           </div>
         </div>

@@ -280,3 +280,28 @@ html[data-accent="blue"] {
 #btnPopOut { color: var(--gm-pink) !important; background: var(--gm-tint) !important;
   border: 1px solid var(--gm-tint-line) !important; box-shadow: none !important; }
 #btnPopOut:hover { background: var(--gm-pink) !important; color: #fff !important; }
+
+/* home: non lette nel colore d'accento, inviate nel colore del testo */
+.dash-num { color: var(--gm-ink); }
+.dash-num.dash-unread { color: var(--gm-pink); }
+html[data-theme="dark"] .dash-num.dash-unread { color: var(--gm-pink-hi) !important; }
+.dash-ev-dot { background: var(--gm-pink); }
+
+/* elenco mail nel tema chiaro: un divisore sottile tra una mail e l'altra */
+html:not([data-theme="dark"]) .mail-list .mail-item { position: relative; }
+html:not([data-theme="dark"]) .mail-list .mail-item + .mail-item::before {
+  content: ''; position: absolute; left: 12px; right: 12px; top: -4px; height: 1px;
+  background: var(--gm-line); pointer-events: none; }
+
+/* pulsanti della finestra: più grandi, staccati dal bordo */
+.win-buttons { gap: 6px; padding: 8px 6px 0 0; }
+.win-btn { width: 32px !important; height: 32px !important; border-radius: 9px !important; }
+.win-btn svg { width: 18px; height: 18px; stroke-width: 2.2; }
+
+/* filtri: ⚙ e × solo al passaggio del mouse sul filtro */
+.custom-folder-row .custom-folder-identity, .custom-folder-row .custom-folder-delete {
+  max-width: 0; padding: 0 !important; overflow: hidden; opacity: 0 !important;
+  transition: max-width .15s, opacity .15s; }
+.custom-folder-row:hover .custom-folder-identity, .custom-folder-row:hover .custom-folder-delete,
+.custom-folder-row:focus-within .custom-folder-identity, .custom-folder-row:focus-within .custom-folder-delete {
+  max-width: 20px; padding: 0 2px !important; opacity: 1 !important; }
