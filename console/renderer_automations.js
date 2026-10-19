@@ -421,7 +421,7 @@
     });
     // qualunque altra voce della sidebar riporta alla posta
     document.querySelectorAll('.sidebar .s-item').forEach((item) => {
-      if (item.id !== 'btnShowAutomations' && item.id !== 'langSwitch' && item.id !== 'themeSwitch') {
+      if (item.id !== 'btnShowAutomations' && item.id !== 'langSwitch' && item.id !== 'themeSwitch' && item.id !== 'accentSwitch') {
         item.addEventListener('click', leaveView, true);
       }
     });

@@ -4,7 +4,7 @@
 :root {
   --gm-bg: #d1d1d6; --gm-card: #ffffff; --gm-ink: #1c1c20; --gm-muted: #5f5f69;
   --gm-line: #e6e6ec; --gm-fill: #f3f3f6; --gm-pink: #e0409a; --gm-pink-hi: #ec5aac;
-  --gm-tint: #fdf3f9; --gm-tint-line: #eeb9dd; --gm-amber: #b26f00; --gm-amber-bg: #fcf0dc;
+  --gm-tint: #fdf3f9; --gm-tint-line: #eeb9dd; --gm-accent-rgb: 224,64,154; --gm-amber: #b26f00; --gm-amber-bg: #fcf0dc;
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
 }
 body { background: var(--gm-card) !important; color: var(--gm-ink); font-family: var(--font); }
@@ -18,7 +18,7 @@ body { background: var(--gm-card) !important; color: var(--gm-ink); font-family:
 .reply-label, .field-label, .event-label { color: var(--gm-muted) !important; }
 .reply-field, .field-input, .event-input, .reply-textarea, .body-textarea { color: var(--gm-ink); font-family: var(--font); }
 .field-input, .event-input { border: 1.5px solid var(--gm-line) !important; border-radius: 10px !important; background: var(--gm-card) !important; }
-.field-input:focus, .event-input:focus { border-color: var(--gm-pink) !important; box-shadow: 0 0 0 3px rgba(224,64,154,0.12) !important; }
+.field-input:focus, .event-input:focus { border-color: var(--gm-pink) !important; box-shadow: 0 0 0 3px rgba(var(--gm-accent-rgb),0.12) !important; }
 .reply-textarea, .body-textarea { font-size: 15px !important; line-height: 1.6 !important; }
 
 /* barra in basso */
@@ -34,7 +34,7 @@ body { background: var(--gm-card) !important; color: var(--gm-ink); font-family:
 /* azione principale: rosa pieno, testo bianco */
 .send-btn, .ask-send, .compose-btn, .gen-btn, .add-btn {
   background: var(--gm-pink) !important; color: #fff !important; border: none !important;
-  border-radius: 10px !important; font-weight: 700 !important; box-shadow: 0 6px 14px rgba(224,64,154,0.25) !important; }
+  border-radius: 10px !important; font-weight: 700 !important; box-shadow: 0 6px 14px rgba(var(--gm-accent-rgb),0.25) !important; }
 .send-btn:hover, .ask-send:hover, .compose-btn:hover, .gen-btn:hover, .add-btn:hover { background: var(--gm-pink-hi) !important; }
 .send-btn:disabled, .ask-send:disabled, .compose-btn:disabled { background: #e9b5d2 !important; box-shadow: none !important; }
 
@@ -78,3 +78,15 @@ body { border: 1px solid var(--gm-line) !important; }
 .cal-cell.today .cal-day-num { background: var(--gm-pink) !important; color: #fff !important; border: none !important; }
 .ask-input-bar { background: var(--gm-card) !important; border-top: 1px solid var(--gm-line) !important; }
 .ask-messages { background: var(--gm-card) !important; }
+
+/* pulsanti della finestra: stesse icone e stesso grigio della console */
+.tb-btn { display: inline-flex !important; align-items: center; justify-content: center; }
+.tb-btn:hover, .tb-btn.close:hover, .tb-btn.minimize:hover, .tb-btn.maximize:hover {
+  background: var(--gm-fill) !important; color: var(--gm-ink) !important; }
+.tb-btn svg { display: block; }
+
+
+html[data-accent="blue"] {
+  --gm-pink: #3b6fd8; --gm-pink-hi: #5585e6; --gm-tint: #edf2fc; --gm-tint-line: #b8cbf0;
+  --gm-accent-rgb: 59,111,216;
+}

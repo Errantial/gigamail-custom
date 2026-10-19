@@ -57,4 +57,48 @@
     apply();
   });
   window.gmTheme = { mode, apply };
+
+  // ── accent: pink (default) or blue ─────────────────────────────────────
+  const AKEY = 'gm-accent';
+  const ACCENTS = ['pink', 'blue'];
+  const ALABELS = {
+    it: { pink: 'Colore: rosa', blue: 'Colore: blu' },
+    en: { pink: 'Colour: pink', blue: 'Colour: blue' },
+    zh: { pink: '颜色：粉色', blue: '颜色：蓝色' },
+  };
+  function accent() {
+    try { const a = localStorage.getItem(AKEY); return ACCENTS.includes(a) ? a : 'pink'; } catch (_) { return 'pink'; }
+  }
+  function applyAccent() {
+    const a = accent();
+    if (a === 'pink') document.documentElement.removeAttribute('data-accent');
+    else document.documentElement.setAttribute('data-accent', a);
+    const btn = document.getElementById('accentSwitch');
+    if (btn) {
+      const lang = String((window.i18n && window.i18n.lang)
+        || document.documentElement.getAttribute('lang') || 'it').slice(0, 2);
+      const text = (ALABELS[lang] || ALABELS.en)[a];
+      // a dot in the current accent: the click switches to the other one
+      btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7" fill="var(--gm-pink)" stroke="currentColor" stroke-width="1.2" stroke-opacity="0.35"/></svg>';
+      btn.setAttribute('data-label', text);
+      btn.setAttribute('aria-label', text);
+    }
+  }
+  applyAccent();
+  window.addEventListener('storage', (e) => { if (e.key === AKEY) applyAccent(); });
+  if (window.MutationObserver) {
+    new MutationObserver(applyAccent).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('accentSwitch');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        const next = ACCENTS[(ACCENTS.indexOf(accent()) + 1) % ACCENTS.length];
+        try { localStorage.setItem(AKEY, next); } catch (_) { /* only this window */ }
+        applyAccent();
+      });
+    }
+    applyAccent();
+  });
+  window.gmAccent = { accent, apply: applyAccent };
 })();

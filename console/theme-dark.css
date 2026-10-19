@@ -7,7 +7,7 @@ html[data-theme="dark"] {
   --gm-bg: #0b0e19; --gm-card: #141927; --gm-card2: #1a2032; --gm-fill: #20273b;
   --gm-line: #2b3349; --gm-ink: #eceef6; --gm-muted: #a4abc3;
   --gm-pink: #ee5fb0; --gm-pink-hi: #f47cc0; --gm-pink-dn: #d4469a;
-  --gm-tint: #2a1f3a; --gm-tint-line: #7a3f6f;
+  --gm-tint: #2a1f3a; --gm-tint-line: #7a3f6f; --gm-accent-rgb: 238,95,176;
   --gm-amber: #f0b552; --gm-amber-bg: #3a2c14; --gm-green: #4cc27a;
   --gm-shadow: 0 10px 30px rgba(0,0,0,0.45);
   --tint: var(--gm-tint);
@@ -69,7 +69,7 @@ html[data-theme="dark"] .cal-day-header, html[data-theme="dark"] .event-label, h
 /* accenti rosa */
 html[data-theme="dark"] .compose-btn, html[data-theme="dark"] .reply-send-btn, html[data-theme="dark"] .btn-primary,
 html[data-theme="dark"] .send-btn, html[data-theme="dark"] .ask-send, html[data-theme="dark"] .gen-btn, html[data-theme="dark"] .add-btn {
-  background: var(--gm-pink) !important; color: #fff !important; box-shadow: 0 6px 16px rgba(238,95,176,0.25) !important; }
+  background: var(--gm-pink) !important; color: #fff !important; box-shadow: 0 6px 16px rgba(var(--gm-accent-rgb),0.25) !important; }
 html[data-theme="dark"] .compose-btn *, html[data-theme="dark"] .send-btn * { color: #fff !important; }
 html[data-theme="dark"] .compose-btn:hover, html[data-theme="dark"] .send-btn:hover, html[data-theme="dark"] .reply-send-btn:hover { background: var(--gm-pink-hi) !important; }
 html[data-theme="dark"] .s-item.active, html[data-theme="dark"] .tab.active, html[data-theme="dark"] .custom-folder-chip.active,
@@ -148,3 +148,10 @@ html[data-theme="dark"] .cal-event-chip.all-day { background: var(--gm-pink) !im
 html[data-theme="dark"] .agent-msg.approval.not-run { background: #2e2615; border-color: #6b5320; }
 html[data-theme="dark"] .agent-msg.approval.not-run .agent-appr-head { color: #f0b54a; }
 html[data-theme="dark"] .agent-send.stop { background: var(--gm-ink); color: var(--gm-bg); }
+
+
+/* accento blu, tema scuro */
+html[data-theme="dark"][data-accent="blue"] {
+  --gm-pink: #5b8cf0; --gm-pink-hi: #79a2f4; --gm-pink-dn: #426fd4;
+  --gm-tint: #1b2540; --gm-tint-line: #3c5b94; --gm-accent-rgb: 91,140,240;
+}

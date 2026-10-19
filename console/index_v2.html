@@ -15,9 +15,9 @@
   <div class="titlebar" id="appTitlebar">
     <div style="flex:1;-webkit-app-region:drag"></div>
     <div class="win-buttons">
-      <button class="win-btn minimize" id="btnWinMin"   data-i18n-title="hide" title="Nascondi"      >▽</button>
-      <button class="win-btn maximize" id="btnWinMax"   data-i18n-title="fullscreen" title="Tutto schermo" >□</button>
-      <button class="win-btn close"    id="btnWinClose" data-i18n-title="close" title="Chiudi"        >✕</button>
+      <button class="win-btn minimize" id="btnWinMin"   data-i18n-title="hide" title="Nascondi"      ><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12"/></svg></button>
+      <button class="win-btn maximize" id="btnWinMax"   data-i18n-title="fullscreen" title="Tutto schermo" ><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+      <button class="win-btn close"    id="btnWinClose" data-i18n-title="close" title="Chiudi"        ><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg></button>
     </div>
   </div>
   <div class="sidebar">
@@ -36,6 +36,7 @@
     <div class="s-item" id="btnShowAsk" data-label="Chiedi alle mail" data-i18n-label="ask_title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="10" r="0.5" fill="currentColor"/><circle cx="12" cy="10" r="0.5" fill="currentColor"/><circle cx="15" cy="10" r="0.5" fill="currentColor"/></svg></div>
     <div class="s-item" id="btnShowAutomations" data-label="Automazioni" data-i18n-label="automations"><span class="s-badge" id="pendingBadge" hidden></span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
     <div class="s-item" id="themeSwitch" role="button" tabindex="0" data-label="Tema"></div>
+    <div class="s-item" id="accentSwitch" role="button" tabindex="0" data-label="Colore"></div>
     <div class="s-item" id="langSwitch" data-i18n-title="lang_switch_title" title="Lingua / Language" style="cursor:pointer;font-size:11px;font-weight:700;letter-spacing:1px;text-align:center;line-height:1;color:rgba(0,0,0,0.6)">IT</div>
     <div class="s-avatar"      id="sidebarAvatar"  >S</div>
   </div>

@@ -13,6 +13,7 @@
   --gm-pink-dn:   #be287d;
   --gm-tint:      #fdf3f9;   /* selezione: tinta piena, mai sfumatura */
   --gm-tint-line: #eeb9dd;
+  --gm-accent-rgb: 224,64,154;   /* lo stesso rosa, per le ombre e i bordi trasparenti */
   --gm-amber:     #b26f00;   /* in attesa di approvazione */
   --gm-amber-bg:  #fcf0dc;
   --gm-green:     #1f8a47;
@@ -74,13 +75,13 @@ body { background: var(--gm-bg); color: var(--gm-ink); }
 
 /* pulsante principale: rosa pieno, testo bianco */
 .compose-btn { background: var(--gm-pink); color: #fff; border: none; border-radius: 12px;
-  font-size: 13px; font-weight: 700; box-shadow: 0 6px 16px rgba(224,64,154,0.25); }
-.compose-btn:hover { background: var(--gm-pink-hi); border: none; box-shadow: 0 8px 18px rgba(224,64,154,0.30); }
+  font-size: 13px; font-weight: 700; box-shadow: 0 6px 16px rgba(var(--gm-accent-rgb),0.25); }
+.compose-btn:hover { background: var(--gm-pink-hi); border: none; box-shadow: 0 8px 18px rgba(var(--gm-accent-rgb),0.30); }
 .compose-btn:disabled { background: #e9b5d2; box-shadow: none; }
-.btn-primary { background: var(--gm-pink); color: #fff; box-shadow: 0 4px 12px rgba(224,64,154,0.25); }
+.btn-primary { background: var(--gm-pink); color: #fff; box-shadow: 0 4px 12px rgba(var(--gm-accent-rgb),0.25); }
 .btn-primary:hover { background: var(--gm-pink-hi); }
 .reply-send-btn { background: var(--gm-pink); color: #fff; border: none; border-radius: 10px;
-  box-shadow: 0 6px 14px rgba(224,64,154,0.25); }
+  box-shadow: 0 6px 14px rgba(var(--gm-accent-rgb),0.25); }
 .reply-send-btn:hover { background: var(--gm-pink-hi); border: none; }
 
 /* area di lettura e viste: scheda bianca */
@@ -103,7 +104,7 @@ body { background: var(--gm-bg); color: var(--gm-ink); }
 /* finestre modali */
 .modal, .ob-modal { border-radius: 20px; border: 1.5px solid var(--gm-tint-line); box-shadow: 0 24px 60px rgba(40,30,55,0.22); }
 .field-input { border-radius: 10px; border: 1.5px solid var(--gm-line); }
-.field-input:focus { border-color: var(--gm-pink); box-shadow: 0 0 0 3px rgba(224,64,154,0.12); }
+.field-input:focus { border-color: var(--gm-pink); box-shadow: 0 0 0 3px rgba(var(--gm-accent-rgb),0.12); }
 
 /* spazio tra colonna posta e area di lettura */
 .view.active { gap: 12px; }
@@ -140,7 +141,7 @@ body { background: var(--gm-bg); color: var(--gm-ink); }
 #identityModal input, #identityModal textarea, #folderIdentityModal input, #folderIdentityModal textarea {
   background: var(--gm-card) !important; border: 1.5px solid var(--gm-line) !important; border-radius: 10px !important; }
 #identityModal input:focus, #identityModal textarea:focus, #folderIdentityModal input:focus, #folderIdentityModal textarea:focus {
-  border-color: var(--gm-pink) !important; box-shadow: 0 0 0 3px rgba(224,64,154,0.12) !important; }
+  border-color: var(--gm-pink) !important; box-shadow: 0 0 0 3px rgba(var(--gm-accent-rgb),0.12) !important; }
 #identityModal > div > div:last-child, #folderIdentityModal > div > div:last-child, #identityPreviewModal > div > div:last-child {
   background: #fcfcfd !important; border-top: 1px solid var(--gm-line) !important; }
 #identityModal > div > div:first-child, #folderIdentityModal > div > div:first-child, #identityPreviewModal > div > div:first-child {
@@ -212,7 +213,7 @@ body { background: var(--gm-bg); color: var(--gm-ink); }
 
 .agent-input { border: 1.5px solid var(--gm-line); border-radius: 16px; background: var(--gm-fill);
   padding: 6px 6px 6px 12px; display: flex; flex-direction: column; gap: 6px; transition: border-color .15s, box-shadow .15s; }
-.agent-input:focus-within { border-color: var(--gm-pink); box-shadow: 0 0 0 3px rgba(224,64,154,0.12); background: var(--gm-card); }
+.agent-input:focus-within { border-color: var(--gm-pink); box-shadow: 0 0 0 3px rgba(var(--gm-accent-rgb),0.12); background: var(--gm-card); }
 .agent-chip { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
   background: var(--gm-tint); border: 1px solid var(--gm-tint-line); color: var(--gm-pink);
   border-radius: 999px; padding: 2px 4px 2px 9px; font-size: 11.5px; font-weight: 600; margin-top: 2px; }
@@ -220,7 +221,7 @@ body { background: var(--gm-bg); color: var(--gm-ink); }
 .agent-chip #agentChipText { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 380px; }
 .agent-chip-x { background: none; border: none; color: inherit; cursor: pointer; font-size: 13px; line-height: 1;
   width: 18px; height: 18px; border-radius: 50%; }
-.agent-chip-x:hover { background: rgba(224,64,154,0.12); }
+.agent-chip-x:hover { background: rgba(var(--gm-accent-rgb),0.12); }
 .agent-row { display: flex; align-items: flex-end; gap: 8px; }
 #agentInput { flex: 1; resize: none; border: none; outline: none; background: transparent; color: var(--gm-ink);
   font: 13.5px/1.45 var(--font, inherit); padding: 6px 0; min-height: 22px; max-height: 140px; }
@@ -234,3 +235,19 @@ body { background: var(--gm-bg); color: var(--gm-ink); }
 .agent-send.stop { background: var(--gm-ink); color: #fff; font-size: 12px; }
 .agent-send.stop:hover { background: #3a3a44; }
 .agent-msg.note { align-self: flex-start; background: transparent; color: var(--gm-muted); font-style: italic; padding: 2px 4px; }
+
+/* pulsanti della finestra: icone disegnate come quelle della barra, stesso
+   grigio, niente colori diversi all'hover (erano caratteri ▽ □ ✕, che il font
+   di Windows disegnava ognuno a modo suo) */
+.win-btn { display: inline-flex; align-items: center; justify-content: center; color: var(--gm-muted) !important; }
+.win-btn:hover, .win-btn.close:hover, .win-btn.minimize:hover, .win-btn.maximize:hover {
+  background: var(--gm-fill) !important; color: var(--gm-ink) !important; box-shadow: none !important; }
+.win-btn svg { display: block; }
+
+
+/* accento blu: per chi trova il rosa troppo acceso (pulsante nella barra laterale) */
+html[data-accent="blue"] {
+  --gm-pink: #3b6fd8; --gm-pink-hi: #5585e6; --gm-pink-dn: #2a59b8;
+  --gm-tint: #edf2fc; --gm-tint-line: #b8cbf0; --gm-accent-rgb: 59,111,216;
+  --accent: #3b6fd8; --tint: var(--gm-tint);
+}

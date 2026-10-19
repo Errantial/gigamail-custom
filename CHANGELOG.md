@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Blue instead of pink, if you prefer.** A button in the icon bar, under
+  the theme one, switches the console's accent between pink and a calmer
+  blue, in light and dark, in every window; the choice is kept. The
+  window buttons (minimise, maximise, close) are drawn like the other
+  icons, in the same grey: they were text glyphs that Windows drew in
+  different sizes and colours.
 - **Approve works on click in the console.** Approve in the agent bar's
   card and in *Waiting for you* asked Windows Hello, whose prompt could
   open behind the windows: the button stayed greyed out and nothing
