@@ -156,11 +156,14 @@ test('opening Automations lists what waits, counts it on the badge, and Reject r
   w.close();
 });
 
-test('the Automations view hosts the lists and the sidebar icon carries the badge', () => {
+test('Waiting for you has its own view and icon, which carries the badge', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index_v2.html'), 'utf-8');
   assert.ok(html.includes('id="pendingList"'));
   assert.ok(html.includes('id="recentList"'));
-  assert.match(html, /id="btnShowAutomations"[^>]*><span class="s-badge" id="pendingBadge" hidden>/);
+  // Waiting for you has its own icon, under Automations, and carries the badge
+  assert.match(html, /id="btnShowPending"[^>]*><span class="s-badge" id="pendingBadge" hidden>/);
+  assert.ok(html.indexOf('id="btnShowPending"') > html.indexOf('id="btnShowAutomations"'));
+  assert.ok(html.includes('id="view-pending"'));
   assert.ok(html.includes('src="approvals_view.js"'));
   const auto = fs.readFileSync(path.join(__dirname, '..', 'renderer_automations.js'), 'utf-8');
   assert.ok(auto.includes("api('/approvals')") && auto.includes("/approvals/recent"));

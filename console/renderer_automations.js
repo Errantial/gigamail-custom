@@ -41,12 +41,23 @@
     refreshAll();
   }
 
+  // Waiting for you has its own view and its own icon, under Automations.
+  function showPendingView() {
+    document.querySelectorAll('.view').forEach((v) => v.classList.remove('active'));
+    $('view-pending')?.classList.add('active');
+    document.querySelectorAll('.s-item').forEach((i) => i.classList.remove('active'));
+    $('btnShowPending')?.classList.add('active');
+    refreshPending();
+  }
+
   function leaveView() {
-    const v = $('view-automations');
-    if (v && v.classList.contains('active')) {
-      v.classList.remove('active');
-      $('view-mail')?.classList.add('active');
-      $('btnShowAutomations')?.classList.remove('active');
+    for (const [view, btn] of [['view-automations', 'btnShowAutomations'], ['view-pending', 'btnShowPending']]) {
+      const v = $(view);
+      if (v && v.classList.contains('active')) {
+        v.classList.remove('active');
+        $('view-mail')?.classList.add('active');
+        $(btn)?.classList.remove('active');
+      }
     }
   }
 
@@ -411,6 +422,7 @@
   // ------------------------------------------------------------ bind
   document.addEventListener('DOMContentLoaded', () => {
     $('btnShowAutomations')?.addEventListener('click', showView);
+    $('btnShowPending')?.addEventListener('click', showPendingView);
     $('agentSelect')?.addEventListener('change', async (e) => {
       try {
         await api('/agent/select', { method: 'POST', body: JSON.stringify({ agent: e.target.value }) });
@@ -421,7 +433,7 @@
     });
     // qualunque altra voce della sidebar riporta alla posta
     document.querySelectorAll('.sidebar .s-item').forEach((item) => {
-      if (item.id !== 'btnShowAutomations' && item.id !== 'langSwitch' && item.id !== 'themeSwitch' && item.id !== 'accentSwitch') {
+      if (item.id !== 'btnShowAutomations' && item.id !== 'btnShowPending' && item.id !== 'langSwitch' && item.id !== 'themeSwitch' && item.id !== 'accentSwitch') {
         item.addEventListener('click', leaveView, true);
       }
     });
@@ -430,7 +442,7 @@
     // the badge follows the watcher from any view; the list only while shown
     setTimeout(pollBadge, 4000);
     setInterval(() => {
-      if ($('view-automations')?.classList.contains('active')) refreshPending();
+      if ($('view-pending')?.classList.contains('active')) refreshPending();
       else pollBadge();
     }, 30000);
     $('btnCreateRule')?.addEventListener('click', onCreateRule);
@@ -451,13 +463,15 @@
     $('btnNotifyRefresh')?.addEventListener('click', refreshNotify);
     // Rotella: scorre .auto-body ovunque sia il puntatore nella vista
     // (non solo sopra la barra), anche quando il target e' un campo.
-    const body = document.querySelector('#view-automations .auto-body');
-    $('view-automations')?.addEventListener('wheel', (ev) => {
-      if (!body) return;
-      if (ev.target.closest('.auto-log')) return; // il log scorre da solo
-      body.scrollTop += ev.deltaY;
-      ev.preventDefault();
-    }, { passive: false });
+    for (const id of ['view-automations', 'view-pending']) {
+      const body = document.querySelector(`#${id} .auto-body`);
+      $(id)?.addEventListener('wheel', (ev) => {
+        if (!body) return;
+        if (ev.target.closest('.auto-log')) return; // il log scorre da solo
+        body.scrollTop += ev.deltaY;
+        ev.preventDefault();
+      }, { passive: false });
+    }
     onTriggerKindChange();
     onModeChange();
     renderDocs();

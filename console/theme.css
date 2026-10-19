@@ -87,7 +87,7 @@ body { background: var(--gm-bg); color: var(--gm-ink); }
 /* area di lettura e viste: scheda bianca */
 #mailDetail, .cal-wrap, .auto-wrap, .mkt-layout { background: var(--gm-card); border-radius: var(--gm-radius);
   box-shadow: var(--gm-shadow); }
-#view-calendar, #view-automations, #view-marketing { background: transparent; }
+#view-calendar, #view-automations, #view-pending, #view-marketing { background: transparent; }
 .mail-detail-header { border-bottom: 1px solid var(--gm-line); padding: 20px 24px 14px; }
 .mail-detail-subject { color: var(--gm-ink); font-weight: 700; }
 .main-hint { color: var(--gm-muted); }

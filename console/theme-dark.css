@@ -104,14 +104,9 @@ html[data-theme="dark"] .m-subject, html[data-theme="dark"] .panel-title, html[d
 html[data-theme="dark"] .modal-title, html[data-theme="dark"] .tb-title, html[data-theme="dark"] .mail-subject * {
   color: var(--gm-ink) !important; }
 /* la barra di trascinamento della finestra principale resta trasparente */
-html[data-theme="dark"] #appTitlebar { background: transparent !important; }
-
-/* automazioni: le schede interne erano bianche semitrasparenti */
-html[data-theme="dark"] #view-automations .ai-card { background: var(--gm-card2) !important; border-color: var(--gm-line) !important; box-shadow: none !important; }
-html[data-theme="dark"] #view-automations .ai-card-title { color: var(--gm-ink) !important; }
-html[data-theme="dark"] #view-automations .ai-card-sub, html[data-theme="dark"] #view-automations .hint { color: var(--gm-muted) !important; }
-html[data-theme="dark"] #view-automations .ai-card-status.ok { color: var(--gm-green) !important; }
-html[data-theme="dark"] #view-automations .ai-card-status.err { color: #ff7b7b !important; }
+html[data-theme="dark"] #appTitlebar { background: transparent !important; }/* automazioni: le schede interne erano bianche semitrasparenti */
+html[data-theme="dark"] #view-automations .ai-card, /* automazioni: le schede interne erano bianche semitrasparenti */
+html[data-theme="dark"] #view-pending .ai-card { background: var(--gm-card2) !important; border-color: var(--gm-line) !important; box-shadow: none !important; }html[data-theme="dark"] #view-automations .ai-card-title, html[data-theme="dark"] #view-pending .ai-card-title { color: var(--gm-ink) !important; }html[data-theme="dark"] #view-automations .ai-card-sub, html[data-theme="dark"] #view-automations .hint, html[data-theme="dark"] #view-pending .ai-card-sub, html[data-theme="dark"] #view-pending .hint { color: var(--gm-muted) !important; }html[data-theme="dark"] #view-automations .ai-card-status.ok, html[data-theme="dark"] #view-pending .ai-card-status.ok { color: var(--gm-green) !important; }html[data-theme="dark"] #view-automations .ai-card-status.err, html[data-theme="dark"] #view-pending .ai-card-status.err { color: #ff7b7b !important; }
 html[data-theme="dark"] .auto-log, html[data-theme="dark"] .code-editor, html[data-theme="dark"] .bulk-log { background: var(--gm-bg) !important; color: var(--gm-muted) !important; }
 /* dialoghi costruiti in JS: testata e piede scuri */
 html[data-theme="dark"] #identityModal > div > div:first-child, html[data-theme="dark"] #identityModal > div > div:last-child,
@@ -167,3 +162,8 @@ html[data-theme="dark"] .gm-wordmark {
 }
 /* body * dava il colore del testo anche alle icone: prendono quello del pulsante */
 html[data-theme="dark"] .win-btn svg, html[data-theme="dark"] .win-btn svg *, html[data-theme="dark"] .tb-btn svg, html[data-theme="dark"] .tb-btn svg * { color: inherit !important; }
+html[data-theme="dark"] #view-pending .hint { color: var(--gm-muted) !important; }
+html[data-theme="dark"] #view-automations .ai-card-status, html[data-theme="dark"] #view-pending .ai-card-status { color: var(--gm-muted) !important; }
+html[data-theme="dark"] #view-automations .ai-card-status.warn, html[data-theme="dark"] #view-pending .ai-card-status.warn { color: var(--gm-amber) !important; }
+html[data-theme="dark"] #view-pending .ai-card-status.ok { color: var(--gm-green) !important; }
+html[data-theme="dark"] #view-pending .ai-card-status.err { color: #ff7b7b !important; }

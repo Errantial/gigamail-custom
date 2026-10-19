@@ -590,11 +590,9 @@ body {
 ::-webkit-scrollbar { width:4px; height:4px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:rgba(0,0,0,0.18); border-radius:2px; }
-::-webkit-scrollbar-thumb:hover { background:rgba(0,0,0,0.28); }
-
-/* AI SETUP — card */
-#view-automations .modal-body { gap: 0; }
-#view-automations .ai-card {
+::-webkit-scrollbar-thumb:hover { background:rgba(0,0,0,0.28); }/* AI SETUP — card */
+#view-automations .modal-body, /* AI SETUP — card */
+#view-pending .modal-body { gap: 0; }#view-automations .ai-card, #view-pending .ai-card {
   border: 1px solid rgba(0,0,0,0.14);
   border-radius: var(--radius-sm);
   padding: 14px;
@@ -602,25 +600,20 @@ body {
   background: rgba(255,255,255,0.6);
   box-shadow: 0 4px 16px rgba(0,0,0,0.1);
   transition: all 0.18s;
-}
-#view-automations .ai-card:hover {
+}#view-automations .ai-card:hover, #view-pending .ai-card:hover {
   background: linear-gradient(135deg, rgba(238,185,221,0.25), rgba(176,199,244,0.25));
   transform: translateY(-1px);
   box-shadow:0 2px 8px rgba(0,0,0,0.07);
-}
-#view-automations .ai-card-head {
+}#view-automations .ai-card-head, #view-pending .ai-card-head {
   display: flex;
   gap: 12px;
   align-items: flex-start;
   margin-bottom: 12px;
-}
-#view-automations .ai-card-icon {
+}#view-automations .ai-card-icon, #view-pending .ai-card-icon {
   font-size: 22px;
   line-height: 1;
   flex-shrink: 0;
-}
-#view-automations .ai-card-titles { flex: 1; min-width: 0; }
-#view-automations .ai-card-title {
+}#view-automations .ai-card-titles, #view-pending .ai-card-titles { flex: 1; min-width: 0; }#view-automations .ai-card-title, #view-pending .ai-card-title {
   font-size: 13px;
   font-weight: 600;
   color: rgba(0,0,0,0.82);
@@ -628,30 +621,24 @@ body {
   align-items: center;
   gap: 8px;
   margin-bottom: 3px;
-}
-#view-automations .ai-card-sub {
+}#view-automations .ai-card-sub, #view-pending .ai-card-sub {
   font-size: 11.5px;
   color: rgba(0,0,0,0.6);
   line-height: 1.45;
-}
-#view-automations .ai-card-row {
+}#view-automations .ai-card-row, #view-pending .ai-card-row {
   display: flex;
   gap: 8px;
   align-items: center;
-}
-#view-automations .ai-card-status {
+}#view-automations .ai-card-status, #view-pending .ai-card-status {
   flex: 1;
   font-size: 11.5px;
   color: rgba(0,0,0,0.6);
-}
-#view-automations .ai-card-status.ok {
+}#view-automations .ai-card-status.ok, #view-pending .ai-card-status.ok {
   color: #16a34a;
   font-weight: 600;
-}
-#view-automations .ai-card-status.err {
+}#view-automations .ai-card-status.err, #view-pending .ai-card-status.err {
   color: rgba(200,50,40,0.85);
-}
-#view-automations .ai-tag {
+}#view-automations .ai-tag, #view-pending .ai-tag {
   background: linear-gradient(135deg, var(--accent), var(--accent-light));
   border: 1px solid rgba(0,0,0,0.14);
   color: rgba(0,0,0,0.82);
@@ -754,9 +741,7 @@ body {
 .auto-wrap { flex:1; min-width:0; min-height:0; display:flex; flex-direction:column; }
 .auto-body { flex:1; min-height:0; overflow-y:auto; padding:14px 14px 40px; display:flex; gap:16px; align-items:flex-start; }
 .auto-col { flex:1; min-width:320px; display:flex; flex-direction:column; gap:10px; }
-.auto-col > .field-label { margin-top:4px; }
-#view-automations .ai-card .field-row { margin-bottom:8px; }
-#view-automations .ai-card-status.warn { color:#b45309; font-weight:600; }
+.auto-col > .field-label { margin-top:4px; }#view-automations .ai-card .field-row, #view-pending .ai-card .field-row { margin-bottom:8px; }#view-automations .ai-card-status.warn, #view-pending .ai-card-status.warn { color:#b45309; font-weight:600; }
 .auto-log { max-height:180px; overflow:auto; background:rgba(0,0,0,0.04); border-radius:var(--radius-sm); padding:8px; margin-top:8px; white-space:pre-wrap; }
 /* Automazioni: scrollbar larga e sempre visibile, scorrimento con rotella */
 .auto-body { scrollbar-gutter: stable; }
@@ -825,3 +810,4 @@ body {
 .dash-tile:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.22) !important; }
 .dash-ev-row { background: rgba(0,0,0,0.04); }
 .dash-ev-row:hover { background: rgba(0,0,0,0.08); }
+#view-pending { min-height:0; max-height:100vh; overflow:hidden; }
