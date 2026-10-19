@@ -1,8 +1,9 @@
-# How to set up GigaMail with Codex
+# How to set up GigaMail with ChatGPT and Codex
 
-This guide connects your existing mailbox to **Codex**, OpenAI's agent,
-which you sign in to with your ChatGPT account. When you are done you can
-ask Codex to search, read and summarize your mail and to draft replies.
+This guide connects your existing mailbox to **Codex** and the **ChatGPT
+desktop app** (including ChatGPT Work), which share the same setup: you
+sign in with your ChatGPT account. When you are done you can
+ask ChatGPT or Codex to search, read and summarize your mail and to draft replies.
 Nothing is sent, deleted or put in your calendar until you approve it in
 the GigaMail app.
 
@@ -55,9 +56,15 @@ is done.
 
 ## 3. Install Codex and sign in
 
-Install Codex (the Codex app or the Codex CLI) by following
+GigaMail runs on your computer, so it works in the **ChatGPT desktop app**
+and in **Codex**, not in chatgpt.com in the browser. The two share the
+same configuration, which you write once with the Codex command line in
+step 4.
+
+Install the Codex CLI by following
 [OpenAI's instructions](https://developers.openai.com/codex), then sign in
-with your ChatGPT account.
+with your ChatGPT account. Install the ChatGPT desktop app too if you want
+to use GigaMail from ChatGPT.
 
 Check it works by opening a terminal (on Windows: **PowerShell**) and
 running:
@@ -101,7 +108,8 @@ and use `codex mcp add gigamail -- gigamail-server`.
 
 ## 5. Try it
 
-Start a **new** Codex session (tools load when a session starts) and ask:
+Start a **new** chat in the ChatGPT desktop app, or a new Codex session
+(tools load when a session starts), and ask:
 
 > List my GigaMail accounts.
 
