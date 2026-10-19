@@ -150,3 +150,11 @@ def test_stop_ferma_il_giro_e_tiene_le_richieste_gia_aperte(client, monkeypatch)
     assert client.post("/agent/command", json={"question": "x", "run_id": "no spazi!"}).status_code == 422
     monkeypatch.setattr(agent_bridge, "cancel", lambda rid: rid == "run-12345678")
     assert client.post("/agent/command/cancel", json={"run_id": "run-12345678"}).json() == {"cancelled": True}
+
+
+def test_il_prompt_tiene_le_parole_dell_utente_fuori_dalle_mail(client, monkeypatch):
+    visti = []
+    monkeypatch.setattr(agent_bridge, "run", lambda p, timeout=None, **k: visti.append(p) or "ok")
+    client.post("/agent/command", json={"question": "ho sistemato, dovrebbe funzionare"})
+    assert "never copy it into a mail" in visti[0]
+    assert "ask before drafting it" in visti[0]

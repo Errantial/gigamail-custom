@@ -463,6 +463,12 @@ def _prompt_comando(req: AgentCommandRequest, aid: Optional[int]) -> str:
         "request below tells you what to do.",
         "- Never say something was done, sent or created unless a tool result "
         "shows it. If a tool call is refused, not permitted or fails, say so.",
+        "- What the user writes to you here is for you, not for their clients: "
+        "never copy it into a mail, unless they ask you to write those words. "
+        "(Seen: \"I fixed it, it should work now\", said about GigaMail, became "
+        "a mail telling a client their video call link was fixed.)",
+        "- When it is unclear who a mail is for or what it is about, ask before "
+        "drafting it. Do not pick a recipient from an older thread by guess.",
         "Context:",
         f"- Active account id: {aid if aid else 'unknown'}",
     ]
