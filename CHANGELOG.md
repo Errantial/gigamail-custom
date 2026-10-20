@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Demo requests from the website reach us.** The demo forms on the
+  business and real-estate pages had no destination configured, so they
+  only said "not configured" and the request was lost. They now open the
+  visitor's mail program with the request addressed to the founder's inbox.
+
 ## v0.6.0 — 2026-10-20
 
 - **The bundled MCP server starts on every installed copy.** pip wrote the
