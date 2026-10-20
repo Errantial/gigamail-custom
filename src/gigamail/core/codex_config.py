@@ -10,6 +10,11 @@ not something a desktop user should have to do, so the console writes it.
 The entry starts this installation's Python with -m gigamail.server
 (gigamail-server is on no desktop user's PATH) and sets GIGAMAIL_ROOT to the
 console's data folder, so server and console share accounts and approvals.
+default_tools_approval_mode = "approve": `codex exec`, which the console's
+agent bar runs, cannot ask for a confirmation and cancels every tool call
+that needs one ("user cancelled MCP tool call"). Codex's own prompt adds
+nothing here: GigaMail's tools that send, delete or write the calendar stay
+two-phase on the server, and only a human approval in GigaMail runs them.
 
 Only the [mcp_servers.gigamail] table and its sub-tables are touched. The
 new file is parsed before it is written: if anything outside our entry
@@ -47,6 +52,7 @@ def desired() -> dict:
         "command": sys.executable,
         "args": ["-m", "gigamail.server"],
         "env": {"GIGAMAIL_ROOT": str(app_root())},
+        "default_tools_approval_mode": "approve",
     }
 
 
@@ -61,7 +67,8 @@ def _block(entry: dict) -> str:
     env = "".join(f"{k} = {_q(v)}\n" for k, v in entry["env"].items())
     return (f"[mcp_servers.{NAME}]\n"
             f"command = {_q(entry['command'])}\n"
-            f"args = [{args}]\n\n"
+            f"args = [{args}]\n"
+            f"default_tools_approval_mode = {_q(entry['default_tools_approval_mode'])}\n\n"
             f"[mcp_servers.{NAME}.env]\n{env}")
 
 
@@ -100,7 +107,8 @@ def _strip_ours(data: dict) -> dict:
 def _matches(current: dict, want: dict) -> bool:
     return (current.get("command") == want["command"]
             and list(current.get("args") or []) == want["args"]
-            and (current.get("env") or {}).get("GIGAMAIL_ROOT") == want["env"]["GIGAMAIL_ROOT"])
+            and (current.get("env") or {}).get("GIGAMAIL_ROOT") == want["env"]["GIGAMAIL_ROOT"]
+            and current.get("default_tools_approval_mode") == want["default_tools_approval_mode"])
 
 
 def status() -> dict:

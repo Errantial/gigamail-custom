@@ -22,6 +22,14 @@
   would change; the previous one stays as `config.toml.gigamail-bak`. It
   answers only to a click in the console. The status says whether it is
   connected, missing, or pointing at another GigaMail.
+- **The agent bar works with Codex as with Claude.** `codex exec`, which
+  the bar runs, cancels every MCP tool call that would ask for a
+  confirmation ("user cancelled MCP tool call"), so with Codex the bar
+  had no working GigaMail tools. The entry the console writes now carries
+  `default_tools_approval_mode = "approve"`: GigaMail's own approval stays
+  the gate for sends, deletes and calendar writes. With Codex as the
+  agent, choosing it or asking the bar something writes the entry first
+  when it is missing or out of date (on a click in the console only).
 - **The onboarding gives commands that run on the desktop app.** The
   agent step told you to register `gigamail-server` and to run
   `gigamail telegram setup`, names only a pip install puts on the PATH.

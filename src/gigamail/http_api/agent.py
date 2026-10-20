@@ -184,14 +184,35 @@ class AgentSelectRequest(BaseModel):
     agent: str
 
 
+def _ensure_codex(request: Optional[Request]) -> None:
+    """With Codex as the agent, its config.toml must start this GigaMail with
+    the tool approval mode codex exec needs: without it the agent bar gets an
+    agent with no GigaMail tools, or one whose every call is cancelled. Only
+    on a click in the console, which is the user asking for Codex; a failure
+    leaves the file alone and the run goes on (the agent says what it lacks)."""
+    from gigamail.core import codex_config
+    from . import console_click
+    if request is None or not console_click.is_console_click(request.headers):
+        return
+    if agent_bridge.get_config().get("agent") != "codex":
+        return
+    try:
+        if not codex_config.status()["connected"]:
+            codex_config.connect()
+    except Exception as e:
+        print(f"[agent] Codex config.toml not written: {type(e).__name__}: {e}", flush=True)
+
+
 @router.post("/agent/select")
-def agent_select(req: AgentSelectRequest):
+def agent_select(req: AgentSelectRequest, request: Request = None):
     """Sceglie quale CLI scrive le bozze (claude | codex). Il comando viene
     risolto a ogni avvio, cosi' segue gli aggiornamenti della CLI."""
     try:
-        return agent_bridge.select_agent(req.agent)
+        out = agent_bridge.select_agent(req.agent)
     except ValueError as e:
         raise HTTPException(400, str(e)) from e
+    _ensure_codex(request)
+    return out
 
 
 class GenerateDraftRequest(BaseModel):
@@ -535,12 +556,13 @@ def _richieste_nuove(prima: set) -> list:
 
 
 @router.post("/agent/command")
-def agent_command(req: AgentCommandRequest):
+def agent_command(req: AgentCommandRequest, request: Request = None):
     """Richiesta libera dalla barra della console. Ritorna la risposta
     dell'agente e le richieste di approvazione che ha aperto nel frattempo."""
     domanda = (req.question or "").strip()
     if not domanda:
         raise HTTPException(400, "Richiesta vuota")
+    _ensure_codex(request)
     aid = req.account_id or _active_id()
     prima = _id_in_sospeso()
     try:

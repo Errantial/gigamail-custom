@@ -27,6 +27,7 @@ def test_no_file_creates_it_with_our_entry(codex_home, tmp_path):
     assert st["connected"] is True
     entry = _cfg(codex_home)["mcp_servers"]["gigamail"]
     assert entry == {"command": sys.executable, "args": ["-m", "gigamail.server"],
+                     "default_tools_approval_mode": "approve",
                      "env": {"GIGAMAIL_ROOT": str(tmp_path / "ade")}}
 
 
@@ -69,6 +70,18 @@ def test_an_entry_it_cannot_edit_leaves_the_file_alone(codex_home):
     assert (codex_home / "config.toml").read_text(encoding="utf-8") == original
 
 
+def test_an_entry_without_the_approval_mode_needs_reconnecting(codex_home, tmp_path):
+    # codex exec cancels tool calls that would ask for a confirmation: an
+    # entry from before default_tools_approval_mode is not "connected".
+    codex_home.mkdir()
+    (codex_home / "config.toml").write_text(
+        f'[mcp_servers.gigamail]\ncommand = {codex_config._q(sys.executable)}\n'
+        'args = ["-m", "gigamail.server"]\n\n[mcp_servers.gigamail.env]\n'
+        f'GIGAMAIL_ROOT = {codex_config._q(str(tmp_path / "ade"))}\n', encoding="utf-8")
+    assert codex_config.status()["connected"] is False
+    assert codex_config.connect()["connected"] is True
+
+
 def test_status_reports_a_foreign_entry_as_not_connected(codex_home):
     codex_home.mkdir()
     (codex_home / "config.toml").write_text('[mcp_servers.gigamail]\ncommand = "gigamail-server"\n', encoding="utf-8")
@@ -100,3 +113,30 @@ def test_the_route_writes_only_on_a_console_click(codex_home):
             assert r.status_code == 200 and r.json()["connected"] is True
     finally:
         console_click.set_secret("")
+
+
+def test_the_agent_bar_with_codex_connects_it_first(codex_home, tmp_path, monkeypatch):
+    # Codex as the agent and no entry: the run would have no GigaMail tools.
+    # A click in the console writes the entry before Codex starts; a request
+    # without the click secret does not touch the file.
+    from fastapi.testclient import TestClient
+    from gigamail import agent_bridge, http_api, policy
+    from gigamail.http_api import console_click
+    policy.set_store(policy.ApprovalStore(str(tmp_path / "approvals.db")))
+    real = agent_bridge.get_config
+    monkeypatch.setattr(agent_bridge, "get_config", lambda: dict(real(), agent="codex"))
+    seen = []
+    monkeypatch.setattr(agent_bridge, "run",
+                        lambda p, **k: seen.append(codex_config.status()["connected"]) or "ok")
+    secret = "s" * 40
+    console_click.set_secret(secret)
+    try:
+        with TestClient(http_api.app) as c:
+            assert c.post("/agent/command", json={"question": "hi"}).status_code == 200
+            assert not (codex_home / "config.toml").exists()
+            r = c.post("/agent/command", json={"question": "hi"}, headers={console_click.HEADER: secret})
+            assert r.status_code == 200
+        assert seen == [False, True]
+    finally:
+        console_click.set_secret("")
+        policy.set_store(None)
