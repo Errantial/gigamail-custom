@@ -282,3 +282,21 @@ def test_installa_copia_solo_dopo_aver_validato(tmp_path, monkeypatch):
     cattivo = _scrivi_json(tmp_path, "web", {"client_id": "x", "client_secret": "y"})
     with pytest.raises(ValueError):
         google_auth.installa_client_json(cattivo)
+
+
+def test_shipped_google_config_is_the_production_source(monkeypatch):
+    """The file the release workflow fills from the repository secrets is
+    what every downloaded copy runs on: with no environment and no user
+    JSON, a filled google_config.json must be enough on its own."""
+    monkeypatch.delenv("GOOGLE_CLIENT_ID", raising=False)
+    monkeypatch.delenv("GOOGLE_CLIENT_SECRET", raising=False)
+    monkeypatch.setattr(google_auth, "_G_JSON", {})
+    monkeypatch.setattr(google_auth, "_G_CFG",
+                        {"client_id": "123-abc.apps.googleusercontent.com",
+                         "client_secret": "GOCSPX-shipped"})
+
+    cid, sec, source = google_auth._risolvi_credenziali()
+
+    assert cid == "123-abc.apps.googleusercontent.com"
+    assert sec == "GOCSPX-shipped"
+    assert source == "google_config.json"

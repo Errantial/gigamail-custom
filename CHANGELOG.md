@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.6.0 — 2026-10-20
+
 - **The bundled MCP server starts on every installed copy.** pip wrote the
   build machine's Python path into `gigamail-server` (`D:\a\...` on
   Windows, `/Users/runner/...` on macOS), so the server inside the desktop
@@ -203,6 +205,45 @@
   between match system, light and dark; the choice is kept and every
   open window follows it. Same cards and pink accent on a night-blue
   background (`console/theme-dark.css`, active only in dark mode).
+
+## v0.5.3 — 2026-10-19
+
+- **The Google client ships in the package, from CI.** `google_config.json`
+  is committed empty, so every downloaded copy answered that Google was
+  not configured: calendar and Drive only ever worked on the maintainer's
+  machine, where the credentials sit in a local file. The release
+  workflow now fills it from two repository secrets,
+  `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`, in every job
+  that builds something users install (wheel, Windows installer, macOS
+  dmg), and fails the release when they are missing, half-set or swapped
+  instead of shipping the feature switched off. The secret never enters
+  git: a desktop client's secret is not confidential, but the scanner and
+  the history do not care. `scripts/inject_google_client.py`, with tests.
+
+- **A slow mail server no longer freezes the watcher.** The archive step of
+  a tick had no time limit: an IMAP server that kept a FETCH open, sending
+  a few bytes now and then, held the watcher for as long as it liked. The
+  heartbeat went stale, the console reported no watcher running, and
+  nothing else happened until the task was restarted. Each account now
+  gets 60 seconds of archiving per tick: past that the sync stops between
+  messages and the rest waits for the next tick, and an IMAP command still
+  blocked 30 seconds later has its connection dropped. The other accounts
+  and the next tick go on as usual.
+- **The archive of a Microsoft account reaches every folder again.** The
+  limit of 200 messages per tick also counted the mails already in the
+  archive, which cost no download: with a few complete folders it was
+  spent before the folders listed last were reached, and those were
+  skipped on every tick. Only downloads count now. And when the limit or
+  the time budget stopped a folder that was already complete, the next
+  tick started again from the newest mail and stopped at the first page
+  already archived, so the older new mails left behind were never saved:
+  the folder now resumes from where it stopped.
+- **The desktop toast is on record.** A toast lives as long as the request
+  it announces, fifteen minutes, so hours later nothing said whether one
+  had been sent: the audit log named only Telegram and the notify command,
+  and a toast that failed was swallowed in silence. The audit now carries
+  `approval_notified desktop` like the other channels, and a toast that
+  fails leaves a warning in the watcher's log with the reason.
 
 ## v0.5.2 — 2026-10-14
 

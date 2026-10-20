@@ -694,6 +694,12 @@ def notify_approval_requested(request_id: str, tool: str, preview: Dict[str, Any
         # l'approvazione, non un tempo suo scelto altrove.
         if desktop_notify.notify("GigaMail", text, actions=actions,
                                  expires_in=_APPROVAL_TTL_SECONDS):
+            # On record like the other channels: "I never saw a toast" can
+            # then be checked against whether one was sent at all. The toast
+            # lives as long as the request, so hours later only this line
+            # says it existed.
+            audit(tool, {"request_id": request_id}, "approval_notified",
+                  detail="desktop")
             fired = True
     except Exception:
         pass

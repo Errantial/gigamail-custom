@@ -135,10 +135,19 @@ if (-not ($names -contains $zipName)) {
   if ($LASTEXITCODE -ne 0) { Fail "download di $zipName non riuscito." "download of $zipName failed." }
   $unpacked = Join-Path $work "win-unpacked"
   New-Item -ItemType Directory $unpacked | Out-Null
-  # Expand-Archive, not tar: from a Git Bash shell `tar` is GNU tar, which
-  # does not understand C:\ paths.
-  try { Expand-Archive -Path (Join-Path $work $zipName) -DestinationPath $unpacked -Force }
-  catch { Fail "estrazione di $zipName non riuscita: $_" "extracting $zipName failed: $_" }
+  # Windows' own bsdtar, by full path: the whole archive in under a minute.
+  # Expand-Archive stalled on it (12k entries, a couple of files per minute
+  # and no disk I/O at all, signing 0.5.3 on 2026-10-19), and a bare `tar`
+  # from a Git Bash shell is GNU tar, which does not understand C:\ paths.
+  $bsdtar = Join-Path (Join-Path $env:SystemRoot "System32") "tar.exe"
+  $zipPath = Join-Path $work $zipName
+  if (Test-Path $bsdtar) {
+    & $bsdtar -xf $zipPath -C $unpacked
+    if ($LASTEXITCODE -ne 0) { Fail "estrazione di $zipName non riuscita (tar: $LASTEXITCODE)." "extracting $zipName failed (tar: $LASTEXITCODE)." }
+  } else {
+    try { Expand-Archive -Path $zipPath -DestinationPath $unpacked -Force }
+    catch { Fail "estrazione di $zipName non riuscita: $_" "extracting $zipName failed: $_" }
+  }
   $appExe = Join-Path $unpacked "GigaMail.exe"
   if (-not (Test-Path $appExe)) { Fail "$zipName non contiene GigaMail.exe." "$zipName has no GigaMail.exe." }
 

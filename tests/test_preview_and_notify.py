@@ -226,6 +226,42 @@ def test_desktop_notify_spento_via_env(monkeypatch):
     assert desktop_notify.notify("t", "b", background=False) is False
 
 
+def test_the_toast_is_on_record_like_the_other_channels(monkeypatch):
+    """A toast lives as long as the request: hours later, the audit log is
+    the only place that says one was sent. Before, only Telegram and the
+    notify command left a line, so "I never saw a toast" had no answer."""
+    from gigamail.core import desktop_notify
+    monkeypatch.setattr(desktop_notify, "notify", lambda *a, **k: True)
+    monkeypatch.delenv("GIGAMAIL_APPROVAL_NOTIFY_CMD", raising=False)
+    seen = []
+    monkeypatch.setattr(policy, "audit",
+                        lambda tool, args, outcome, **kw: seen.append((tool, args, outcome, kw.get("detail"))))
+    policy.notify_approval_requested("req_t", "reply_mail", {"subject": "s"})
+    assert ("reply_mail", {"request_id": "req_t"}, "approval_notified", "desktop") in seen
+    # a toast that was not sent leaves no line
+    seen.clear()
+    monkeypatch.setattr(desktop_notify, "notify", lambda *a, **k: False)
+    policy.notify_approval_requested("req_u", "reply_mail", {"subject": "s"})
+    assert not [s for s in seen if s[3] == "desktop"]
+
+
+def test_a_failing_toast_is_logged_not_swallowed(monkeypatch, caplog):
+    """Best-effort towards the caller, but the watcher's log says why no
+    toast came, instead of nothing."""
+    import logging
+
+    from gigamail.core import desktop_notify
+    monkeypatch.setattr(desktop_notify.sys, "platform", "win32")
+    monkeypatch.delenv("GIGAMAIL_NOTIFY_DESKTOP", raising=False)
+
+    def broken(*a, **k):
+        raise RuntimeError("WinRT not available in this session")
+    monkeypatch.setattr(desktop_notify, "_win_toast", broken)
+    with caplog.at_level(logging.WARNING, logger="gigamail.core.desktop_notify"):
+        assert desktop_notify.notify("t", "b", background=False) is True   # still best-effort
+    assert "desktop notification failed: RuntimeError: WinRT not available" in caplog.text
+
+
 def test_notifica_non_approva_niente(monkeypatch, tmp_path):
     """Il comando di notifica gira; la richiesta resta PENDING.
     La notifica e' un avviso, non un canale di approvazione."""

@@ -22,6 +22,14 @@ every future release.
 
 ## Before you open the form
 
+**Step zero: ship the client.** Verification lets strangers past the
+consent screen, but they only reach it if the package carries the OAuth
+client at all. Until the repository secrets `GOOGLE_OAUTH_CLIENT_ID` and
+`GOOGLE_OAUTH_CLIENT_SECRET` are set (see GOOGLE_SETUP.md, "Shipping the
+client to users"), every downloaded copy answers "Google not configured"
+and there is nothing to verify from a user's point of view. Set them
+first; the next release will carry the client.
+
 1. **Verify the domain.** `gigamail.ai` must be verified in
    [Google Search Console](https://search.google.com/search-console) under
    the same Google account that owns the Cloud project, then listed as an
