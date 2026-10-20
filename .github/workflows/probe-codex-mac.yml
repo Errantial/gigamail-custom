@@ -1,0 +1,33 @@
+# Temporary: where the ChatGPT / Codex desktop apps keep their codex binary
+# on macOS, so the console can use it without the npm CLI. Runs once, on
+# the push that adds or changes this file; removed afterwards.
+name: probe-codex-mac
+on:
+  push:
+    branches: [agent-bar]
+    paths: ['.github/workflows/probe-codex-mac.yml']
+jobs:
+  probe:
+    runs-on: macos-latest
+    timeout-minutes: 25
+    steps:
+      - name: Install the apps
+        run: |
+          brew install --cask chatgpt || echo "no chatgpt cask"
+          brew install --cask codex-app || echo "no codex-app cask"
+          ls -la /Applications
+      - name: Binaries inside the app bundles
+        run: |
+          for app in /Applications/*.app; do
+            case "$app" in *ChatGPT*|*Codex*|*codex*)
+              echo "== $app"; /usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$app/Contents/Info.plist" || true
+              find "$app" -iname 'codex*' -type f 2>/dev/null | while read f; do echo "$f :: $(file -b "$f" | cut -c1-60)"; done;;
+            esac
+          done
+      - name: Open the apps, then look for an extracted binary
+        run: |
+          for app in /Applications/*.app; do case "$app" in *ChatGPT*|*Codex*) open "$app" || true;; esac; done
+          sleep 90
+          find "$HOME/Library/Application Support" "$HOME/Library/Caches" "$HOME/.codex" "$HOME/.local" /usr/local/bin /opt/homebrew/bin -iname 'codex*' -type f 2>/dev/null | head -50
+          ls -la "$HOME/.codex" 2>/dev/null || echo "no ~/.codex"
+          for f in $(find "$HOME/Library/Application Support" "$HOME/.codex" /Applications -name codex -type f -perm -u+x 2>/dev/null | head -5); do echo "== $f"; "$f" --version || true; done
