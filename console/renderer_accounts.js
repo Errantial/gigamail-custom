@@ -212,8 +212,8 @@ function bindAccountEvents() {
     // Mostra hint password app
     const status = document.getElementById('imapStatus');
     if (status) status.innerHTML = '<span style="color:rgba(180,40,30,0.8)">' + T('app_gmail_needs', 'Gmail richiede una') +
-      ' <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color:var(--accent)">' + T('app_app_password', 'password per le app') +
-      '</a> ' + T('app_gmail_not_normal_password', '(non la password Google normale)') + '</span>';
+      ' <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color:var(--accent)">' + T('app_pw_for_apps', 'password per le app') +
+      '</a> ' + T('app_gmail_not_normal_pw', '(non la password Google normale)') + '</span>';
     const nameEl = document.getElementById('imapName');
     if (nameEl && !nameEl.value) nameEl.placeholder = T('app_gmail_name_ph', 'Es: Gmail Lavoro');
     const emailEl = document.getElementById('imapEmail');
