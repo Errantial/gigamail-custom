@@ -73,9 +73,10 @@ access to the GigaMail on this computer. Both are needed.
 
 ## 3b. Use it from GigaMail
 
-1. Install the [Codex CLI](https://developers.openai.com/codex) and sign in
-   with your ChatGPT account (run `codex` once in a terminal).
-2. In GigaMail, open **Automations** and choose **Codex CLI** as the agent.
+1. Install the Codex (or ChatGPT) desktop app and sign in with your
+   ChatGPT account. Nothing else to install: GigaMail uses the Codex that
+   comes with the app.
+2. In GigaMail, open **Automations** and choose **Codex** as the agent.
 3. Type in the bar at the bottom of GigaMail: *Summarize the last mail
    from …*
 
@@ -107,13 +108,12 @@ controls.
   registered. Click **Reconnect**.
 - **The assistant sees no accounts**: check the account is listed in
   GigaMail. They share the same accounts.
-- **The bar in GigaMail says "agent not found"**: the Codex CLI is not
-  installed, or GigaMail was open while you installed it: restart
-  GigaMail.
+- **The bar in GigaMail says "agent not found"**: install the Codex or
+  ChatGPT app and sign in, or restart GigaMail if it was open meanwhile.
 - **The bar says the agent ended with an error right after an update**:
-  update the Codex CLI (`npm i -g @openai/codex@latest`) and restart
-  GigaMail. The ChatGPT app and an older Codex CLI do not always agree on
-  their shared settings.
+  restart GigaMail. If you also installed the Codex CLI with npm, update it
+  (`npm i -g @openai/codex@latest`): GigaMail prefers the app's Codex, but
+  an old CLI can disagree with the app on their shared settings.
 - **IMAP login fails**: check the server names and ports with your
   provider. Some providers require an app password when two-step sign-in is
   on.

@@ -152,9 +152,45 @@ def _find_claude() -> str:
     return "claude"  # let the caller report that it is missing
 
 
+def _codex_app_candidates() -> list:
+    """Where the Codex / ChatGPT desktop app keeps its own codex.exe on
+    Windows, newest first. A user who installed only the app has no npm
+    CLI, and must not need one: the app's binary runs `codex exec` the same
+    way. Seen on a Windows 11 PC:
+    %LOCALAPPDATA%/OpenAI/Codex/bin/<hash>/codex.exe, one hash-named folder
+    per update; reported elsewhere: %LOCALAPPDATA%/Programs/OpenAI/Codex/bin
+    (openai/codex#26423). Directly in bin/ or one folder below, both."""
+    local = os.environ.get("LOCALAPPDATA", "")
+    if not local:
+        return []
+    found = []
+    for base in (os.path.join(local, "OpenAI", "Codex", "bin"),
+                 os.path.join(local, "Programs", "OpenAI", "Codex", "bin")):
+        for pattern in (os.path.join(base, "codex.exe"), os.path.join(base, "*", "codex.exe")):
+            try:
+                found.extend(glob.glob(pattern))
+            except Exception:
+                pass
+
+    def mtime(path):
+        try:
+            return os.path.getmtime(path)
+        except OSError:
+            return 0
+    return sorted(set(found), key=mtime, reverse=True)
+
+
 def _find_codex() -> str:
-    """Trova Codex CLI: PATH (npm mette codex.cmd in %APPDATA%/npm), oppure
-    quella cartella direttamente, se il processo non ha ereditato il PATH."""
+    """Find Codex: the codex.exe of the Codex / ChatGPT desktop app first,
+    then the CLI on PATH or in %APPDATA%/npm (npm's codex.cmd), for a
+    process that did not inherit the PATH.
+
+    The app comes first because it updates itself: an npm CLI left behind
+    shares ~/.codex with the app and fails on what a newer app wrote there
+    ("unknown variant `max`" reading the models cache)."""
+    for cand in _codex_app_candidates():
+        if os.path.isfile(cand):
+            return cand
     on_path = shutil.which("codex")
     if on_path:
         return on_path
@@ -197,7 +233,7 @@ def _cmd_codex(exe: str) -> list:
 AGENTS = {
     "claude": {"label": "Claude Code", "find": lambda: _find_claude(), "command": _cmd_claude,
                "mcp": "json"},
-    "codex": {"label": "Codex CLI", "find": lambda: _find_codex(), "command": _cmd_codex,
+    "codex": {"label": "Codex", "find": lambda: _find_codex(), "command": _cmd_codex,
               "mcp": "toml"},
 }
 
@@ -424,7 +460,7 @@ def run(prompt: str, timeout: int | None = None, run_id: str | None = None,
             if out_file:
                 _unlink(out_file)
             raise AgentUnavailable(
-                f"Agente non trovato ('{exe}'). Installa Claude Code o Codex CLI, "
+                f"Agente non trovato ('{exe}'). Installa Claude Code o l'app Codex / ChatGPT, "
                 f"scegli l'agente dalla console (Automazioni), oppure configura il "
                 f"comando in {_config_path()} "
                 '(es. {"command": ["claude", "-p", "{prompt}"]}).'

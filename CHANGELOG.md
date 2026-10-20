@@ -22,6 +22,13 @@
   would change; the previous one stays as `config.toml.gigamail-bak`. It
   answers only to a click in the console. The status says whether it is
   connected, missing, or pointing at another GigaMail.
+- **Codex without the CLI.** With only the Codex or ChatGPT desktop app
+  installed, the agent bar now finds the app's own `codex.exe`
+  (`%LOCALAPPDATA%\OpenAI\Codex\bin\<hash>\codex.exe`, the newest
+  one): no npm, no separate CLI. When both are there the app's comes
+  first, since it updates itself; an npm CLI left behind failed on the
+  models cache a newer app had written ("unknown variant `max`"). The
+  agent is listed as "Codex".
 - **The agent bar works with Codex as with Claude.** `codex exec`, which
   the bar runs, cancels every MCP tool call that would ask for a
   confirmation ("user cancelled MCP tool call"), so with Codex the bar

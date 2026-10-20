@@ -292,3 +292,31 @@ def test_agent_bar_runs_send_no_desktop_toast(monkeypatch):
     assert quiet["GIGAMAIL_NOTIFY_DESKTOP"] == "0"
     loud = agent_bridge._env_for_child(cfg)
     assert loud is None or "GIGAMAIL_NOTIFY_DESKTOP" not in loud
+
+
+def test_codex_from_the_desktop_app_without_the_npm_cli(tmp_path, monkeypatch):
+    # Only the Codex / ChatGPT app installed: no codex on PATH, no npm
+    # folder. The app keeps codex.exe in a hash-named folder per update
+    # (%LOCALAPPDATA%/OpenAI/Codex/bin/<hash>/codex.exe): the newest is used.
+    import os
+    bin_ = tmp_path / "Local" / "OpenAI" / "Codex" / "bin"
+    old, new = bin_ / "1111aaaa" / "codex.exe", bin_ / "9614f1d9b40d9c4f" / "codex.exe"
+    for exe, t in ((old, 1_000_000), (new, 2_000_000)):
+        exe.parent.mkdir(parents=True)
+        exe.write_bytes(b"")
+        os.utime(exe, (t, t))
+    monkeypatch.setattr(agent_bridge.shutil, "which", lambda name: None)
+    monkeypatch.setenv("APPDATA", str(tmp_path / "Roaming"))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "Local"))
+    assert agent_bridge._find_codex() == str(new)
+
+
+def test_the_desktop_app_codex_wins_over_an_npm_cli(tmp_path, monkeypatch):
+    # The npm CLI does not update itself; the app does, and they share
+    # ~/.codex. With both present the app's binary is the one started.
+    app = tmp_path / "Local" / "OpenAI" / "Codex" / "bin" / "abc" / "codex.exe"
+    app.parent.mkdir(parents=True)
+    app.write_bytes(b"")
+    monkeypatch.setattr(agent_bridge.shutil, "which", lambda name: str(tmp_path / "npm" / "codex.cmd"))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "Local"))
+    assert agent_bridge._find_codex() == str(app)
