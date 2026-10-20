@@ -171,6 +171,7 @@ def agent_codex_connect(request: Request):
     """Writes the gigamail entry in Codex's config.toml. Only from a click
     in the console: it decides which program Codex and ChatGPT start."""
     from gigamail.core import codex_config
+
     from . import console_click
     if not console_click.is_console_click(request.headers):
         raise HTTPException(403, "only from the console")
@@ -191,6 +192,7 @@ def _ensure_codex(request: Optional[Request]) -> None:
     on a click in the console, which is the user asking for Codex; a failure
     leaves the file alone and the run goes on (the agent says what it lacks)."""
     from gigamail.core import codex_config
+
     from . import console_click
     if request is None or not console_click.is_console_click(request.headers):
         return

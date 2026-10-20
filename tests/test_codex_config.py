@@ -6,7 +6,7 @@ import pytest
 
 tomllib = pytest.importorskip("tomllib")
 
-from gigamail.core import codex_config
+from gigamail.core import codex_config  # noqa: E402  (after importorskip)
 
 
 @pytest.fixture
@@ -100,6 +100,7 @@ def test_windows_paths_survive_the_round_trip(codex_home, monkeypatch):
 
 def test_the_route_writes_only_on_a_console_click(codex_home):
     from fastapi.testclient import TestClient
+
     from gigamail import http_api
     from gigamail.http_api import console_click
     secret = "s" * 40
@@ -120,6 +121,7 @@ def test_the_agent_bar_with_codex_connects_it_first(codex_home, tmp_path, monkey
     # A click in the console writes the entry before Codex starts; a request
     # without the click secret does not touch the file.
     from fastapi.testclient import TestClient
+
     from gigamail import agent_bridge, http_api, policy
     from gigamail.http_api import console_click
     policy.set_store(policy.ApprovalStore(str(tmp_path / "approvals.db")))
