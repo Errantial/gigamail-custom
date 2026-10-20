@@ -289,9 +289,15 @@ def download_attachment(message_id: str, filename: str, folder: str = "",
 
 @router.get("/mail/{message_id}")
 def read_message(message_id: str, folder: str = "", account_id: Optional[int] = None):
-    return mail_router.get_message(
-        account_id or _active_id(), message_id=message_id, folder=folder
-    )
+    # A list left open overnight still shows mails the watcher has since
+    # archived or moved: opening one is "not found", not a 500 with a
+    # traceback in the console log for every click.
+    try:
+        return mail_router.get_message(
+            account_id or _active_id(), message_id=message_id, folder=folder
+        )
+    except ValueError as e:
+        raise HTTPException(404, str(e)) from e
 
 
 @router.delete("/mail/{message_id}")

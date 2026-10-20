@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+<<<<<<< Updated upstream
 ## v0.6.0 — 2026-10-20
 
 - **The bundled MCP server starts on every installed copy.** pip wrote the
@@ -49,6 +50,12 @@
 - **How to set up GigaMail with Codex.** [CODEX_SETUP.md](CODEX_SETUP.md)
   walks a non-developer through it: desktop app, mailbox, Codex sign-in,
   plugin and server, first prompts, approvals and privacy.
+=======
+- **Opening a mail that is no longer there says so.** A console left open
+  overnight still lists mails the watcher has since archived or moved;
+  opening one returned a server error and printed a long traceback in the
+  console log on every click. It is now a plain "not found".
+>>>>>>> Stashed changes
 
 - **Waiting for you has its own icon.** The requests waiting for your
   approval moved out of Automations into their own view, with an icon
