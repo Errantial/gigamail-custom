@@ -84,7 +84,6 @@ html[data-theme="dark"] .tool-btn.ai, html[data-theme="dark"] .ctx-badge, html[d
 html[data-theme="dark"] .tool-btn.ai { border-color: var(--gm-pink) !important; }
 html[data-theme="dark"] .btn-danger, html[data-theme="dark"] .btn-danger * { color: #ff7b7b !important; }
 html[data-theme="dark"] .mail-item.unread .mail-sender::before, html[data-theme="dark"] .u-dot { background: var(--gm-pink) !important; }
-html[data-theme="dark"] .s-avatar { background: var(--gm-tint) !important; color: var(--gm-pink) !important; }
 html[data-theme="dark"] .s-tooltip { background: #eceef6 !important; color: #141927 !important; }
 
 /* calendario */
@@ -153,13 +152,6 @@ html[data-theme="dark"][data-accent="blue"] {
 
 html[data-theme="dark"] .win-btn, html[data-theme="dark"] .tb-btn { color: var(--gm-pink) !important; }
 html[data-theme="dark"] .win-btn:hover, html[data-theme="dark"] .tb-btn:hover { background: var(--gm-tint) !important; color: var(--gm-pink-hi) !important; }
-/* sul nero l'incavo va scavato di piu': fondo piu' scuro, ombra interna
-   piena e un filo di luce sul bordo inferiore, fuori */
-html[data-theme="dark"] .gm-wordmark {
-  background: #05070d;
-  box-shadow: inset 0 3px 7px rgba(0,0,0,0.95), inset 0 -1px 0 rgba(255,255,255,0.05),
-              0 1px 0 rgba(255,255,255,0.09);
-}
 /* body * dava il colore del testo anche alle icone: prendono quello del pulsante */
 html[data-theme="dark"] .win-btn svg, html[data-theme="dark"] .win-btn svg *, html[data-theme="dark"] .tb-btn svg, html[data-theme="dark"] .tb-btn svg * { color: inherit !important; }
 html[data-theme="dark"] #view-pending .hint { color: var(--gm-muted) !important; }
