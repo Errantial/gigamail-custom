@@ -17,7 +17,7 @@ Time needed: about 15 minutes.
 ## What you need
 
 - A Windows 10/11 or macOS computer.
-- A ChatGPT plan that includes Codex.
+- A ChatGPT plan (ChatGPT Work, or a plan that includes Codex).
 - Your mailbox address and password, and for IMAP the server names your
   provider gives (IMAP and SMTP host and port). Most providers list them on
   a help page called "IMAP settings" or "email client settings".
@@ -54,38 +54,30 @@ sent to Codex or ChatGPT, and the AI cannot read it or add accounts.
 When the account appears in the sidebar with your inbox, the mailbox part
 is done.
 
-## 3. Install Codex and sign in
+## 3. Install ChatGPT and add the GigaMail plugin
 
 GigaMail runs on your computer, so it works in the **ChatGPT desktop app**
-and in **Codex**, not in chatgpt.com in the browser. The two share the
-same configuration, which you write once with the Codex command line in
-step 4.
+(ChatGPT Work included) and in **Codex**, not in chatgpt.com in the
+browser.
 
-Install the Codex CLI by following
-[OpenAI's instructions](https://developers.openai.com/codex), then sign in
-with your ChatGPT account. Install the ChatGPT desktop app too if you want
-to use GigaMail from ChatGPT.
+1. Install the ChatGPT desktop app and sign in with your ChatGPT account.
+2. Open the **Plugins** directory in the app, search for **GigaMail** and
+   install it. The plugin teaches ChatGPT how GigaMail works, including
+   that every send waits for your approval.
 
-Check it works by opening a terminal (on Windows: **PowerShell**) and
-running:
+## 4. Connect GigaMail to ChatGPT
 
-```bash
-codex --version
-```
+In GigaMail, click **Connect** under **ChatGPT and Codex**: in the
+first-run guide (step "Connect your agent") or, later, in **Automations**,
+box "Notifications and agent". GigaMail writes the configuration that the
+ChatGPT desktop app and Codex share, pointing at the app on this
+computer. When the status says **connected**, close and reopen the ChatGPT
+app.
 
-## 4. Add GigaMail to Codex
-
-In the same terminal, add the GigaMail plugin. It teaches Codex how
-GigaMail works, including that every send waits for your approval:
-
-```bash
-codex plugin marketplace add adecubed/gigamail
-codex plugin add gigamail@gigamail
-```
-
-Then tell Codex where the GigaMail server is. It ships inside the app you
-installed in step 1, and it must use the same data folder as the app, so
-that Codex sees your accounts and the app sees Codex's requests:
+The button is in GigaMail from the release planned for the end of this
+week. With an older version, register the server by hand in PowerShell
+(or in a terminal on macOS); this needs the
+[Codex CLI](https://developers.openai.com/codex):
 
 - **Windows**, in PowerShell. The first line finds the app, whether you
   installed it for yourself or for all users:
@@ -105,13 +97,6 @@ that Codex sees your accounts and the app sees Codex's requests:
   codex mcp add gigamail --env GIGAMAIL_ROOT="$HOME/.ade" -- /Applications/GigaMail.app/Contents/Resources/python/bin/python3 -m gigamail.server
   ```
 
-This replaces the plugin's default server entry with one pointing at the
-app. If you installed GigaMail in another folder, use that folder in the
-path. Run `codex mcp get gigamail` to check what Codex will start.
-
-Developers who prefer Python can instead run `pip install "gigamail[all]"`
-and use `codex mcp add gigamail -- gigamail-server`.
-
 ## 5. Try it
 
 Start a **new** chat in the ChatGPT desktop app, or a new Codex session
@@ -127,7 +112,7 @@ You should see the mailbox you connected in step 2. Then try:
 >
 > Draft a reply to the last message from Laura saying Thursday works.
 
-## 6. Approving what Codex prepares
+## 6. Approving what ChatGPT prepares
 
 Reading and searching need no approval. Sending, replying, deleting and
 calendar changes do: Codex only gets a request number, and the action
@@ -149,11 +134,13 @@ controls.
 
 ## Troubleshooting
 
-- **Codex says it has no GigaMail tools**: start a new Codex session, and
-  run `codex mcp list` to check that `gigamail` is listed and enabled. If
-  it is not, repeat step 4 and check the path to the app's Python.
-- **Codex sees no accounts**: open the GigaMail app once and check the
-  account is listed there. Codex and the app share the same accounts.
+- **ChatGPT says the skill is there but GigaMail is not connected**: the
+  plugin is installed, the server is not. Click **Connect** in GigaMail
+  (step 4), then close and reopen the ChatGPT app and start a new chat.
+- **The status in GigaMail says "points to another GigaMail"**: an older
+  setup is registered. Click **Reconnect** to point it at this app.
+- **ChatGPT or Codex sees no accounts**: open the GigaMail app once and
+  check the account is listed there. They share the same accounts.
 - **IMAP login fails**: check the server names and ports with your
   provider. Some providers require an app password when two-step sign-in is
   on.

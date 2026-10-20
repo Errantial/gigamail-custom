@@ -10,6 +10,18 @@
   (`console/relocate_scripts.py`). Until this release, point Codex at the
   app's Python with `-m gigamail.server`, as in
   [CODEX_SETUP.md](CODEX_SETUP.md).
+- **Connect to ChatGPT and Codex with one click.** The GigaMail plugin
+  from the OpenAI Plugins Directory brings the skill only: without a
+  server entry ChatGPT said "the skill is there, the tools are not". A
+  **Connect** button, in the first-run guide and in Automations under
+  *ChatGPT and Codex*, writes the `gigamail` entry in Codex's
+  `config.toml`, which the ChatGPT desktop app (ChatGPT Work included)
+  and Codex share: this installation's Python with `-m gigamail.server`
+  and the console's data folder. Only that entry is touched; the file is
+  checked before it is written and nothing is written if anything else
+  would change; the previous one stays as `config.toml.gigamail-bak`. It
+  answers only to a click in the console. The status says whether it is
+  connected, missing, or pointing at another GigaMail.
 - **The onboarding gives commands that run on the desktop app.** The
   agent step told you to register `gigamail-server` and to run
   `gigamail telegram setup`, names only a pip install puts on the PATH.

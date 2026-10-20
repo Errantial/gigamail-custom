@@ -13,6 +13,8 @@
   const T = (it, en, zh) =>
     lang() === 'it' ? it : lang() === 'zh' ? (zh || en) : en;
 
+  let refreshCodex = null;   // stato di ChatGPT/Codex (codex_connect.js), legato al primo caricamento
+
   async function api(path, opts = {}) {
     const r = await fetch(API + path, {
       headers: { 'Content-Type': 'application/json' },
@@ -311,6 +313,10 @@
           : T('non configurato', 'not configured', '未配置'));
       // Il comando nel suggerimento: con il Python dell'app, perche' `gigamail`
       // non e' nel PATH di chi usa l'app desktop (mcp_snippets.js).
+      if (window.CodexConnect) {
+        refreshCodex = refreshCodex || CodexConnect.bind('codexStatus', 'btnCodexConnect');
+        refreshCodex();
+      }
       const tgCode = document.querySelector('[data-i18n-html="telegram_hint"] code');
       if (tgCode && window.McpSnippets) tgCode.textContent = McpSnippets.cliCommand(ag, 'telegram setup');
     } catch (e) {

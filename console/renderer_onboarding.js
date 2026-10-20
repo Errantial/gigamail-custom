@@ -15,6 +15,7 @@
   const MCP_SNIPPET = mcpSnippet(null);
   let currentSnippet = MCP_SNIPPET;
   let TG_COMMAND = cliCommand(null, 'telegram setup');
+  let refreshCodex = null;   // stato di ChatGPT/Codex (codex_connect.js)
 
   const api = window.ademail || {};
   const $ = (id) => document.getElementById(id);
@@ -343,6 +344,10 @@
     try {
       const st = await apiJson('/notify/status');
       const ag = st.agent || {};
+      if (window.CodexConnect) {
+        refreshCodex = refreshCodex || CodexConnect.bind('obCodexStatus', 'obCodexConnect');
+        refreshCodex();
+      }
       TG_COMMAND = cliCommand(ag, 'telegram setup');
       setText('obTgCommand', TG_COMMAND);
       agentReady = !!ag.available;

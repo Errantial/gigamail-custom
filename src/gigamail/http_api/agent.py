@@ -3,7 +3,7 @@ import json
 import re
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from gigamail import agent_bridge
@@ -156,6 +156,28 @@ _DISCIPLINA_DATI = (
 @router.get("/agent/status")
 def agent_status():
     return agent_bridge.status()
+
+
+@router.get("/agent/codex")
+def agent_codex_status():
+    """Whether Codex and the ChatGPT desktop app start this installation's
+    MCP server (their shared config.toml)."""
+    from gigamail.core import codex_config
+    return codex_config.status()
+
+
+@router.post("/agent/codex/connect")
+def agent_codex_connect(request: Request):
+    """Writes the gigamail entry in Codex's config.toml. Only from a click
+    in the console: it decides which program Codex and ChatGPT start."""
+    from gigamail.core import codex_config
+    from . import console_click
+    if not console_click.is_console_click(request.headers):
+        raise HTTPException(403, "only from the console")
+    try:
+        return codex_config.connect()
+    except (ValueError, RuntimeError, OSError) as e:
+        raise HTTPException(409, str(e)) from e
 
 
 class AgentSelectRequest(BaseModel):
