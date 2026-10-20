@@ -87,11 +87,17 @@ Then tell Codex where the GigaMail server is. It ships inside the app you
 installed in step 1, and it must use the same data folder as the app, so
 that Codex sees your accounts and the app sees Codex's requests:
 
-- **Windows** (default install folder), in PowerShell:
+- **Windows**, in PowerShell. The first line finds the app, whether you
+  installed it for yourself or for all users:
 
   ```powershell
-  codex mcp add gigamail --env GIGAMAIL_ROOT="$env:APPDATA\ADE" -- "$env:LOCALAPPDATA\Programs\GigaMail\resources\python\python.exe" -m gigamail.server
+  $gm = "$env:LOCALAPPDATA\Programs\GigaMail", "$env:ProgramFiles\GigaMail" | Where-Object { Test-Path "$_\resources\python\python.exe" } | Select-Object -First 1
+  codex mcp add gigamail --env GIGAMAIL_ROOT="$env:APPDATA\ADE" -- "$gm\resources\python\python.exe" -m gigamail.server
   ```
+
+  If `$gm` comes out empty, you chose another folder during the install:
+  set it by hand, for example `$gm = "D:\Apps\GigaMail"`, and run the
+  second line again.
 
 - **macOS**:
 
