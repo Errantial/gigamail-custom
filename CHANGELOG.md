@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.6.1 — 2026-10-21
+
 - **Spam filters: block a kind of mail, not a sender.** *Block similar*
   on an open mail makes a filter "subject contains …" (pre-filled with
   the subject; or sender, or subject and text) that sends every matching
