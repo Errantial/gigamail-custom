@@ -11,14 +11,14 @@ option) any later version. See the LICENSE file for details.
 
 <p align="center"><img src="docs/brand/gigamail-logo-anim.gif" alt="GigaMail logo" width="720"></p>
 
-<p align="center"><img src="docs/brand/gigamail-banner.gif" alt="GigaMail" width="720"></p>
-
 # GigaMail — Mail for your AI agent
 
 **English** · [Italiano](#lang-it) · [中文](#lang-zh)
 
 [![Download](https://img.shields.io/badge/Download-Windows%20installer-e0409a?logo=windows&logoColor=white)](https://github.com/adecubed/gigamail/releases/latest/download/GigaMail-Setup.exe) [![Download](https://img.shields.io/badge/Download-macOS%20app-e0409a?logo=apple&logoColor=white)](https://github.com/adecubed/gigamail/releases/latest/download/GigaMail-arm64.dmg) [![gigamail.ai](https://img.shields.io/badge/site-gigamail.ai-0B2B5C)](https://gigamail.ai) [![PyPI](https://img.shields.io/pypi/v/gigamail?label=pip%20install%20gigamail&color=5b6bff)](https://pypi.org/project/gigamail/) [![License AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-555)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/adecubed/gigamail?style=flat&color=ffb000)](https://github.com/adecubed/gigamail) [![Python](https://img.shields.io/pypi/pyversions/gigamail?color=3776ab)](https://pypi.org/project/gigamail/) [![MCP server](https://img.shields.io/badge/MCP-server-orange)](https://modelcontextprotocol.io) [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-9ACD32)](plugins/gigamail/README.md) [![Codex](https://img.shields.io/badge/Codex-plugin-9ACD32)](https://chatgpt.com/plugins/plugins_6aa41ff2b150819181fcdf4c944933a3) [![OpenClaw](https://img.shields.io/badge/OpenClaw-plugin-9ACD32)](https://clawhub.ai/adecubed/skills/gigamail) [![Hermes](https://img.shields.io/badge/Hermes_Agent-plugin-9ACD32)](https://github.com/adecubed/hermes-plugin-gigamail)
+
+<p align="center"><img src="docs/brand/gigamail-banner.gif" alt="GigaMail" width="720"></p>
 
 **MCP server that gives your agent — Claude, Codex, OpenClaw, Hermes, or any
 MCP client — safe, controlled access to your email** — multi-account (Microsoft Graph + IMAP), calendar,
