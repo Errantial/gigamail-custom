@@ -1,17 +1,3 @@
-  container.innerHTML = `
-    <div class="gm-mail-alert-body">
-      <div class="gm-mail-alert-head">
-        <span class="gm-mail-alert-badge">${T('new_mail_badge','NUOVA MAIL')}</span>
-        <button id="btnCloseMailAlert" class="gm-mail-alert-x" aria-label="×">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('x', 14) : '×')}</button>
-      </div>
-      <div class="gm-mail-alert-sender" title="${esc(senderLabel)}">${esc(senderLabel)}</div>
-      <div class="gm-mail-alert-subject" title="${esc(subjectLabel)}">${esc(subjectLabel)}</div>
-      <div class="gm-mail-alert-actions">
-        <button id="btnMailAlertDraft" class="gm-mail-alert-btn primary">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('zap', 12) : '')} ${T('app_create_draft_upper', 'CREA BOZZA')}</button>
-        <button id="btnMailAlertOpen" class="gm-mail-alert-btn">${T('app_open_upper', 'APRI')}</button>
-      </div>
-    </div>`;
-
 function T(key, it){ return (window.i18n && window.i18n.t) ? window.i18n.t(key, it) : it; }
 function LOCALE(){ return (window.i18n && window.i18n.locale) || 'it-IT'; }
 // renderer_utils.js — Utility, toast, folder, dashboard, DOM helpers
@@ -69,28 +55,16 @@ function showMailAlert(mailData) {
   const subjectLabel = mailData.subject || T('no_subject', '(nessun oggetto)');
 
   container.innerHTML = `
-    <style>
-      @keyframes slideInRight {
-        from { transform: translateX(110%); opacity: 0; }
-        to   { transform: translateX(0);   opacity: 1; }
-      }
-    </style>
-    <div style="padding:12px 14px 10px;display:flex;flex-direction:column;gap:6px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-size:9px;font-weight:700;letter-spacing:2px;color:#2B5CE6;">${T('new_mail_badge','NUOVA MAIL')}</span>
-        <button id="btnCloseMailAlert" style="background:none;border:none;cursor:pointer;color:#8A8280;font-size:14px;line-height:1;padding:0 2px;">✕</button>
+    <div class="gm-mail-alert-body">
+      <div class="gm-mail-alert-head">
+        <span class="gm-mail-alert-badge">${T('new_mail_badge','NUOVA MAIL')}</span>
+        <button id="btnCloseMailAlert" class="gm-mail-alert-x" aria-label="×">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('x', 14) : '×')}</button>
       </div>
-      <div style="font-size:12px;font-weight:600;color:#1A1614;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
-           title="${esc(senderLabel)}">${esc(senderLabel)}</div>
-      <div style="font-size:11px;color:#4A4340;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
-           title="${esc(subjectLabel)}">${esc(subjectLabel)}</div>
-      <div style="display:flex;gap:8px;margin-top:4px;">
-        <button id="btnMailAlertDraft" style="flex:1;background:#2B5CE6;border:none;border-radius:2px;color:#fff;font-size:10px;font-weight:700;letter-spacing:1.5px;padding:7px 10px;cursor:pointer;">
-          &#9889; ${T('app_create_draft_upper', 'CREA BOZZA')}
-        </button>
-        <button id="btnMailAlertOpen" style="flex:1;background:#F4F2EE;border:1px solid #E2DDD6;border-radius:2px;color:#1A1614;font-size:10px;font-weight:700;letter-spacing:1.5px;padding:7px 10px;cursor:pointer;">
-          ${T('app_open_upper', 'APRI')}
-        </button>
+      <div class="gm-mail-alert-sender" title="${esc(senderLabel)}">${esc(senderLabel)}</div>
+      <div class="gm-mail-alert-subject" title="${esc(subjectLabel)}">${esc(subjectLabel)}</div>
+      <div class="gm-mail-alert-actions">
+        <button id="btnMailAlertDraft" class="gm-mail-alert-btn primary">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('zap', 12) : '')} ${T('app_create_draft_upper', 'CREA BOZZA')}</button>
+        <button id="btnMailAlertOpen" class="gm-mail-alert-btn">${T('app_open_upper', 'APRI')}</button>
       </div>
     </div>`;
 
