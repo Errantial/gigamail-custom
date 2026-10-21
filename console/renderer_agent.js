@@ -27,6 +27,7 @@
         `<a href="#" class="agent-mail-link" data-account="${account}" data-id="${id}"` +
         ` data-folder="${folder || ''}">${label}</a>`)
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/(^|[^*\w])\*([^*\n]+)\*(?!\w)/g, '$1<em>$2</em>')
       .replace(/\n/g, '<br>');
   }
 

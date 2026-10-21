@@ -55,7 +55,7 @@ def _kill_tree(proc) -> None:
     try:
         if os.name == "nt":
             subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],
-                           capture_output=True, timeout=10)
+                           capture_output=True, timeout=10, **_quiet_kw())
         else:
             import signal
             os.killpg(proc.pid, signal.SIGTERM)
@@ -82,15 +82,30 @@ def cancel(run_id: str) -> bool:
     return True
 
 
+def _quiet_kw() -> dict:
+    """Popen arguments that keep the agent off the screen on Windows. The
+    npm wrappers (claude.cmd, codex.cmd) and codex.exe are console programs:
+    started from the backend, which has no console, Windows gave them a new
+    one, and a black "claude" terminal popped over the mail while the bar
+    worked. CREATE_NO_WINDOW starts them with no console at all; stdin,
+    stdout and stderr are pipes anyway."""
+    if os.name != "nt":
+        return {}
+    si = subprocess.STARTUPINFO()
+    si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    si.wShowWindow = subprocess.SW_HIDE
+    return {"creationflags": subprocess.CREATE_NO_WINDOW, "startupinfo": si}
+
+
 def _spawn(cmd, stdin_bytes, timeout, env, run_id):
     """(returncode, stdout, stderr). Without a run_id, subprocess.run as
     always; with one, the process is registered so cancel() can end it."""
     if not run_id:
         p = subprocess.run(cmd, capture_output=True, input=stdin_bytes,
                            stdin=None if stdin_bytes is not None else subprocess.DEVNULL,
-                           timeout=timeout, shell=False, env=env)
+                           timeout=timeout, shell=False, env=env, **_quiet_kw())
         return p.returncode, p.stdout, p.stderr
-    kw = {"start_new_session": True} if os.name != "nt" else {}
+    kw = {"start_new_session": True} if os.name != "nt" else _quiet_kw()
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             stdin=subprocess.PIPE if stdin_bytes is not None else subprocess.DEVNULL,
                             shell=False, env=env, **kw)
