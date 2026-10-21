@@ -6,6 +6,17 @@
   only the subject and a one-line summary: the text of the reply was
   nowhere, and the user had to open Automations to read it. The card now
   shows the recipient and the full text, open by default.
+- **A softer dark theme.** The night-blue background is now a neutral
+  gray: the icon bar and the mail column sit darkest, the reading pane
+  lightest, so long mails are easier on the eyes. The pink accent stays.
+  In the light theme the icon bar and the mail column are a light gray,
+  one step below the white reading pane.
+- **The mail window is readable in the dark theme.** Its header (subject,
+  sender, action buttons), the AI summary and the reply field kept their
+  light backgrounds under light text. The same fix covers the follow-up
+  menu and the recipient autocomplete in the compose and reply windows,
+  the calendar event dialog, and the Gmail app-password hint and provider
+  buttons in "Add account".
 
 ## v0.6.3 — 2026-10-21
 
