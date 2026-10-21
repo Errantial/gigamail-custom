@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **The release script waits for the Mac builds before publishing.**
+  It published as soon as the Windows installer was signed; the Mac
+  jobs, still running, then refused to attach their DMGs to a public
+  release (0.6.4 went out without the Intel DMG). It now waits for the
+  Release run to end and checks both DMGs are there.
+
 ## v0.6.4 — 2026-10-21
 
 - **The installer closes a GigaMail backend left running anywhere.** It
