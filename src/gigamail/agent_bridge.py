@@ -25,6 +25,7 @@ stampano anche il resto (Codex).
 import glob
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -415,6 +416,19 @@ def _our_server() -> str:
     return ""
 
 
+def _error_excerpt(text: str, limit: int = 600) -> str:
+    """The part of the agent's output that says why it failed. codex exec
+    opens stderr with a header (version, model, sandbox, ...) longer than
+    the message the console can show: cut to the first 400 characters, the
+    user saw the header and never the error. From the first line that
+    names an error, else the end of the output, where the reason is."""
+    lines = [ln for ln in (text or "").splitlines() if ln.strip()]
+    start = next((i for i, ln in enumerate(lines)
+                  if re.search(r"\b(ERROR|error|Error|failed|Failed)\b", ln)), None)
+    body = "\n".join(lines[start:] if start is not None else lines)
+    return body[-limit:]
+
+
 def run(prompt: str, timeout: int | None = None, run_id: str | None = None,
         quiet_desktop: bool = False) -> str:
     """Esegue l'agente headless con il prompt e restituisce il testo prodotto."""
@@ -494,7 +508,7 @@ def run(prompt: str, timeout: int | None = None, run_id: str | None = None,
         # come se fosse la bozza, e sarebbe finito in approvazione come
         # corpo della mail a un cliente.
         raise AgentUnavailable(
-            f"Agente terminato con errore ({returncode}): {(err or out)[:400]}")
+            f"Agente terminato con errore ({returncode}): {_error_excerpt(err or out)}")
     if _non_collegato(out):
         raise AgentUnavailable(f"Agente non collegato: {out[:200]}")
     return out

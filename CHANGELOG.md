@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **The agent's error says why.** The bar showed the first 400 characters
+  of what the agent printed, and `codex exec` fills them with its header
+  (version, model, sandbox): the error line after it, the one that says
+  "not logged in" or names the model, was cut off. The message now starts
+  at the first line that names an error, or ends with the output's tail.
+
 ## v0.6.0 — 2026-10-20
 
 - **The bundled MCP server starts on every installed copy.** pip wrote the

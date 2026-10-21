@@ -320,3 +320,21 @@ def test_the_desktop_app_codex_wins_over_an_npm_cli(tmp_path, monkeypatch):
     monkeypatch.setattr(agent_bridge.shutil, "which", lambda name: str(tmp_path / "npm" / "codex.cmd"))
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "Local"))
     assert agent_bridge._find_codex() == str(app)
+
+
+def test_the_error_shown_is_the_reason_not_codex_header():
+    # codex exec's stderr starts with a header longer than the console's
+    # message; the ERROR line after it is what the user needs to see.
+    header = "\n".join(f"{k}: {v}" for k, v in [
+        ("OpenAI Codex", "v0.163.0-alpha.10.2"), ("workdir", "C:\\Users\\V"),
+        ("model", "gpt-5.5"), ("provider", "openai"), ("approval", "never"),
+        ("sandbox", "read-only"), ("reasoning effort", "medium"),
+        ("reasoning summaries", "auto"), ("session id", "0" * 36)] * 3)
+    err = header + "\n2026-10-21T10:00:00Z ERROR codex_core: Not logged in: run codex login\n"
+    assert len(header) > 400
+    msg = agent_bridge._error_excerpt(err)
+    assert msg.startswith("2026-10-21T10:00:00Z ERROR")
+    assert "Not logged in" in msg
+    assert "reasoning summaries" not in msg
+    # no error line: the tail, where a plain message ends up
+    assert agent_bridge._error_excerpt("x" * 1000 + "the end").endswith("the end")
