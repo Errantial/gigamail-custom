@@ -21,9 +21,13 @@ test('installer and uninstaller stop the backend before touching files', () => {
   assert.match(nsh, /powershell\.exe .*-File "\$PLUGINSDIR\\stop_backend\.ps1" "\$INSTDIR"/);
 });
 
-test('only python processes running from the install folder are ended', () => {
+test('python from the install folder and the GigaMail backend on the port are ended, nothing else', () => {
   assert.match(ps1, /Name = 'python\.exe'/);
   assert.match(ps1, /ExecutablePath\.StartsWith\(\$root/);
-  assert.match(ps1, /Stop-Process -Id \$p\.ProcessId -Force/);
+  // a backend from another folder (an older install, the sources) holds
+  // the port: only a listener started as gigamail.http_api is ended
+  assert.match(ps1, /Get-NetTCPConnection -LocalPort \$port -State Listen/);
+  assert.match(ps1, /CommandLine -like '\*gigamail\.http_api\*'/);
+  assert.match(ps1, /Stop-Process -Id \$id -Force/);
   assert.doesNotMatch(ps1, /taskkill|\/IM python/i);
 });

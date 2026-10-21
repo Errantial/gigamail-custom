@@ -1,7 +1,13 @@
 # Changelog
 
-## Unreleased
+## v0.6.4 — 2026-10-21
 
+- **The installer closes a GigaMail backend left running anywhere.** It
+  already ended the backend from its own folder before replacing files;
+  now it also ends a GigaMail backend holding the console port from
+  another folder (an older install under a different name, a backend
+  started from the sources), so the updated app can start. Only a
+  process started as the GigaMail backend is touched.
 - **The agent bar shows what you are approving.** The approval card had
   only the subject and a one-line summary: the text of the reply was
   nowhere, and the user had to open Automations to read it. The card now
