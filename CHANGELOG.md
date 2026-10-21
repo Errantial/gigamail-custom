@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.6.2 — 2026-10-21
+
 - **An update installs completely.** The backend stays alive when the
   window closes, so the next start is instant; but it kept python.exe and
   its DLLs open while the update's installer ran, which could not
