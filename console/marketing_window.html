@@ -255,11 +255,12 @@
 <link rel="stylesheet" href="theme-popup.css"/>
 <link rel="stylesheet" href="theme-dark.css"/>
 <script src="theme_mode.js"></script>
+<script src="icons.js"></script>
 </head>
 <body>
 
 <div class="titlebar">
-  <div class="tb-title">✉ GIGA Marketing Mail</div>
+  <div class="tb-title"><span data-icon="mail" data-icon-size="15"></span> GIGA Marketing Mail</div>
   <div class="tb-buttons">
     <button class="tb-btn minimize" id="btnMin" data-i18n-title="hide" title="Nascondi"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12"/></svg></button>
     <button class="tb-btn maximize" id="btnMax" data-i18n-title="fullscreen" title="Tutto schermo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
@@ -274,7 +275,7 @@
     <div class="mkt-section">
       <div class="field-label">1. <span data-i18n="recipients">Destinatari</span></div>
       <input type="file" id="bulkFileInput" accept=".csv,.xlsx,.xls" style="display:none"/>
-      <button class="btn w100" id="btnBulkUpload">📂 <span data-i18n="load_csv">Carica CSV / Excel</span></button>
+      <button class="btn w100" id="btnBulkUpload"><span data-icon="upload" data-icon-size="14"></span> <span data-i18n="load_csv">Carica CSV / Excel</span></button>
       <div id="bulkFileInfo" class="hint"></div>
     </div>
 
@@ -310,9 +311,9 @@
     </div>
 
     <div class="mkt-section" style="gap:8px;margin-top:auto">
-      <button class="btn w100" id="btnBulkPreview">👁 <span data-i18n="preview">Preview</span></button>
+      <button class="btn w100" id="btnBulkPreview"><span data-icon="eye" data-icon-size="14"></span> <span data-i18n="preview">Preview</span></button>
       <button class="compose-btn" id="btnBulkStart" disabled>▶ <span data-i18n="start_send">Avvia invio</span></button>
-      <button class="btn w100 danger" id="btnBulkStop" style="display:none">⏹ <span data-i18n="stop_send">Ferma invio</span></button>
+      <button class="btn w100 danger" id="btnBulkStop" style="display:none"><span data-icon="stop" data-icon-size="14"></span> <span data-i18n="stop_send">Ferma invio</span></button>
     </div>
 
   </div>
@@ -321,17 +322,17 @@
   <div class="mkt-right">
     <div class="ai-row">
       <textarea id="bulkInstruction" class="ai-input" rows="2" data-i18n-ph="bulk_instruction_ph" placeholder="Descrivi la mail da generare con AI…"></textarea>
-      <button class="gen-btn" id="btnBulkGenerate">⚡ <span data-i18n="win_generate">Genera</span></button>
+      <button class="gen-btn" id="btnBulkGenerate"><span data-icon="zap" data-icon-size="14"></span> <span data-i18n="win_generate">Genera</span></button>
     </div>
     <div id="bulkGenerateStatus" class="hint" style="flex-shrink:0"></div>
 
     <div class="img-toolbar" id="imgToolbar">
       <span style="font-size:11px;color:rgba(0,0,0,0.55);font-weight:500;" data-i18n="images_label">IMMAGINI:</span>
-      <button class="img-btn" id="btnDropInfo">📎 <span data-i18n="drag_image">Trascina immagine qui</span></button>
-      <button class="img-btn" id="btnLoadFolder">📁 <span data-i18n="load_folder">Carica cartella</span></button>
+      <button class="img-btn" id="btnDropInfo"><span data-icon="paperclip" data-icon-size="14"></span> <span data-i18n="drag_image">Trascina immagine qui</span></button>
+      <button class="img-btn" id="btnLoadFolder"><span data-icon="folder" data-icon-size="14"></span> <span data-i18n="load_folder">Carica cartella</span></button>
     </div>
     <div id="bulkEditorHtml" class="editor-wrap">
-      <div class="drop-overlay" id="dropOverlay">📎 <span data-i18n="win_drop_to_insert">Rilascia per inserire</span></div>
+      <div class="drop-overlay" id="dropOverlay"><span data-icon="paperclip" data-icon-size="16"></span> <span data-i18n="win_drop_to_insert">Rilascia per inserire</span></div>
       <textarea id="bulkBodyHtml" class="code-editor" placeholder="<html>…"></textarea>
     </div>
     <div id="bulkEditorPlain" class="editor-wrap" style="display:none">
@@ -353,13 +354,13 @@
 <div class="img-picker" id="imgPicker">
   <div class="img-picker-box">
     <div class="img-picker-hdr">
-      <span>📁 <span data-i18n="win_choose_image">Scegli immagine</span></span>
+      <span><span data-icon="folder" data-icon-size="14"></span> <span data-i18n="win_choose_image">Scegli immagine</span></span>
       <button class="img-btn" id="btnPickerClose" style="padding:3px 8px" data-i18n-title="close" title="Chiudi">✕</button>
     </div>
     <div class="img-grid" id="imgGrid"></div>
     <div class="img-picker-ftr">
       <div class="ai-status" id="aiImgStatus"></div>
-      <button class="img-btn" id="btnAiPick">✦ <span data-i18n="win_ai_picks">AI sceglie</span></button>
+      <button class="img-btn" id="btnAiPick"><span data-icon="sparkles" data-icon-size="14"></span> <span data-i18n="win_ai_picks">AI sceglie</span></button>
       <button class="compose-btn" id="btnInsertImg" style="width:auto;padding:6px 14px" data-i18n="insert" disabled>Inserisci</button>
     </div>
   </div>

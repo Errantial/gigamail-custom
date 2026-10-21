@@ -94,3 +94,8 @@ html[data-accent="blue"] {
 .tb-btn { color: var(--gm-pink) !important; }
 .tb-btn:hover, .tb-btn.close:hover, .tb-btn.minimize:hover, .tb-btn.maximize:hover {
   background: var(--gm-tint) !important; color: var(--gm-pink-dn, var(--gm-pink)) !important; }
+
+/* icone a linea al posto delle emoji (icons.js) */
+.gm-icon { vertical-align: -2px; flex-shrink: 0; }
+.tool-btn .gm-icon, .ctx-ico .gm-icon, .img-btn .gm-icon { vertical-align: middle; }
+.gm-icon, .gm-icon * { color: inherit !important; }

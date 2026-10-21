@@ -140,7 +140,7 @@ function renderUpcoming() {
   }
   list.innerHTML = filtered.map(e => {
     const where = (typeof e.location === 'object' ? e.location?.displayName : e.location) || '';
-    const loc = where ? `📍 ${where}` : '';
+    const loc = where ? `${(typeof GMIcons !== 'undefined' ? GMIcons.svg('map', 12) : '')} ${where}` : '';
     return `<div class="upcoming-item" data-id="${esc(e.id||'')}">
       <div class="upcoming-dot"></div>
       <div class="upcoming-info">

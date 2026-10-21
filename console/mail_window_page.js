@@ -102,9 +102,9 @@ async function loadMail(id, folder, accountId, preloadedMsg = null) {
         <button class="btn" id="btnAscolta" data-requires="/mail/{message_id}/tts">◉ <span data-i18n="listen_cap">Ascolta</span></button>
         <button class="btn btn-reply" id="btnReply">↩ <span data-i18n="reply_cap">Rispondi</span></button>
         <button class="btn" id="btnForward">↪ <span data-i18n="forward_cap">Inoltra</span></button>
-        <button class="btn" id="btnSummary" data-requires="/mail/{message_id}/summary">📋 <span data-i18n="summarize_cap">Riassumi</span></button>
-        <button class="btn" id="btnSpam">🚫 <span data-i18n="spam_cap">Spam</span></button>
-        <button class="btn btn-danger" id="btnDelete">🗑 <span data-i18n="delete_cap">Elimina</span></button>
+        <button class="btn" id="btnSummary" data-requires="/mail/{message_id}/summary">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('clipboard', 14) : '')} <span data-i18n="summarize_cap">Riassumi</span></button>
+        <button class="btn" id="btnSpam">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('ban', 14) : '')} <span data-i18n="spam_cap">Spam</span></button>
+        <button class="btn btn-danger" id="btnDelete">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('trash', 14) : '')} <span data-i18n="delete_cap">Elimina</span></button>
       </div>
     </div>`;
 
@@ -117,7 +117,7 @@ async function loadMail(id, folder, accountId, preloadedMsg = null) {
     // Allegati
     if (attachments.length) {
       const chips = attachments.map((a, idx) => {
-        return `<div class="attach-chip" data-att-index="${idx}" title="${esc(T('attach_opts_title', 'Click: apri • Tasto destro: opzioni'))}">📎 ${esc(a.name)} (${Math.round((a.size||0)/1024)}KB)</div>`;
+        return `<div class="attach-chip" data-att-index="${idx}" title="${esc(T('attach_opts_title', 'Click: apri • Tasto destro: opzioni'))}">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('paperclip', 12) : '')} ${esc(a.name)} (${Math.round((a.size||0)/1024)}KB)</div>`;
       }).join('');
       html += `<div class="attachments">${chips}</div>`;
     }
@@ -185,8 +185,8 @@ async function loadMail(id, folder, accountId, preloadedMsg = null) {
       menu.className = 'attach-menu';
       menu.id = 'attachMenu';
       menu.innerHTML = `
-        <div class="attach-menu-item" data-act="open">📂 ${esc(T('mv_att_open', 'Apri'))}</div>
-        <div class="attach-menu-item" data-act="save">💾 ${esc(T('mv_att_save_as', 'Salva con nome…'))}</div>`;
+        <div class="attach-menu-item" data-act="open">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('folder-open', 14) : '')} ${esc(T('mv_att_open', 'Apri'))}</div>
+        <div class="attach-menu-item" data-act="save">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('save', 14) : '')} ${esc(T('mv_att_save_as', 'Salva con nome…'))}</div>`;
       document.body.appendChild(menu);
       const rect = menu.getBoundingClientRect();
       const px = (x + rect.width  > window.innerWidth)  ? x - rect.width  : x;
@@ -275,7 +275,7 @@ async function loadMail(id, folder, accountId, preloadedMsg = null) {
           summaryEl.style.display = 'flex';
         }
       } catch(e) { btn.textContent = T('error', 'Errore'); }
-      btn.textContent = '📋 ' + (window.i18n?window.i18n.t('summarize_cap'):'Riassumi');
+      btn.innerHTML = (typeof GMIcons !== 'undefined' ? GMIcons.svg('clipboard', 14) : '') + ' ' + (window.i18n?window.i18n.t('summarize_cap'):'Riassumi');
     });
 
     document.getElementById('btnSpam')?.addEventListener('click', async () => {

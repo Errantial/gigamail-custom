@@ -134,7 +134,7 @@ function renderAttachments() {
   box.innerHTML = attachments.map((a,i) => {
     const preview = a.isImage && a.dataUrl
       ? `<img src="${a.dataUrl}" alt="${esc(a.name)}"/>`
-      : '📎';
+      : (typeof GMIcons !== 'undefined' ? GMIcons.svg('paperclip', 13) : '');
     return `<span class="attach-chip">
       ${preview} ${esc(a.name)} (${Math.round(a.size/1024)}KB)
       <button class="attach-chip-rm" data-index="${i}">✕</button>
@@ -197,7 +197,7 @@ instrEl.addEventListener('drop', async (e) => {
     const r = await fetch(`${API}/office/upload`, { method: 'POST', body: formData });
     const data = await r.json();
     instructionContext = data.text || '';
-    ctxBadge.textContent = `📄 ${file.name}`;
+    ctxBadge.innerHTML = `${(typeof GMIcons !== 'undefined' ? GMIcons.svg('file-text', 12) : '')} ${esc(file.name)}`;
     ctxBadge.classList.add('visible');
     instrEl.placeholder = T('ai_instruction_drag_ph', 'Istruzione AI — trascina file per contesto…');
   } catch(err) {
@@ -221,8 +221,8 @@ document.querySelectorAll('.fu-opt').forEach(opt => {
   opt.addEventListener('click', () => {
     followupHours = parseInt(opt.dataset.h);
     followupDropdown.style.display = 'none';
-    if (followupHours > 0) { btnFollowup.textContent = `📌 ${followupHours}h`; btnFollowup.classList.add('active'); }
-    else { btnFollowup.textContent = '📌'; btnFollowup.classList.remove('active'); }
+    if (followupHours > 0) { btnFollowup.innerHTML = `${(typeof GMIcons !== 'undefined' ? GMIcons.svg('pin', 14) : '')} ${followupHours}h`; btnFollowup.classList.add('active'); }
+    else { btnFollowup.innerHTML = (typeof GMIcons !== 'undefined' ? GMIcons.svg('pin', 16) : ''); btnFollowup.classList.remove('active'); }
   });
 });
 document.addEventListener('click', () => { followupDropdown.style.display = 'none'; });
@@ -282,7 +282,7 @@ document.getElementById('btnGenerate').addEventListener('click', async () => {
     ta.value = data.draft || data.text || '';
     scheduleDraftSave();
   } catch(e) { ta.value = ''; st.textContent = `${T('cmp_generate_error', 'Errore generazione')}: ${e}`; }
-  btn.textContent = '⚡ ' + T('generate', 'GENERA'); btn.disabled = false;
+  btn.innerHTML = (typeof GMIcons !== 'undefined' ? GMIcons.svg('zap', 14) : '') + ' ' + T('generate', 'GENERA'); btn.disabled = false;
 });
 
 // ── INVIA con delay 5s ────────────────────────────────────────────────────────

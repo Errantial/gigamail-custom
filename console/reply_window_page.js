@@ -180,7 +180,7 @@ function renderAttachments() {
   box.innerHTML = attachments.map((a,i) => {
     const preview = a.isImage && a.dataUrl
       ? `<img src="${a.dataUrl}" alt="${esc(a.name)}"/>`
-      : '📎';
+      : (typeof GMIcons !== 'undefined' ? GMIcons.svg('paperclip', 13) : '');
     return `<span class="attach-chip">
       ${preview} ${esc(a.name)} (${Math.round(a.size/1024)}KB)
       <button class="attach-chip-rm" data-index="${i}">✕</button>
@@ -249,7 +249,7 @@ instrEl.addEventListener('drop', async (e) => {
     const r = await fetch(`${API}/office/upload`, { method: 'POST', body: formData });
     const data = await r.json();
     instructionContext = data.text || '';
-    ctxBadge.textContent = `📄 ${file.name}`;
+    ctxBadge.innerHTML = `${(typeof GMIcons !== 'undefined' ? GMIcons.svg('file-text', 12) : '')} ${esc(file.name)}`;
     ctxBadge.classList.add('visible');
     instrEl.placeholder = T('cmp_ai_instruction_opt_ph', 'Istruzione AI (opz.)…');
   } catch(err) {
@@ -276,8 +276,8 @@ document.querySelectorAll('.fu-opt').forEach(opt => {
   opt.addEventListener('click', () => {
     followupHours = parseInt(opt.dataset.h);
     followupDropdown.style.display = 'none';
-    if (followupHours > 0) { btnFollowup.textContent = `📌 ${followupHours}h`; btnFollowup.classList.add('active'); }
-    else { btnFollowup.textContent = '📌'; btnFollowup.classList.remove('active'); }
+    if (followupHours > 0) { btnFollowup.innerHTML = `${(typeof GMIcons !== 'undefined' ? GMIcons.svg('pin', 14) : '')} ${followupHours}h`; btnFollowup.classList.add('active'); }
+    else { btnFollowup.innerHTML = (typeof GMIcons !== 'undefined' ? GMIcons.svg('pin', 16) : ''); btnFollowup.classList.remove('active'); }
   });
 });
 document.addEventListener('click', () => { followupDropdown.style.display = 'none'; });
@@ -331,7 +331,7 @@ document.getElementById('btnGenerate').addEventListener('click', async () => {
       guard.style.display = 'block';
       ta.value = '';
       window._lastGeneratedDraft = '';
-      btn.textContent = '⚡ ' + T('generate', 'GENERA'); btn.disabled = false;
+      btn.innerHTML = (typeof GMIcons !== 'undefined' ? GMIcons.svg('zap', 14) : '') + ' ' + T('generate', 'GENERA'); btn.disabled = false;
       return;
     }
     ta.value = data.draft || data.text || '';
@@ -349,7 +349,7 @@ document.getElementById('btnGenerate').addEventListener('click', async () => {
       document.getElementById('btnAddSuggested')?.addEventListener('click', addSuggestedAttachments);
     }
   } catch(e) { ta.value = `${T('error', 'Errore')}: ${e}`; }
-  btn.textContent = '⚡ ' + T('generate', 'GENERA'); btn.disabled = false;
+  btn.innerHTML = (typeof GMIcons !== 'undefined' ? GMIcons.svg('zap', 14) : '') + ' ' + T('generate', 'GENERA'); btn.disabled = false;
 });
 
 async function addSuggestedAttachments() {
@@ -489,7 +489,7 @@ function applyMaskToBody() {
 function showMaskBadge(n) {
   const btn = document.getElementById('btnMask');
   if (!btn) return;
-  btn.textContent = n > 0 ? `🔒 ${n}` : '🔒';
+  btn.innerHTML = (typeof GMIcons !== 'undefined' ? GMIcons.svg('lock', 15) : '') + (n > 0 ? ` ${n}` : '');
   btn.title = n > 0
     ? T('cmp_mask_badge_n', '{n} dati sensibili mascherati. Click per controllare.').replace('{n}', n)
     : T('cmp_mask_badge_none', 'Nessun dato sensibile rilevato. Click per gestire.');
