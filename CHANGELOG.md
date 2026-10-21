@@ -9,7 +9,10 @@
   its DLLs open while the update's installer ran, which could not
   overwrite them and left `resources/python` half old, half new: the
   updated app started without the `gigamail` module. When an update has
-  been downloaded, closing the app now stops the backend first.
+  been downloaded, closing the app now stops the backend first; and the
+  installer itself (an update from any older version included, the
+  uninstaller too) ends the backend running from its install folder
+  before it replaces a file, so a client still on 0.6.0 updates cleanly.
 - **The "new mail" toast is readable in the dark theme.** Its colours were
   fixed in the code: the dark theme darkened the buttons' background and
   left their text black, so *Open* vanished. The toast now takes the

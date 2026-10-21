@@ -93,6 +93,7 @@
       }
     },
     "nsis": {
+      "include": "installer/installer.nsh",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "allowElevation": true,
