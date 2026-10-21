@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **The "new mail" toast is readable in the dark theme.** Its colours were
+  fixed in the code: the dark theme darkened the buttons' background and
+  left their text black, so *Open* vanished. The toast now takes the
+  theme's colours, with *Create draft* in the accent colour.
 ## v0.6.1 — 2026-10-21
 
 - **Google Antigravity as the console's agent.** Antigravity's CLI (`agy`)

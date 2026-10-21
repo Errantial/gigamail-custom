@@ -313,3 +313,26 @@ html[data-theme="dark"] body .s-item:hover { background: var(--gm-tint) !importa
 .gm-icon, .gm-icon * { color: inherit !important; }
 .ade-context-menu .ctx-item { justify-content: flex-start; gap: 8px; }
 .ade-context-menu .ctx-item .ctx-arrow { margin-left: auto; }
+
+/* avviso "nuova mail" in basso a destra: colori del tema, pulsante
+   principale nel colore scelto (prima: colori fissi, e nel tema scuro
+   APRI era nero su nero) */
+@keyframes gm-alert-in { from { transform: translateX(110%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.gm-mail-alert { position: fixed; bottom: 20px; right: 20px; z-index: 99999; width: 340px; overflow: hidden;
+  background: var(--gm-card); color: var(--gm-ink); border: 1px solid var(--gm-line); border-left: 4px solid var(--gm-pink);
+  border-radius: 14px; box-shadow: 0 12px 30px rgba(40,30,55,0.18); font-family: var(--font); animation: gm-alert-in .25s ease; }
+.gm-mail-alert-body { padding: 12px 14px 10px; display: flex; flex-direction: column; gap: 6px; }
+.gm-mail-alert-head { display: flex; align-items: center; justify-content: space-between; }
+.gm-mail-alert-badge { font-size: 9px; font-weight: 700; letter-spacing: 2px; color: var(--gm-pink); }
+.gm-mail-alert-x { background: none; border: none; cursor: pointer; color: var(--gm-muted); padding: 0 2px; line-height: 1; }
+.gm-mail-alert-x:hover { color: var(--gm-ink); }
+.gm-mail-alert-sender { font-size: 12px; font-weight: 600; color: var(--gm-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gm-mail-alert-subject { font-size: 11px; color: var(--gm-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gm-mail-alert-actions { display: flex; gap: 8px; margin-top: 4px; }
+.gm-mail-alert-btn { flex: 1; background: var(--gm-fill); border: 1px solid var(--gm-line); border-radius: 9px; color: var(--gm-ink);
+  font-size: 10px; font-weight: 700; letter-spacing: 1.5px; padding: 7px 10px; cursor: pointer; font-family: var(--font); }
+.gm-mail-alert-btn:hover { background: var(--gm-tint); color: var(--gm-pink); border-color: var(--gm-tint-line); }
+.gm-mail-alert-btn.primary { background: var(--gm-pink); border-color: var(--gm-pink); color: #fff; }
+.gm-mail-alert-btn.primary:hover { background: var(--gm-pink-hi); color: #fff; }
+html[data-theme="dark"] .gm-mail-alert { box-shadow: 0 12px 30px rgba(0,0,0,0.5); }
+html[data-theme="dark"] body .gm-mail-alert-btn.primary, html[data-theme="dark"] body .gm-mail-alert-btn.primary * { color: #fff !important; }

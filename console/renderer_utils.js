@@ -1,3 +1,17 @@
+  container.innerHTML = `
+    <div class="gm-mail-alert-body">
+      <div class="gm-mail-alert-head">
+        <span class="gm-mail-alert-badge">${T('new_mail_badge','NUOVA MAIL')}</span>
+        <button id="btnCloseMailAlert" class="gm-mail-alert-x" aria-label="×">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('x', 14) : '×')}</button>
+      </div>
+      <div class="gm-mail-alert-sender" title="${esc(senderLabel)}">${esc(senderLabel)}</div>
+      <div class="gm-mail-alert-subject" title="${esc(subjectLabel)}">${esc(subjectLabel)}</div>
+      <div class="gm-mail-alert-actions">
+        <button id="btnMailAlertDraft" class="gm-mail-alert-btn primary">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('zap', 12) : '')} ${T('app_create_draft_upper', 'CREA BOZZA')}</button>
+        <button id="btnMailAlertOpen" class="gm-mail-alert-btn">${T('app_open_upper', 'APRI')}</button>
+      </div>
+    </div>`;
+
 function T(key, it){ return (window.i18n && window.i18n.t) ? window.i18n.t(key, it) : it; }
 function LOCALE(){ return (window.i18n && window.i18n.locale) || 'it-IT'; }
 // renderer_utils.js — Utility, toast, folder, dashboard, DOM helpers
@@ -46,21 +60,10 @@ function showMailAlert(mailData) {
 
   const container = document.createElement('div');
   container.id = 'ade-mail-alert';
-  container.style.cssText = [
-    'position:fixed',
-    'bottom:20px',
-    'right:20px',
-    'z-index:99999',
-    'background:#FFFFFF',
-    'border:1px solid #E2DDD6',
-    'border-left:4px solid #2B5CE6',
-    'border-radius:4px',
-    'box-shadow:0 4px 24px rgba(43,92,230,0.18)',
-    'width:340px',
-    'font-family:var(--mono,monospace)',
-    'overflow:hidden',
-    'animation:slideInRight 0.25s ease',
-  ].join(';');
+  // Colori e forma dal tema (theme.css .gm-mail-alert): con i colori
+  // scritti qui il tema scuro scuriva lo sfondo dei pulsanti e lasciava il
+  // testo nero, e APRI spariva.
+  container.className = 'gm-mail-alert';
 
   const senderLabel = mailData.senderName || mailData.sender || T('app_unknown_sender', 'Mittente sconosciuto');
   const subjectLabel = mailData.subject || T('no_subject', '(nessun oggetto)');
