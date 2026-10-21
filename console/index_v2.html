@@ -136,6 +136,13 @@
             <label class="field-label" style="margin-top:14px" data-i18n="rules_title">Regole di risposta</label>
             <div id="rulesList"></div>
 
+            <label class="field-label" style="margin-top:14px" data-i18n="sf_list_title">Filtri spam</label>
+            <div class="ai-card" id="spamFiltersCard">
+              <div class="ai-card-sub" data-i18n="sf_list_sub">Mail bloccate per oggetto, mittente o testo, da qualunque indirizzo. Si applicano a ogni giro del watcher.</div>
+              <div id="spamFiltersList"></div>
+              <div class="ai-card-row" style="margin-top:8px"><button class="chip-btn" id="btnNewSpamFilter" data-i18n="sf_new">+ Nuovo filtro</button></div>
+            </div>
+
             <div class="ai-card" id="ruleForm">
               <div class="ai-card-title" data-i18n="rule_new">Nuova regola</div>
               <div class="field-row"><label class="field-label" data-i18n="rule_account">Account</label>
@@ -618,6 +625,31 @@
   </div>
 </div>
 
+<!-- MODAL FILTRO SPAM -->
+<div class="overlay hidden" id="spamFilterPanel">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-hdr"><span class="modal-title" data-i18n="sf_title">Blocca mail simili</span><button class="icon-btn" id="btnCloseSpamFilter">✕</button></div>
+    <div class="modal-body">
+      <div class="hint" data-i18n="sf_intro">Le mail che contengono questo testo finiscono nello spam, da qualunque mittente arrivino. Il mittente non viene bloccato.</div>
+      <div class="field-row"><label class="field-label" data-i18n="sf_field">Dove cercare</label>
+        <select id="sfField" class="field-input">
+          <option value="subject" data-i18n="sf_field_subject">Oggetto</option>
+          <option value="from" data-i18n="sf_field_from">Mittente</option>
+          <option value="body" data-i18n="sf_field_body">Oggetto o testo</option>
+        </select></div>
+      <div class="field-row"><label class="field-label" data-i18n="sf_contains">Contiene</label><input id="sfContains" class="field-input" type="text" maxlength="200"></div>
+      <div class="field-row"><label class="field-label" data-i18n="sf_action">Cosa fare</label>
+        <select id="sfAction" class="field-input">
+          <option value="spam" data-i18n="sf_action_spam">Sposta nello spam</option>
+          <option value="trash" data-i18n="sf_action_trash">Sposta nel cestino</option>
+        </select></div>
+      <div class="field-row" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="sfAllAccounts" style="margin:0"><label for="sfAllAccounts" class="field-label" style="margin:0;cursor:pointer" data-i18n="sf_all_accounts">Su tutti gli account</label></div>
+      <div id="spamFilterStatus" class="hint"></div>
+    </div>
+    <div class="modal-ftr"><button class="compose-btn" style="margin:0;width:auto;padding:8px 18px" id="btnConfirmSpamFilter" data-i18n="sf_confirm">Blocca</button></div>
+  </div>
+</div>
+
 <!-- MODAL EVENTO -->
 <div class="overlay hidden" id="eventOverlay">
   <div class="modal" style="max-width:440px">
@@ -722,6 +754,7 @@
 <script src="popup_bridge.js"      defer></script>
 <script src="mcp_snippets.js" defer></script>
 <script src="codex_connect.js" defer></script>
+<script src="spam_filter_ui.js" defer></script>
 <script src="renderer_onboarding.js" defer></script>
 <script src="renderer_agent.js"    defer></script>
 <script src="index_v2_page.js"></script>

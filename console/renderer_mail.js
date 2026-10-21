@@ -106,6 +106,7 @@ const MailView = (() => {
             <button class="btn" id="btnForward">↪ ${T('forward_upper','INOLTRA')}</button>
             <button class="btn" id="btnRiassumi" data-requires="/mail/{message_id}/summary">📋 ${T('summarize_upper','RIASSUMI')}</button>
             <button class="btn" id="btnMove">📁 ${T('move_upper','SPOSTA')}</button>
+            <button class="btn" id="btnSpamFilter" title="${T('sf_intro','')}">⛔ ${T('sf_block_upper','BLOCCA SIMILI')}</button>
             ${inSpam
               ? `<button class="btn" id="btnNotSpam">✅ ${T('not_spam_upper','NON È SPAM')}</button>`
               : `<button class="btn" id="btnSpam">🚫 ${T('spam_upper','SPAM')}</button>`
@@ -524,6 +525,14 @@ async function openMail(id, overrideFolder = null) {
         byId('btnDismissReplySuggestion')?.addEventListener('click', () => banner.remove());
       }
     }
+
+    // BLOCCA SIMILI: filtro per oggetto (precompilato), da qualunque mittente
+    byId('btnSpamFilter')?.addEventListener('click', () => {
+      window.SpamFilterUI?.open({ field: 'subject', contains: msg.subject || '' }, async () => {
+        resetMailDetail();
+        await refreshCurrentFolder();
+      });
+    });
 
     // SPAM
     byId('btnSpam')?.addEventListener('click', async () => {

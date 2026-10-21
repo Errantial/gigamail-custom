@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **Spam filters: block a kind of mail, not a sender.** *Block similar*
+  on an open mail makes a filter "subject contains …" (pre-filled with
+  the subject; or sender, or subject and text) that sends every matching
+  mail to the spam folder or the bin, from any address, on this account
+  or on all of them. It is applied at once and then on every watcher
+  tick, before the reply rules. The filters, with how many mails each
+  blocked, are listed in Automations under *Spam filters*, where new ones
+  can be added and old ones removed. Only a click in the console creates
+  one: the agent, or a mail it reads, cannot hide mail.
+- **No black window while the agent works.** On Windows the Claude or
+  Codex process the bar starts got a console of its own, a black "claude"
+  terminal over the mail. It now runs with no window.
+- **Italics in the agent's answers.** `*text*` showed with its asterisks.
 - **The agent's error says why.** The bar showed the first 400 characters
   of what the agent printed, and `codex exec` fills them with its header
   (version, model, sandbox): the error line after it, the one that says

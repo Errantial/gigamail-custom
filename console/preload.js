@@ -236,6 +236,11 @@ contextBridge.exposeInMainWorld('ademail', {
     return apiJson(url, { method: 'POST' });
   },
 
+  // Filtri spam: per oggetto, mittente o testo, da qualunque mittente
+  listSpamFilters:  (accountId = null) => apiJson(`${API}/spam_filters${accountId ? `?account_id=${accountId}` : ''}`),
+  createSpamFilter: (body) => apiJson(`${API}/spam_filters`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
+  deleteSpamFilter: (id) => apiJson(`${API}/spam_filters/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
   deleteMail: (id, accountId = null) => {
     let url = `${API}/mail/${encodeURIComponent(id)}`;
     if (accountId) url += `?account_id=${accountId}`;

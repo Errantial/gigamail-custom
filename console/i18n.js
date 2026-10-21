@@ -102,6 +102,7 @@
       // automazioni (0.2.1)
       automations: "Automazioni",
       automations_sub: "risposte semi-auto e auto, dietro Windows Hello",
+      sf_title: "Blocca mail simili", sf_intro: "Le mail che contengono questo testo finiscono nello spam, da qualunque mittente arrivino. Il mittente non viene bloccato.", sf_field: "Dove cercare", sf_field_subject: "Oggetto", sf_field_from: "Mittente", sf_field_body: "Oggetto o testo", sf_contains: "Contiene", sf_action: "Cosa fare", sf_action_spam: "Sposta nello spam", sf_action_trash: "Sposta nel cestino", sf_all_accounts: "Su tutti gli account", sf_confirm: "Blocca", sf_list_title: "Filtri spam", sf_list_sub: "Mail bloccate per oggetto, mittente o testo, da qualunque indirizzo. Si applicano a ogni giro del watcher.", sf_new: "+ Nuovo filtro", sf_none: "Nessun filtro.", sf_saved: "Filtro salvato", sf_moved: "{n} mail spostate", sf_block_upper: "BLOCCA SIMILI", sf_every_account: "tutti gli account", sf_hits: "{n} bloccate", sf_too_short: "Almeno 3 caratteri.",
       rules_title: "Regole di risposta", rule_new: "Nuova regola",
       rule_account: "Account", rule_trigger: "Trigger",
       rule_trigger_senders: "Mittenti (indirizzi)", rule_trigger_folder: "Cartella (mittente qualsiasi)",
@@ -642,6 +643,7 @@
       snooze: "Snooze",
       automations: "Automations",
       automations_sub: "semi-auto and auto replies, behind Windows Hello",
+      sf_title: "Block similar mail", sf_intro: "Mail containing this text goes to spam, whoever sends it. The sender is not blocked.", sf_field: "Where to look", sf_field_subject: "Subject", sf_field_from: "Sender", sf_field_body: "Subject or text", sf_contains: "Contains", sf_action: "What to do", sf_action_spam: "Move to spam", sf_action_trash: "Move to the bin", sf_all_accounts: "On every account", sf_confirm: "Block", sf_list_title: "Spam filters", sf_list_sub: "Mail blocked by subject, sender or text, from any address. Applied on every watcher tick.", sf_new: "+ New filter", sf_none: "No filters.", sf_saved: "Filter saved", sf_moved: "{n} mails moved", sf_block_upper: "BLOCK SIMILAR", sf_every_account: "every account", sf_hits: "{n} blocked", sf_too_short: "At least 3 characters.",
       rules_title: "Reply rules", rule_new: "New rule",
       rule_account: "Account", rule_trigger: "Trigger",
       rule_trigger_senders: "Senders (addresses)", rule_trigger_folder: "Folder (any sender)",
@@ -1157,6 +1159,7 @@
       snooze: "延后",
       automations: "自动化",
       automations_sub: "半自动与全自动回复，均在 Windows Hello 背后",
+      sf_title: "屏蔽类似邮件", sf_intro: "包含此文本的邮件会进入垃圾邮件，无论发件人是谁。发件人不会被屏蔽。", sf_field: "查找位置", sf_field_subject: "主题", sf_field_from: "发件人", sf_field_body: "主题或正文", sf_contains: "包含", sf_action: "操作", sf_action_spam: "移到垃圾邮件", sf_action_trash: "移到回收站", sf_all_accounts: "应用于所有账户", sf_confirm: "屏蔽", sf_list_title: "垃圾邮件过滤器", sf_list_sub: "按主题、发件人或正文屏蔽邮件，不限地址。每次 watcher 运行时应用。", sf_new: "+ 新建过滤器", sf_none: "没有过滤器。", sf_saved: "过滤器已保存", sf_moved: "已移动 {n} 封邮件", sf_block_upper: "屏蔽类似", sf_every_account: "所有账户", sf_hits: "已屏蔽 {n} 封", sf_too_short: "至少 3 个字符。",
       rules_title: "回复规则", rule_new: "新建规则",
       rule_account: "账户", rule_trigger: "触发条件",
       rule_trigger_senders: "发件人（地址）", rule_trigger_folder: "文件夹（任意发件人）",

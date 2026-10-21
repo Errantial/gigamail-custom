@@ -429,7 +429,8 @@
   }
 
   async function refreshAll() {
-    await Promise.all([refreshPending(), refreshRules(), refreshWatch(), refreshNotify(), fillAccounts()]);
+    await Promise.all([refreshPending(), refreshRules(), refreshWatch(), refreshNotify(), fillAccounts(),
+      window.SpamFilterUI ? window.SpamFilterUI.refreshList() : null]);
   }
 
   // ------------------------------------------------------------ bind

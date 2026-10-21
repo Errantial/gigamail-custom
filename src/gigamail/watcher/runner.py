@@ -74,7 +74,7 @@ class Watcher:
 
     def tick(self) -> Dict[str, int]:
         stats = {"executed": 0, "processed": 0, "appointments": 0,
-                 "after": 0, "archived": 0, "salvate": 0}
+                 "after": 0, "archived": 0, "salvate": 0, "spam": 0}
         # Il battito va aggiornato DENTRO il giro, non solo all'inizio.
         # Un giro che scrive tre bozze e spedisce tre mail dura piu' della
         # soglia oltre la quale running_state() dichiara morto il watcher:
@@ -91,6 +91,9 @@ class Watcher:
         stats["after"] = self.after_appointment()
         self.heartbeat()
         stats["processed"] += self.desktop_replies()
+        self.heartbeat()
+        # Spam filters before the rules: a mail they hide gets no draft.
+        stats["spam"] = self.apply_spam_filters()
         self.heartbeat()
         for rule in rules_mod.store().active():
             for message in self._poll_folder(rule):
@@ -252,6 +255,20 @@ class Watcher:
         return totale
 
     # -- phase C3: replies asked for from the desktop ---------------------
+
+    def apply_spam_filters(self) -> int:
+        """Mails matching a spam filter (subject, sender or text) go to the
+        spam folder or the bin, on every account. A failure does not stop
+        the tick."""
+        from gigamail.core import spam_filters
+        try:
+            n = spam_filters.run_all()
+        except Exception as e:
+            _log(f"spam filters: {type(e).__name__}: {e}")
+            return 0
+        if n:
+            _log(f"spam filters: {n} moved")
+        return n
 
     def desktop_replies(self) -> int:
         """Replies and edits queued from desktop notifications: drafted

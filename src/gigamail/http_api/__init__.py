@@ -112,10 +112,11 @@ from . import (  # noqa: E402 — dopo app, per l'ordine di lettura
     mask,
     notify,
     rules,
+    spam,
     zoom,
 )
 
-for _r in (accounts, addresses, mail, calendar, google, mask, agent, approvals, rules, notify, zoom):
+for _r in (accounts, addresses, mail, calendar, google, mask, agent, approvals, rules, notify, zoom, spam):
     app.include_router(_r.router)
 
 # Nomi che restano raggiungibili dalla facciata (compatibilita').
