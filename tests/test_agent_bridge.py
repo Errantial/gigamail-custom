@@ -338,3 +338,61 @@ def test_the_error_shown_is_the_reason_not_codex_header():
     assert "reasoning summaries" not in msg
     # no error line: the tail, where a plain message ends up
     assert agent_bridge._error_excerpt("x" * 1000 + "the end").endswith("the end")
+
+
+# ── Codex: a model the ChatGPT account cannot use ─────────────────────────
+
+def _models_cache(tmp_path, monkeypatch, models):
+    home = tmp_path / "codex"
+    home.mkdir()
+    (home / "models_cache.json").write_text(json.dumps(
+        {"fetched_at": "2026-10-21T00:00:00Z", "client_version": "0.163.0",
+         "models": models}), encoding="utf-8")
+    monkeypatch.setenv("CODEX_HOME", str(home))
+
+
+def test_models_available_lists_visible_models_in_priority_order(tmp_path, monkeypatch):
+    _models_cache(tmp_path, monkeypatch, [
+        {"slug": "gpt-5.4-mini", "priority": 5, "visibility": "list"},
+        {"slug": "gpt-5.6-sol", "priority": 1, "visibility": "list"},
+        {"slug": "secret-model", "priority": 0, "visibility": "hide"},
+        {"slug": "gpt-5.6-luna", "priority": 2},
+    ])
+    assert agent_bridge._codex_models_available() == ["gpt-5.6-sol", "gpt-5.6-luna", "gpt-5.4-mini"]
+    monkeypatch.setenv("CODEX_HOME", str(tmp_path / "nowhere"))
+    assert agent_bridge._codex_models_available() == []
+
+
+def test_refused_model_is_retried_with_the_accounts_own_and_remembered(tmp_path, monkeypatch, tmp_ade_root):
+    _models_cache(tmp_path, monkeypatch, [{"slug": "gpt-5.6-sol", "priority": 1}, {"slug": "gpt-5.6-luna", "priority": 2}])
+    monkeypatch.setattr(agent_bridge, "_find_codex", lambda: PY)
+    agent_bridge.select_agent("codex")
+    calls = []
+
+    def fake_spawn(cmd, stdin_bytes, timeout, env, run_id):
+        calls.append(list(cmd))
+        if "-m" not in cmd:
+            return 1, b"", (b"model: gpt-5.5\nERROR: {\"type\":\"error\",\"status\":400,\"error\":{\"message\":"
+                            b"\"The 'gpt-5.5' model is not supported when using Codex with a ChatGPT account.\"}}\n")
+        out = cmd[cmd.index("-o") + 1]
+        with open(out, "w", encoding="utf-8") as f:
+            f.write("Three unread mails.")
+        return 0, b"", b""
+    monkeypatch.setattr(agent_bridge, "_spawn", fake_spawn)
+    assert agent_bridge.run("what is new?") == "Three unread mails."
+    assert len(calls) == 2
+    assert calls[1][calls[1].index("-m") + 1] == "gpt-5.6-sol"
+    assert agent_bridge.codex_model() == "gpt-5.6-sol"
+    # the next run asks for it from the start
+    assert "-m" in agent_bridge.get_config()["command"]
+    assert agent_bridge.status()["codex_model"] == "gpt-5.6-sol"
+
+
+def test_refused_model_with_no_cache_reports_the_reason(tmp_path, monkeypatch, tmp_ade_root):
+    monkeypatch.setenv("CODEX_HOME", str(tmp_path / "empty"))
+    monkeypatch.setattr(agent_bridge, "_find_codex", lambda: PY)
+    agent_bridge.select_agent("codex")
+    monkeypatch.setattr(agent_bridge, "_spawn", lambda *a: (1, b"", b"ERROR: The 'gpt-5.5' model is not supported when using Codex with a ChatGPT account."))
+    with pytest.raises(agent_bridge.AgentUnavailable) as e:
+        agent_bridge.run("hi")
+    assert "gpt-5.5" in str(e.value)

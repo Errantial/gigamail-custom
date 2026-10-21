@@ -288,7 +288,7 @@
         if (ag.agent) sel.value = ag.agent;
       }
       set('agentStatus', ag.available ? 'ok' : 'err',
-        ag.available ? T(`pronto: ${ag.command}`, `ready: ${ag.command}`, `就绪：${ag.command}`)
+        ag.available ? T(`pronto: ${ag.command}`, `ready: ${ag.command}`, `就绪：${ag.command}`) + (ag.codex_model ? ` · ${ag.codex_model}` : '')
                      : T('agente non trovato: installa Claude Code o l\'app Codex / ChatGPT, o configura agent.json',
                          'agent not found: install Claude Code or the Codex / ChatGPT app, or configure agent.json',
                          '未找到代理：请安装 Claude Code 或 Codex / ChatGPT 应用，或配置 agent.json'));

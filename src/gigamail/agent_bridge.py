@@ -238,8 +238,85 @@ def _cmd_codex(exe: str) -> list:
     # bozza, non tocca il disco; --skip-git-repo-check perche' la cartella di
     # lavoro della console non e' un repository. La risposta finale va in un
     # file ({output}): su stdout Codex stampa anche il resto della sessione.
-    return [exe, "exec", "--skip-git-repo-check", "-s", "read-only",
-            "--color", "never", "-o", "{output}", "{prompt}"]
+    # -m: il modello scelto (agent.json "codex_model"), quando c'e': batte un
+    # `model = ...` in config.toml che l'account non ha piu' (vedi run()).
+    cmd = [exe, "exec", "--skip-git-repo-check", "-s", "read-only", "--color", "never"]
+    model = codex_model()
+    if model:
+        cmd += ["-m", model]
+    return cmd + ["-o", "{output}", "{prompt}"]
+
+
+def codex_model() -> str:
+    """The model Codex is asked for, from agent.json ("codex_model"); empty
+    lets Codex pick its default."""
+    m = _read_config_file().get("codex_model")
+    return m.strip() if isinstance(m, str) else ""
+
+
+def set_codex_model(model: str) -> None:
+    cfg = _read_config_file()
+    if model:
+        cfg["codex_model"] = model
+    else:
+        cfg.pop("codex_model", None)
+    path = _config_path()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, ensure_ascii=False, indent=2)
+
+
+_MODEL_REFUSED = re.compile(
+    r"model is not supported|Model metadata for ['`\"]?[\w.\-]+['`\"]? not found|"
+    r"model[^\n]{0,60}(not available|does not exist|unknown model)", re.I)
+
+
+def _codex_models_available() -> list:
+    """The models the signed-in account can use, from Codex's own
+    models_cache.json ($CODEX_HOME, default ~/.codex), listed ones first in
+    their priority order. Empty when there is no cache."""
+    home = os.environ.get("CODEX_HOME", "").strip() or os.path.join(os.path.expanduser("~"), ".codex")
+    try:
+        with open(os.path.join(home, "models_cache.json"), encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return []
+    found = []
+
+    def walk(node):
+        if isinstance(node, dict):
+            slug = node.get("slug")
+            if isinstance(slug, str) and slug:
+                found.append(node)
+            for v in node.values():
+                walk(v)
+        elif isinstance(node, list):
+            for v in node:
+                walk(v)
+    walk(data)
+    listed = [m for m in found if str(m.get("visibility", "list")).lower() not in ("hide", "hidden")]
+    pool = listed or found
+    pool.sort(key=lambda m: (m.get("priority") if isinstance(m.get("priority"), (int, float)) else 1e9))
+    out = []
+    for m in pool:
+        if m["slug"] not in out:
+            out.append(m["slug"])
+    return out
+
+
+def _with_model(cmd: list, model: str) -> list:
+    """The codex command with -m <model> (replacing an earlier -m)."""
+    out, skip = [], False
+    for a in cmd:
+        if skip:
+            skip = False
+            continue
+        if a == "-m":
+            skip = True
+            continue
+        out.append(a)
+    i = out.index("exec") + 1 if "exec" in out else 1
+    return out[:i] + ["-m", model] + out[i:]
 
 
 # Agenti che la console sa riconoscere da sola. L'ordine e' quello del default.
@@ -341,6 +418,7 @@ def status() -> dict:
         # one. The onboarding tells MCP clients to start the server with it
         # (-m gigamail.server), since gigamail-server is on no user's PATH.
         "python": sys.executable,
+        "codex_model": codex_model(),
     }
 
 
@@ -497,6 +575,27 @@ def run(prompt: str, timeout: int | None = None, run_id: str | None = None,
     try:
         returncode, stdout, stderr = _spawn(
             cmd, da_stdin, timeout or cfg["timeout"], _env_for_child(cfg, quiet_desktop), run_id)
+        # Codex refused the model: a `model = ...` pinned in config.toml (or
+        # the default of this build) that the ChatGPT account cannot use.
+        # Codex keeps the account's own list in models_cache.json: try those,
+        # and remember the one that works, so the next run starts with it.
+        if returncode != 0 and _agent_of(cfg) == "codex":
+            err_text = (stderr or b"").decode("utf-8", errors="replace")
+            if _MODEL_REFUSED.search(err_text):
+                refused = re.search(r"['`\"]([\w.\-]+)['`\"] model", err_text)
+                tried = {refused.group(1)} if refused else set()
+                tried.add(codex_model())
+                for cand in [m for m in _codex_models_available() if m not in tried][:3]:
+                    if out_file:
+                        open(out_file, "w").close()
+                    returncode, stdout, stderr = _spawn(
+                        _with_model(cmd, cand), da_stdin, timeout or cfg["timeout"],
+                        _env_for_child(cfg, quiet_desktop), run_id)
+                    if returncode == 0:
+                        set_codex_model(cand)
+                        break
+                    if not _MODEL_REFUSED.search((stderr or b"").decode("utf-8", errors="replace")):
+                        break
     except subprocess.TimeoutExpired as e:
         if out_file:
             _unlink(out_file)

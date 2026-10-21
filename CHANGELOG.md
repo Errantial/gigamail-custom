@@ -4,6 +4,15 @@
 
 ## v0.6.1 — 2026-10-21
 
+- **Codex picks a model the account can use.** With a ChatGPT account,
+  Codex refused the model it was started with ("The 'gpt-5.5' model is
+  not supported when using Codex with a ChatGPT account"): a model pinned
+  in its `config.toml`, or the default of that build, that the account
+  no longer has. The bar now reads the list Codex keeps of the account's
+  own models (`models_cache.json`), retries with the first of them, and
+  remembers the one that worked (`codex_model` in `agent.json`, shown
+  next to the agent in Automations). Set it there by hand to choose
+  another.
 - **Spam filters: block a kind of mail, not a sender.** *Block similar*
   on an open mail makes a filter "subject contains …" (pre-filled with
   the subject; or sender, or subject and text) that sends every matching
