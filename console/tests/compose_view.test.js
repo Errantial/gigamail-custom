@@ -13,6 +13,7 @@ function load() {
     function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
     function T(k, it){ return it; }
   `, ctx);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'icons.js'), 'utf-8'), ctx);
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'renderer_compose.js'), 'utf-8'), ctx);
   return dom.window;
 }

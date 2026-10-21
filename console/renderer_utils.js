@@ -330,7 +330,7 @@ function renderCustomFolders() {
   const homeChip = `
       <span class="custom-folder-row">
         <button class="custom-folder-chip custom-folder-home ${currentFolder === 'inbox' ? 'active' : ''}" data-home="1">
-          <span class="custom-folder-chip-label">📥 ${T('inbox','Posta in arrivo')}</span>
+          <span class="custom-folder-chip-label">${GMIcons.svg('inbox', 13)} ${T('inbox','Posta in arrivo')}</span>
         </button>
       </span>`;
   box.innerHTML = homeChip + folders.map(folder => {
@@ -344,7 +344,7 @@ function renderCustomFolders() {
           <span class="custom-folder-chip-label">${esc(label)}</span>
           ${newCount ? `<span class="custom-folder-badge" title="${T('recent_unread_5d','Mail recenti non lette negli ultimi 5 giorni')}">${esc(newCount)}</span>` : ''}
         </button>
-        <button class="custom-folder-identity" data-folder-id="${esc(id)}" data-folder-label="${esc(label)}" title="${T('config_folder_identity','Configura identity cartella')}" style="background:none;border:none;cursor:pointer;padding:2px 4px;color:#8A8280;font-size:11px;opacity:0.7;">⚙</button>
+        <button class="custom-folder-identity" data-folder-id="${esc(id)}" data-folder-label="${esc(label)}" title="${T('config_folder_identity','Configura identity cartella')}" style="background:none;border:none;cursor:pointer;padding:2px 4px;color:#8A8280;font-size:11px;opacity:0.7;">${GMIcons.svg('gear', 12)}</button>
         <button class="custom-folder-delete" data-folder-delete-id="${esc(id)}" data-folder-delete-label="${esc(label)}" title="${T('delete_folder','Elimina cartella')}">×</button>
       </span>`;
   }).join('');
@@ -612,7 +612,7 @@ function setSummaryBoxState(target, text, isLoading = false, actions = []) {
   if (!target) return;
   target.classList.toggle('loading', Boolean(isLoading));
   if (isLoading) {
-    target.textContent = `📋 ${text}`;
+    target.innerHTML = `${(typeof GMIcons !== 'undefined' ? GMIcons.svg('clipboard', 12) : '')} ${esc(text)}`;
     return;
   }
 
@@ -629,7 +629,7 @@ function setSummaryBoxState(target, text, isLoading = false, actions = []) {
           padding:4px 10px;border-radius:14px;font-size:10.5px;font-family:var(--font,sans-serif);
           background:rgba(255,255,255,0.7);border:1.5px solid rgba(0,0,0,0.55);
           color:rgba(0,0,0,0.7);cursor:pointer;transition:all 0.15s;
-          box-shadow:0 2px 8px rgba(0,0,0,0.07);">⚡ ${esc(a)}</button>`
+          box-shadow:0 2px 8px rgba(0,0,0,0.07);">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('zap', 12) : '')} ${esc(a)}</button>`
       ).join('') +
     `</div>`;
   }
@@ -890,7 +890,7 @@ async function renderDashboard() {
     const calDiv = byId('dash-calendar');
     if (calDiv) calDiv.innerHTML = card(`
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;">
-        <div style="width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,#eeb9dd,#b0c7f4);border:1px solid rgba(0,0,0,0.14);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">📅</div>
+        <div style="width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,#eeb9dd,#b0c7f4);border:1px solid rgba(0,0,0,0.14);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('calendar', 13) : '')}</div>
         <div style="font-size:12px;font-weight:500;color:rgba(0,0,0,0.82);flex:1;">${T('cal_upcoming','Prossimi appuntamenti')}</div>
         <div style="font-size:10px;color:rgba(0,0,0,0.55);">${now.toLocaleDateString(LOCALE(),{day:'numeric',month:'long',year:'numeric'})}</div>
       </div>

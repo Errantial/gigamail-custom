@@ -28,7 +28,7 @@ const MailView = (() => {
     const preview = m.bodyPreview || m.body_text || '';
     const unread  = (m.isRead === false) ? 'unread' : '';
     const folder  = m.folder ? ` · ${m.folder}` : '';
-    const attIcon = hasAttachments(m) ? '<span class="mail-attach-icon" title="' + T('mv_has_attachments','Contiene allegati') + '">📎</span> ' : '';
+    const attIcon = hasAttachments(m) ? '<span class="mail-attach-icon" title="' + T('mv_has_attachments','Contiene allegati') + '">' + GMIcons.svg('paperclip', 12) + '</span> ' : '';
     const f = esc(cleanFolder(m.folder) || '');
     return `
       <div class="mail-item ${unread}" data-id="${esc(m.id)}" data-folder="${f}" data-account-id="${esc(accountId || '')}">
@@ -56,7 +56,7 @@ const MailView = (() => {
       ? `${T('draft_sync_failed','Non copiata nella casella')}: ${d.sync_error}`
       : d.in_mailbox ? T('draft_in_mailbox','Salvata anche nella casella')
                      : T('local_draft_hint','Salvata in GigaMail, non ancora nella casella');
-    const mark = d.sync_error ? '✎!' : d.in_mailbox ? '✎✓' : '✎';
+    const mark = GMIcons.svg('pencil-line', 12) + (d.sync_error ? '!' : d.in_mailbox ? '✓' : '');
     return `
       <div class="mail-item local-draft" data-draft-id="${id}">
         <div class="mail-subject">
@@ -82,7 +82,7 @@ const MailView = (() => {
         <div class="mail-attachments">
           ${atts.map((a, idx) => `
             <div class="attachment-chip" data-att-index="${idx}" style="cursor:pointer;user-select:none" title="${T('attach_opts_title','Click: apri • Tasto destro: opzioni')}">
-              📎 ${esc(a.name)} (${Math.round((a.size||0)/1024)}KB)
+              ${GMIcons.svg('paperclip', 12)} ${esc(a.name)} (${Math.round((a.size||0)/1024)}KB)
             </div>
           `).join('')}
         </div>`;
@@ -100,22 +100,22 @@ const MailView = (() => {
           <div class="mail-detail-actions">
             <audio id="mailAudio" src="${esc(ttsUrl)}" style="display:none"></audio>
             <button class="btn" id="btnAscolta" data-requires="/mail/{message_id}/tts">◉ ${T('listen','ASCOLTA')}</button>
-            ${inDrafts ? `<button class="btn" id="btnContinueDraft" data-requires="/mail/draft/save">✎ ${T('continue_draft_upper','CONTINUA')}</button>` : ''}
+            ${inDrafts ? `<button class="btn" id="btnContinueDraft" data-requires="/mail/draft/save">${GMIcons.svg('pencil-line')} ${T('continue_draft_upper','CONTINUA')}</button>` : ''}
             <button class="btn" id="btnShowReply">↩ ${T('reply_upper','RISPONDI')}</button>
             <button class="btn" id="btnShowReplyAll">↩↩ ${T('all_upper','TUTTI')}</button>
             <button class="btn" id="btnForward">↪ ${T('forward_upper','INOLTRA')}</button>
-            <button class="btn" id="btnRiassumi" data-requires="/mail/{message_id}/summary">📋 ${T('summarize_upper','RIASSUMI')}</button>
-            <button class="btn" id="btnMove">📁 ${T('move_upper','SPOSTA')}</button>
-            <button class="btn" id="btnSpamFilter" title="${T('sf_intro','')}">⛔ ${T('sf_block_upper','BLOCCA SIMILI')}</button>
+            <button class="btn" id="btnRiassumi" data-requires="/mail/{message_id}/summary">${GMIcons.svg('clipboard')} ${T('summarize_upper','RIASSUMI')}</button>
+            <button class="btn" id="btnMove">${GMIcons.svg('folder')} ${T('move_upper','SPOSTA')}</button>
+            <button class="btn" id="btnSpamFilter" title="${T('sf_intro','')}">${GMIcons.svg('ban')} ${T('sf_block_upper','BLOCCA SIMILI')}</button>
             ${inSpam
-              ? `<button class="btn" id="btnNotSpam">✅ ${T('not_spam_upper','NON È SPAM')}</button>`
-              : `<button class="btn" id="btnSpam">🚫 ${T('spam_upper','SPAM')}</button>`
+              ? `<button class="btn" id="btnNotSpam">${GMIcons.svg('shield-check')} ${T('not_spam_upper','NON È SPAM')}</button>`
+              : `<button class="btn" id="btnSpam">${GMIcons.svg('ban')} ${T('spam_upper','SPAM')}</button>`
             }
-            <button class="btn btn-danger" id="btnDelete">🗑 ${T('delete_upper','ELIMINA')}</button>
+            <button class="btn btn-danger" id="btnDelete">${GMIcons.svg('trash')} ${T('delete_upper','ELIMINA')}</button>
             <button class="btn" id="btnMarkUnread">● ${T('unread_upper','NON LETTA')}</button>
           </div>
         </div>
-        <div class="mail-summary-box" id="mailSummaryBox" data-requires="/mail/{message_id}/summary" style="background:#f3e6f0;border:1px solid rgba(0,0,0,0.14);border-radius:10px;margin:10px 15px 0;padding:9px 12px;font-size:11px;color:rgba(0,0,0,0.75);box-shadow:0 2px 8px rgba(0,0,0,0.07);">📋 ${T('press_summarize','Premi RIASSUMI per generare il riassunto.')}</div>
+        <div class="mail-summary-box" id="mailSummaryBox" data-requires="/mail/{message_id}/summary" style="background:#f3e6f0;border:1px solid rgba(0,0,0,0.14);border-radius:10px;margin:10px 15px 0;padding:9px 12px;font-size:11px;color:rgba(0,0,0,0.75);box-shadow:0 2px 8px rgba(0,0,0,0.07);">${GMIcons.svg('clipboard', 12)} ${T('press_summarize','Premi RIASSUMI per generare il riassunto.')}</div>
         <div class="mail-suggestion-box hidden" id="mailSuggestionBox"></div>${attachmentChipsHtml(msg.attachments)}`;
   }
 
@@ -412,7 +412,7 @@ async function openMail(id, overrideFolder = null) {
         const m = document.createElement('div');
         m.id = 'attachCtxMenu';
         m.style.cssText = 'position:fixed;z-index:99999;min-width:160px;background:#fff;border:1px solid rgba(0,0,0,0.14);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,0.35);padding:5px;font-family:inherit';
-        m.innerHTML = '<div class="att-ctx-item" data-act="open" style="padding:8px 12px;border-radius:7px;font-size:13px;cursor:pointer">📂 ' + T('mv_att_open','Apri') + '</div><div class="att-ctx-item" data-act="save" style="padding:8px 12px;border-radius:7px;font-size:13px;cursor:pointer">💾 ' + T('mv_att_save_as','Salva con nome…') + '</div>';
+        m.innerHTML = '<div class="att-ctx-item" data-act="open" style="padding:8px 12px;border-radius:7px;font-size:13px;cursor:pointer">' + GMIcons.svg('folder-open') + ' ' + T('mv_att_open','Apri') + '</div><div class="att-ctx-item" data-act="save" style="padding:8px 12px;border-radius:7px;font-size:13px;cursor:pointer">' + GMIcons.svg('save') + ' ' + T('mv_att_save_as','Salva con nome…') + '</div>';
         document.body.appendChild(m);
         const rect = m.getBoundingClientRect();
         m.style.left = Math.max(4, (x+rect.width>window.innerWidth)?x-rect.width:x) + 'px';
@@ -467,13 +467,13 @@ async function openMail(id, overrideFolder = null) {
       const btn = byId('btnRiassumi');
       if (btn._playing && btn._audio) {
         btn._audio.pause(); btn._audio.currentTime = 0;
-        btn.textContent = '📋 ' + T('summarize_upper','RIASSUMI'); btn._playing = false; return;
+        btn.innerHTML = GMIcons.svg('clipboard') + ' ' + T('summarize_upper','RIASSUMI'); btn._playing = false; return;
       }
       try {
         btn.textContent = '...';
         const summaryText = await ensureMailSummary(id, activeAccountId, detail, folderValue);
         if (!summaryText) {
-          btn.textContent = '📋 ' + T('summarize_upper','RIASSUMI');
+          btn.innerHTML = GMIcons.svg('clipboard') + ' ' + T('summarize_upper','RIASSUMI');
           return;
         }
         const blob = await api.speakText(summaryText);
@@ -481,7 +481,7 @@ async function openMail(id, overrideFolder = null) {
         btn._audio = new Audio(url);
         setVoicePlaybackActive(true);
         btn._audio.play(); btn._playing = true; btn.textContent = '◻ ' + T('mv_stop_upper','STOP');
-        btn._audio.onended = () => { setVoicePlaybackActive(false); btn.textContent = '📋 ' + T('summarize_upper','RIASSUMI'); btn._playing = false; URL.revokeObjectURL(url); };
+        btn._audio.onended = () => { setVoicePlaybackActive(false); btn.innerHTML = GMIcons.svg('clipboard') + ' ' + T('summarize_upper','RIASSUMI'); btn._playing = false; URL.revokeObjectURL(url); };
         btn._audio.onpause = () => { setVoicePlaybackActive(false); };
       } catch (e) { showToast(T('mv_tts_error','Errore TTS') + `: ${e}`); }
     });
@@ -493,7 +493,7 @@ async function openMail(id, overrideFolder = null) {
     // SUGGERIMENTO RISPOSTA PROATTIVO
     if (msg._reply_suggestion?.has_suggestion) {
       const s = msg._reply_suggestion;
-      const confLabel = s.confidence === 'alta' ? '🟢' : s.confidence === 'media' ? '🟡' : '🟠';
+      const confLabel = s.confidence === 'alta' ? '●' : s.confidence === 'media' ? '◐' : '○';
       const suggestBox = byId('mailSuggestionBox');
       if (suggestBox) {
         suggestBox.classList.remove('hidden');
@@ -559,7 +559,7 @@ async function openMail(id, overrideFolder = null) {
         // Rimuovi dalla lista tutte le mail visibili (potrebbero essere state spostate in bulk)
         await refreshCurrentFolder();
         resetMailDetail();
-        showToast('✅ ' + (moved > 1
+        showToast((moved > 1
           ? T('mv_moved_to_inbox_many','{n} mail spostate in INBOX').replace('{n}', () => moved)
           : T('mv_moved_to_inbox_one','Mail spostata in INBOX')));
       } catch (e) { showToast(T('error','Errore') + `: ${e}`); }
@@ -748,7 +748,7 @@ function bindMailEvents() {
   on('btnRefreshMail', 'click', async () => {
     try {
       await fetch(`${window.GIGAMAIL_API}/cache/clear`, { method: 'POST' });
-      showToast('🔄 ' + T('mv_identity_cache_cleared','Cache identity svuotata'));
+      showToast(T('mv_identity_cache_cleared','Cache identity svuotata'));
     } catch(e) {}
     await refreshCurrentFolder();
   });
@@ -787,7 +787,7 @@ function bindMailEvents() {
   on('folderKeywordsInput', 'input', () => { folderKeywordsDirty = true; });
   on('btnRefreshCustomFolders', 'click', async () => {
     await refreshCurrentFolder();
-    showToast('📬 ' + T('mv_refreshed','Aggiornato'));
+    showToast(T('mv_refreshed','Aggiornato'));
   });
   on('btnCloseMoveMailPanel', 'click', () => setHidden('moveMailPanel', true));
   // La X in alto ha un id suo: senza questo la finestra Sposta non si chiudeva.

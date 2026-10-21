@@ -312,3 +312,12 @@ html:not([data-theme="dark"]) .mail-list .mail-item + .mail-item::before {
 .s-item svg, .s-item svg * { color: inherit !important; }
 html[data-theme="dark"] body .s-item { color: var(--gm-pink-hi) !important; }
 html[data-theme="dark"] body .s-item:hover { background: var(--gm-tint) !important; color: #fff !important; }
+
+/* icone a linea al posto delle emoji (icons.js): allineate al testo */
+.gm-icon { vertical-align: -2px; flex-shrink: 0; }
+.btn .gm-icon, .chip-btn .gm-icon, .ctx-item .gm-icon, .compose-btn .gm-icon, .att-ctx-item .gm-icon { margin-right: 2px; }
+.icon-btn .gm-icon, .icon-btn-sm .gm-icon, .tool-btn .gm-icon, .tab .gm-icon, .search-bar > span .gm-icon { margin: 0; vertical-align: middle; }
+.ob-choice-icon .gm-icon { vertical-align: middle; }
+.gm-icon, .gm-icon * { color: inherit !important; }
+.ade-context-menu .ctx-item { justify-content: flex-start; gap: 8px; }
+.ade-context-menu .ctx-item .ctx-arrow { margin-left: auto; }

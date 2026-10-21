@@ -111,7 +111,7 @@
   function bodyBlock(s, t) {
     if (!s.body && !s.attachments.length) return '';
     const att = s.attachments.length
-      ? `<div class="ai-card-sub">📎 ${esc(s.attachments.join(', '))}</div>` : '';
+      ? `<div class="ai-card-sub">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('paperclip', 11) : '')} ${esc(s.attachments.join(', '))}</div>` : '';
     const body = s.body
       ? `<details class="pending-body"><summary class="hint">${esc(t('pending_body', 'Testo'))}</summary>`
         + `<pre class="hint" style="white-space:pre-wrap;margin:6px 0 0">${esc(s.body)}</pre></details>` : '';
@@ -127,8 +127,8 @@
         <div class="ai-card-row" style="margin-top:8px">
           <span class="ai-card-status ${s.expiresIn < 120 ? 'warn' : ''}">${fmtEta(s.expiresIn, t)}</span>
           <span style="flex:1"></span>
-          <button class="chip-btn" data-act="approve" data-id="${esc(s.id)}">✅ ${esc(t('pending_approve', 'Approva'))}</button>
-          <button class="chip-btn danger" data-act="reject" data-id="${esc(s.id)}">✖ ${esc(t('pending_reject', 'Rifiuta'))}</button>
+          <button class="chip-btn" data-act="approve" data-id="${esc(s.id)}">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('check', 12) : '')} ${esc(t('pending_approve', 'Approva'))}</button>
+          <button class="chip-btn danger" data-act="reject" data-id="${esc(s.id)}">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('x', 12) : '')} ${esc(t('pending_reject', 'Rifiuta'))}</button>
         </div>
       </div>`;
   }

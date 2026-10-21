@@ -13,8 +13,8 @@ const ComposeView = (() => {
   function attachmentChipsHtml(atts, chipStyle) {
     return (atts || []).map((a, i) => `
     <span class="attachment-chip"${chipStyle ? ` style="${chipStyle}"` : ''}>
-      📎 ${esc(a.name)} (${Math.round((a.size || 0)/1024)}KB)
-      <button data-att-index="${i}" style="background:none;border:none;cursor:pointer;color:var(--red);margin-left:4px">✕</button>
+      ${GMIcons.svg('paperclip', 12)} ${esc(a.name)} (${Math.round((a.size || 0)/1024)}KB)
+      <button data-att-index="${i}" style="background:none;border:none;cursor:pointer;color:var(--red);margin-left:4px">${GMIcons.svg('x', 12)}</button>
     </span>`).join('');
   }
 
@@ -194,7 +194,7 @@ function _openReplyModalLegacy(defaultTo, defaultSubject) {
   header.innerHTML = '<span style="font-size:10px;font-weight:600;letter-spacing:2px;color:#8A8280;font-family:var(--mono,monospace)">'+T('new_reply_upper','NUOVA RISPOSTA')+'</span>';
   const btnClose = document.createElement('button');
   btnClose.id = 'btnCloseReplyModal';
-  btnClose.textContent = '✕';
+  btnClose.innerHTML = GMIcons.svg('x', 16);
   btnClose.style.cssText = 'background:none;border:none;color:#8A8280;font-size:16px;cursor:pointer;padding:2px 6px;line-height:1;';
   header.appendChild(btnClose);
   box.appendChild(header);
@@ -241,9 +241,9 @@ function _openReplyModalLegacy(defaultTo, defaultSubject) {
   footer.style.cssText = 'display:flex;align-items:center;gap:8px;padding:12px 20px;border-top:1px solid #E2DDD6;background:#FAF8F5;flex-shrink:0;flex-wrap:wrap;';
   footer.innerHTML = `
     <input type="file" id="replyFileInput" multiple style="display:none" />
-    <button class="btn-voice" id="btnReplyVoice" title="${T('ade_voice','ADE voice')}">🎙 ADE</button>
-    <button class="btn btn-secondary" id="btnReplyAttach">📎</button>
-    <button class="btn btn-secondary" id="btnGenerateReply">⚡ ${T('cmp_generate_draft_upper', 'GENERA BOZZA')}</button>
+    <button class="btn-voice" id="btnReplyVoice" title="${T('ade_voice','ADE voice')}">${GMIcons.svg('mic')} ADE</button>
+    <button class="btn btn-secondary" id="btnReplyAttach">${GMIcons.svg('paperclip', 15)}</button>
+    <button class="btn btn-secondary" id="btnGenerateReply">${GMIcons.svg('zap')} ${T('cmp_generate_draft_upper', 'GENERA BOZZA')}</button>
     <div style="flex:1"></div>
     <button class="btn btn-secondary" id="btnHideReply">${T('cancel_upper','ANNULLA')}</button>
     <button class="btn btn-primary" id="btnSendReply">↩ ${T('cmp_send_upper', 'INVIA')}</button>`;
@@ -371,7 +371,7 @@ function _showSuggestedAttachments(attachments) {
 
   banner.innerHTML = `
     <div style="font-size:10px;font-weight:600;letter-spacing:1.5px;color:#3730A3;margin-bottom:2px;">
-      📎 ${T('suggested_attachments', 'ALLEGATI SUGGERITI')}
+      ${GMIcons.svg('paperclip', 12)} ${T('suggested_attachments', 'ALLEGATI SUGGERITI')}
     </div>
     <div style="font-size:10px;color:#6366F1;">${T('select_attach_auto','Seleziona i file da allegare automaticamente')}</div>
     ${items}
@@ -464,12 +464,12 @@ async function generateNewMailDraft() {
   if (!bodyEl || !statusEl) return;
   const instruction = bodyEl.value.trim();
   if (!instruction) return;
-  statusEl.textContent = '⚡ ' + T('bulk_generating', 'Generazione in corso...');
+  statusEl.textContent = T('bulk_generating', 'Generazione in corso...');
   try {
     const result = await api.replyDraft('new', instruction, activeAccountId);
     bodyEl.value = result.draft || '';
-    statusEl.textContent = '✓ ' + T('cmp_draft_generated', 'Bozza generata');
-  } catch (e) { statusEl.textContent = `✕ ${T('error', 'Errore')}: ${e}`; }
+    statusEl.textContent = T('cmp_draft_generated', 'Bozza generata');
+  } catch (e) { statusEl.textContent = `${T('error', 'Errore')}: ${e}`; }
 }
 
 function renderPendingAttachments() {
@@ -515,8 +515,8 @@ async function sendNewMail() {
   const status  = byId('newMailStatus');
   const cc      = ComposeView.splitAddresses(ccRaw);
   const bcc     = ComposeView.splitAddresses(bccRaw);
-  if (!to || !subject || !body) { if (status) status.textContent = '✕ ' + T('cmp_fill_to_subject_body', 'Compila destinatario, oggetto e testo'); return; }
-  if (status) status.textContent = '⚡ ' + T('cmp_sending', 'Invio in corso...');
+  if (!to || !subject || !body) { if (status) status.textContent = T('cmp_fill_to_subject_body', 'Compila destinatario, oggetto e testo'); return; }
+  if (status) status.textContent = T('cmp_sending', 'Invio in corso...');
   try {
     const result = await api.sendMail(
       to,
@@ -538,8 +538,8 @@ async function sendNewMail() {
     if (result.success) {
       if (status) {
         status.textContent = result.sent_copy_saved === false
-          ? '✓ ' + T('cmp_sent_not_saved_short', 'Mail inviata, ma non salvata in Inviate')
-          : '✓ ' + T('cmp_mail_sent', 'Mail inviata!');
+          ? T('cmp_sent_not_saved_short', 'Mail inviata, ma non salvata in Inviate')
+          : T('cmp_mail_sent', 'Mail inviata!');
       }
       autosaveSignature = '';
       if (inlineDraftId) {
@@ -557,8 +557,8 @@ async function sendNewMail() {
         pendingAttachments = [];
         renderPendingAttachments();
       }, 1200);
-    } else if (status) { status.textContent = '✕ ' + T('cmp_send_failed', 'Invio fallito'); }
-  } catch (e) { if (status) status.textContent = `✕ ${T('error', 'Errore')}: ${e}`; }
+    } else if (status) { status.textContent = T('cmp_send_failed', 'Invio fallito'); }
+  } catch (e) { if (status) status.textContent = `${T('error', 'Errore')}: ${e}`; }
 }
 
 async function autosaveDraft() {

@@ -64,7 +64,7 @@ test('the watcher card names the rule mode, the recipient source and the expiry'
   assert.ok(html.includes('SEMI'));
   assert.ok(html.includes('address taken from the body'));
   assert.ok(html.includes('scade tra 8m08s'));
-  assert.ok(html.includes('📎 A.1.pdf'));
+  assert.ok(/A\.1\.pdf/.test(html), 'attachments listed');
   assert.ok(html.includes('Dear Sir,\nthanks.'));
 });
 

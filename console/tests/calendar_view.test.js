@@ -29,7 +29,7 @@ test('eventItemHtml: titolo, luogo e id escapati', () => {
   host.innerHTML = html;
   assert.equal(host.querySelector('.event-item').dataset.id, 'e"1');
   assert.ok(host.querySelector('.event-subject').textContent.includes('<img src=x'));
-  assert.ok(host.querySelector('.event-location').textContent.includes('📍 <img'));
+  assert.ok(host.querySelector('.event-location').textContent.includes('<img'));
   assert.equal(host.querySelectorAll('img').length, 0);
   const noLoc = w.CalendarView.eventItemHtml({ id: 'x', subject: 's' });
   assert.ok(!noLoc.includes('event-location'));
@@ -59,10 +59,10 @@ test('eventPopupHtml: struttura .modal della console, tutto escapato, bottoni co
   assert.equal(host.querySelectorAll('[data-act="close"]').length, 2);
   assert.equal(host.querySelectorAll('[data-act="edit"]').length, 1);
   assert.ok(host.querySelector('.modal-title').textContent.includes('<img src=x'));
-  assert.ok(host.querySelector('.modal-body').textContent.includes('🕐 DT:s → DT:e'));
+  assert.ok(host.querySelector('.modal-body').textContent.includes('DT:s → DT:e'));
   assert.equal(host.querySelectorAll('img, b').length, 0);
   // senza dati opzionali: niente righe vuote
   const bare = w.CalendarView.eventPopupHtml({ subject: 'x' });
-  assert.ok(!bare.includes('📍') && !bare.includes('👥') && !bare.includes('ob-p'));
+  assert.equal((bare.match(/ob-muted/g) || []).length, 1); assert.ok(!bare.includes('ob-p'));
   assert.ok(bare.includes('(senza titolo)') === false);
 });

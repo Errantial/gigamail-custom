@@ -50,7 +50,7 @@
           <div class="panel-title"><span id="currentFolderLabel" data-i18n="inbox">Posta in arrivo</span><span id="statMail"></span></div>
           <div class="account-row">
             <select id="accountSelect" class="account-select"></select>
-            <button class="icon-btn-sm" id="btnIdentityAccount"><span class="btn-icon">👤</span></button>
+            <button class="icon-btn-sm" id="btnIdentityAccount"><span class="btn-icon"><span data-icon="user" data-icon-size="15"></span></span></button>
             <button class="icon-btn-sm" id="btnRefreshMail" data-i18n-title="refresh_mail_title" title="Aggiorna mail + Refresh identity"><span class="btn-icon">↻</span></button>
           </div>
           <div class="account-row" style="margin-bottom:8px">
@@ -58,17 +58,17 @@
             <button class="chip-btn" id="btnAddFolder" data-i18n="add_folder_btn">+ Cartella</button>
           </div>
           <div class="search-bar">
-            <span>🔍</span>
+            <span><span data-icon="search" data-icon-size="14"></span></span>
             <input type="text" id="mailSearch" data-i18n-ph="search_mail_ph" placeholder="Cerca mail…"/>
             <button id="btnSearchMail" class="search-go">→</button>
           </div>
         </div>
         <div class="tabs">
-          <div class="tab" id="btnShowSnoozed" data-i18n-title="snoozed" title="Snoozed">💤</div>
+          <div class="tab" id="btnShowSnoozed" data-i18n-title="snoozed" title="Snoozed"><span data-icon="moon" data-icon-size="14"></span></div>
         </div>
         <div id="customFoldersList" class="custom-folders"></div>
         <div class="mail-list" id="mailList"></div>
-        <button class="compose-btn" id="btnNewMail">✏  <span data-i18n="new_mail">Nuova mail</span></button>
+        <button class="compose-btn" id="btnNewMail"><span data-icon="pencil" data-icon-size="15"></span> <span data-i18n="new_mail">Nuova mail</span></button>
       </div>
       <div class="detail-col" id="detailCol">
         <div class="main-area" id="mailDetail"></div>
@@ -78,7 +78,7 @@
           <div class="agent-thread" id="agentThread"></div>
           <div class="agent-input">
             <div class="agent-chip" id="agentChip" hidden>
-              <span class="agent-chip-icon">✉</span><span id="agentChipText"></span>
+              <span class="agent-chip-icon"><span data-icon="mail" data-icon-size="13"></span></span><span id="agentChipText"></span>
               <button class="agent-chip-x" id="agentChipX" aria-label="×">×</button>
             </div>
             <div class="agent-row">
@@ -100,7 +100,7 @@
                 <option value="7" data-i18n="win_days_7">7 giorni</option><option value="14" data-i18n="win_days_14">14 giorni</option><option value="30" data-i18n="win_days_30">30 giorni</option>
               </select>
               <button class="chip-btn" id="btnRefreshCal">↻</button>
-              <button class="chip-btn" id="btnSpeakToday" data-requires="/calendar/today/tts">🔊</button>
+              <button class="chip-btn" id="btnSpeakToday" data-requires="/calendar/today/tts"><span data-icon="volume" data-icon-size="14"></span></button>
               <button class="chip-btn" id="btnClearEvent">+ <span data-i18n="cal_event">Evento</span></button>
             </div>
           </div>
@@ -159,7 +159,7 @@
                 <input type="text" id="ruleStyle" class="field-input" data-i18n-ph="rule_style_ph" placeholder="es. cordiale e breve; rispondi nella lingua del mittente"/></div>
               <div class="field-row"><label class="field-label" data-i18n="rule_docs">Documenti (uniche fonti della bozza)</label>
                 <div id="ruleDocsList"></div>
-                <button class="chip-btn" id="btnPickDocs" data-i18n="rule_docs_pick">📎 Aggiungi documento…</button></div>
+                <button class="chip-btn" id="btnPickDocs"><span data-icon="paperclip" data-icon-size="14"></span> <span data-i18n="rule_docs_pick">Aggiungi documento…</span></button></div>
               <div class="field-row" style="flex-direction:row;gap:10px;flex-wrap:wrap">
                 <div style="flex:1;min-width:120px"><label class="field-label" data-i18n="rule_mode">Modalità</label>
                   <select id="ruleMode" class="field-input">
@@ -232,7 +232,7 @@
           <div class="mkt-section">
             <label class="field-label">1. <span data-i18n="recipients">DESTINATARI</span></label>
             <input type="file" id="bulkFileInput" accept=".csv,.xlsx,.xls" style="display:none"/>
-            <button class="chip-btn w100" id="btnBulkUpload">📂 <span data-i18n="win_load_csv_upper">CARICA CSV / EXCEL</span></button>
+            <button class="chip-btn w100" id="btnBulkUpload"><span data-icon="upload" data-icon-size="14"></span> <span data-i18n="win_load_csv_upper">CARICA CSV / EXCEL</span></button>
             <div id="bulkFileInfo" class="hint"></div>
           </div>
           <div class="mkt-section">
@@ -255,15 +255,15 @@
           </div>
           <div class="mkt-section"><div id="bulkVarsHint" class="hint" style="color:rgba(26,108,245,0.7)"><span data-i18n="win_variables">Variabili:</span> {nome}, {email}</div></div>
           <div class="mkt-section">
-            <button class="chip-btn w100" id="btnBulkPreview">👁 <span data-i18n="win_preview_upper">PREVIEW</span></button>
+            <button class="chip-btn w100" id="btnBulkPreview"><span data-icon="eye" data-icon-size="14"></span> <span data-i18n="win_preview_upper">PREVIEW</span></button>
             <button class="compose-btn" id="btnBulkStart" disabled>▶ <span data-i18n="win_start_send_upper">AVVIA INVIO</span></button>
-            <button class="chip-btn w100 danger" id="btnBulkStop" style="display:none">⏹ <span data-i18n="win_stop_upper">FERMA</span></button>
+            <button class="chip-btn w100 danger" id="btnBulkStop" style="display:none"><span data-icon="stop" data-icon-size="14"></span> <span data-i18n="win_stop_upper">FERMA</span></button>
           </div>
         </div>
         <div class="mkt-right">
           <div class="mkt-ai-row">
             <textarea id="bulkInstruction" class="field-input" style="resize:none;flex:1" rows="2" data-i18n-ph="bulk_instruction_ph" placeholder="Descrivi la mail da generare con AI…"></textarea>
-            <button class="compose-btn" style="margin:0;width:auto;padding:8px 14px" id="btnBulkGenerate">⚡ <span data-i18n="generate">GENERA</span></button>
+            <button class="compose-btn" style="margin:0;width:auto;padding:8px 14px" id="btnBulkGenerate"><span data-icon="zap" data-icon-size="14"></span> <span data-i18n="generate">GENERA</span></button>
           </div>
           <div id="bulkGenerateStatus" class="hint" style="padding:3px 0"></div>
           <div id="bulkEditorHtml" style="flex:1;display:flex"><textarea id="bulkBodyHtml" class="code-editor" placeholder="<html>…"></textarea></div>
@@ -324,18 +324,18 @@
   </div>
   <div id="replyDropZone" class="reply-drop-zone">
     <textarea id="replyText" class="reply-textarea" data-i18n-ph="reply_text_ph" placeholder="Scrivi la tua risposta…"></textarea>
-    <div class="drop-overlay" id="replyDropOverlay"><span>📎 <span data-i18n="win_drop_to_attach">Rilascia per allegare</span></span></div>
+    <div class="drop-overlay" id="replyDropOverlay"><span><span data-icon="paperclip" data-icon-size="16"></span> <span data-i18n="win_drop_to_attach">Rilascia per allegare</span></span></div>
   </div>
   <div id="replyAttachmentsBox" class="reply-attachments"></div>
   <input type="file" id="replyFileInput" multiple style="display:none"/>
   <div id="pendingAttachmentsBox" style="display:none"></div>
   <div class="reply-toolbar">
     <div class="reply-tools">
-      <button class="tool-btn" id="btnReplyAttach">📎</button>
-      <button class="tool-btn" id="btnReplyVoice">🎙</button>
+      <button class="tool-btn" id="btnReplyAttach"><span data-icon="paperclip" data-icon-size="16"></span></button>
+      <button class="tool-btn" id="btnReplyVoice"><span data-icon="mic" data-icon-size="16"></span></button>
     </div>
     <input type="text" id="replyInstruction" class="instruction-input" data-i18n-ph="ai_instruction_ph" placeholder="Istruzione AI…"/>
-    <button class="tool-btn ai-btn" id="btnGenerateReply">⚡ <span data-i18n="generate">GENERA</span></button>
+    <button class="tool-btn ai-btn" id="btnGenerateReply"><span data-icon="zap" data-icon-size="14"></span> <span data-i18n="generate">GENERA</span></button>
     <button class="reply-send-btn"  id="btnSendReply" data-i18n="send">Invia ↑</button>
   </div>
 </div>
@@ -343,7 +343,7 @@
 <!-- MODAL NUOVA MAIL -->
 <div class="overlay hidden" id="newMailPanel">
   <div class="modal">
-    <div class="modal-hdr"><span class="modal-title" data-i18n="new_mail">Nuova mail</span><button class="icon-btn" id="btnCloseNewMail">✕</button></div>
+    <div class="modal-hdr"><span class="modal-title" data-i18n="new_mail">Nuova mail</span><button class="icon-btn" id="btnCloseNewMail"><span data-icon="x" data-icon-size="16"></span></button></div>
     <div class="modal-body">
       <div class="field-row"><label class="field-label" data-i18n="to_word">A</label><input type="text" id="newMailTo" class="field-input" data-i18n-ph="recipient_ph" placeholder="mario.rossi@example.com" autocomplete="off"/></div>
       <div class="field-row"><label class="field-label">CC</label><input type="text" id="newMailCc" class="field-input" data-i18n-ph="optional" placeholder="(opzionale)"/></div>
@@ -355,8 +355,8 @@
       <input type="file" id="newMailFileInput" multiple style="display:none"/>
     </div>
     <div class="modal-ftr">
-      <button class="chip-btn" id="btnAttachFile">📎 <span data-i18n="win_attach">Allega</span></button>
-      <button class="chip-btn" id="btnGenerateNewMail">⚡ AI</button>
+      <button class="chip-btn" id="btnAttachFile"><span data-icon="paperclip" data-icon-size="14"></span> <span data-i18n="win_attach">Allega</span></button>
+      <button class="chip-btn" id="btnGenerateNewMail"><span data-icon="zap" data-icon-size="14"></span> AI</button>
       <div style="margin-left:auto;display:flex;gap:6px">
         <button class="chip-btn" id="btnCancelNewMail" data-i18n="cancel">Annulla</button>
         <button class="compose-btn" style="margin:0;width:auto;padding:8px 18px" id="btnSendNewMail" data-i18n="send">Invia ↑</button>
@@ -391,7 +391,7 @@
 <!-- MODAL ACCOUNT IMAP -->
 <div class="overlay hidden" id="imapOverlay">
   <div class="modal">
-    <div class="modal-hdr"><span class="modal-title" data-i18n="add_account">Aggiungi account</span><button class="icon-btn" id="btnCloseImap">✕</button></div>
+    <div class="modal-hdr"><span class="modal-title" data-i18n="add_account">Aggiungi account</span><button class="icon-btn" id="btnCloseImap"><span data-icon="x" data-icon-size="16"></span></button></div>
     <div class="modal-body">
       <div class="field-row"><label class="field-label" data-i18n="name_label">Nome</label><input type="text" id="imapName" class="field-input" data-i18n-ph="example_work" placeholder="Es: Lavoro"/></div>
       <div class="field-row"><label class="field-label" data-i18n="email_label">Email</label><input type="email" id="imapEmail" class="field-input"/></div>
@@ -433,7 +433,7 @@
   <div class="modal ob-modal">
     <div class="modal-hdr">
       <div class="ob-hdr-left"><span class="modal-title" id="obTitle">Benvenuto in GigaMail</span><span class="ob-step-label" id="obStepLabel"></span></div>
-      <div class="ob-hdr-right"><span class="ob-dots" id="obDots"></span><button class="icon-btn" id="obClose" data-i18n-title="close" title="Chiudi">✕</button></div>
+      <div class="ob-hdr-right"><span class="ob-dots" id="obDots"></span><button class="icon-btn" id="obClose" data-i18n-title="close" title="Chiudi"><span data-icon="x" data-icon-size="16"></span></button></div>
     </div>
     <div class="modal-body ob-body">
 
@@ -462,12 +462,12 @@
           <div class="field-label" data-i18n="ob_choose_provider">Scegli come collegare la casella</div>
           <div class="ob-choice-grid">
             <button class="ob-choice" id="obChoiceMs">
-              <div class="ob-choice-icon">⚡</div>
+              <div class="ob-choice-icon"><span data-icon="zap" data-icon-size="22"></span></div>
               <div class="ob-choice-title" data-i18n="ob_ms_title">Microsoft 365</div>
               <div class="ob-choice-sub" data-i18n="ob_ms_sub">Login nel browser con il tuo account aziendale o Outlook.com</div>
             </button>
             <button class="ob-choice" id="obChoiceImap">
-              <div class="ob-choice-icon">✉</div>
+              <div class="ob-choice-icon"><span data-icon="mail" data-icon-size="22"></span></div>
               <div class="ob-choice-title" data-i18n="ob_imap_title">IMAP</div>
               <div class="ob-choice-sub" data-i18n="ob_imap_sub">Gmail, Aruba, Libero, Outlook o qualunque server IMAP</div>
             </button>
@@ -577,12 +577,12 @@
   <div class="modal" style="max-width:420px">
     <div class="modal-hdr">
       <span class="modal-title" data-i18n="ms_login">Microsoft 365 — Login</span>
-      <button class="icon-btn" id="btnLoginOverlayX">✕</button>
+      <button class="icon-btn" id="btnLoginOverlayX"><span data-icon="x" data-icon-size="16"></span></button>
     </div>
     <div class="modal-body">
       <div id="loginStep1">
         <p style="font-size:13px;color:rgba(0,0,0,0.55);margin-bottom:14px" data-i18n="ms_login_desc">Clicca per avviare l'autenticazione Microsoft 365 via browser.</p>
-        <button class="compose-btn" style="margin:0;width:100%" id="btnStartLogin">⚡ <span data-i18n="win_start_login_upper">AVVIA LOGIN</span></button>
+        <button class="compose-btn" style="margin:0;width:100%" id="btnStartLogin"><span data-icon="zap" data-icon-size="14"></span> <span data-i18n="win_start_login_upper">AVVIA LOGIN</span></button>
       </div>
       <div id="loginStep2" class="hidden" style="display:flex;flex-direction:column;gap:12px">
         <p style="font-size:13px;color:rgba(0,0,0,0.55)" data-i18n="ms_goto">Vai su questo indirizzo nel browser:</p>
@@ -591,7 +591,7 @@
         <p style="font-size:13px;color:rgba(0,0,0,0.55)" data-i18n="ms_enter_code">Inserisci il codice:</p>
         <div id="loginCode" style="font-size:26px;font-weight:700;letter-spacing:6px;color:rgba(0,0,0,0.82);text-align:center;padding:14px;background:rgba(26,108,245,0.08);border-radius:var(--radius-sm);border:1px solid rgba(26,108,245,0.2);font-family:monospace"></div>
         <p style="font-size:11px;color:rgba(0,0,0,0.55)" data-i18n="ms_after_code">Dopo aver inserito il codice nel browser, clicca qui:</p>
-        <button class="compose-btn" style="margin:0;width:100%" id="btnCompleteLogin">✓ <span data-i18n="win_code_entered_upper">HO INSERITO IL CODICE</span></button>
+        <button class="compose-btn" style="margin:0;width:100%" id="btnCompleteLogin"><span data-icon="check" data-icon-size="14"></span> <span data-i18n="win_code_entered_upper">HO INSERITO IL CODICE</span></button>
       </div>
     </div>
   </div>
@@ -600,7 +600,7 @@
 <!-- MODAL CARTELLA -->
 <div class="overlay hidden" id="folderPanel">
   <div class="modal" style="max-width:400px">
-    <div class="modal-hdr"><span class="modal-title" data-i18n="new_folder">Nuova cartella</span><button class="icon-btn" id="btnCloseFolderPanel">✕</button></div>
+    <div class="modal-hdr"><span class="modal-title" data-i18n="new_folder">Nuova cartella</span><button class="icon-btn" id="btnCloseFolderPanel"><span data-icon="x" data-icon-size="16"></span></button></div>
     <div class="modal-body">
       <div class="field-row"><label class="field-label" data-i18n="name_label">Nome</label><input type="text" id="folderNameInput" class="field-input" data-i18n-ph="example_clients" placeholder="Es: Clienti"/></div>
       <div class="field-row"><label class="field-label" data-i18n="keywords_label">Parole chiave</label><input type="text" id="folderKeywordsInput" class="field-input" data-i18n-ph="example_kw" placeholder="Es: fattura, cliente"/></div>
@@ -616,7 +616,7 @@
 <!-- MODAL SPOSTA -->
 <div class="overlay hidden" id="moveMailPanel">
   <div class="modal" style="max-width:360px">
-    <div class="modal-hdr"><span class="modal-title" data-i18n="move_mail">Sposta mail</span><button class="icon-btn" id="btnCloseMoveMailPanel2">✕</button></div>
+    <div class="modal-hdr"><span class="modal-title" data-i18n="move_mail">Sposta mail</span><button class="icon-btn" id="btnCloseMoveMailPanel2"><span data-icon="x" data-icon-size="16"></span></button></div>
     <div class="modal-body">
       <div class="field-row"><label class="field-label" data-i18n="folder_label">Cartella</label><select id="moveFolderSelect" class="field-input"></select></div>
       <div id="moveMailStatus" class="hint"></div>
@@ -628,7 +628,7 @@
 <!-- MODAL FILTRO SPAM -->
 <div class="overlay hidden" id="spamFilterPanel">
   <div class="modal" style="max-width:420px">
-    <div class="modal-hdr"><span class="modal-title" data-i18n="sf_title">Blocca mail simili</span><button class="icon-btn" id="btnCloseSpamFilter">✕</button></div>
+    <div class="modal-hdr"><span class="modal-title" data-i18n="sf_title">Blocca mail simili</span><button class="icon-btn" id="btnCloseSpamFilter"><span data-icon="x" data-icon-size="16"></span></button></div>
     <div class="modal-body">
       <div class="hint" data-i18n="sf_intro">Le mail che contengono questo testo finiscono nello spam, da qualunque mittente arrivino. Il mittente non viene bloccato.</div>
       <div class="field-row"><label class="field-label" data-i18n="sf_field">Dove cercare</label>
@@ -653,7 +653,7 @@
 <!-- MODAL EVENTO -->
 <div class="overlay hidden" id="eventOverlay">
   <div class="modal" style="max-width:440px">
-    <div class="modal-hdr"><span class="modal-title" data-i18n="cal_event">Evento</span><button class="icon-btn" id="btnCloseEvent">✕</button></div>
+    <div class="modal-hdr"><span class="modal-title" data-i18n="cal_event">Evento</span><button class="icon-btn" id="btnCloseEvent"><span data-icon="x" data-icon-size="16"></span></button></div>
     <div class="modal-body">
       <input type="hidden" id="eventId"/>
       <div class="field-row"><label class="field-label" data-i18n="title_label">Titolo</label><input type="text" id="eventSubject" class="field-input"/></div>
@@ -664,7 +664,7 @@
       <div class="field-row"><label class="field-label" data-i18n="attendees_label">Partecipanti</label><input type="text" id="eventAttendees" class="field-input" placeholder="email1, email2…"/></div>
     </div>
     <div class="modal-ftr">
-      <button class="chip-btn danger" id="btnDeleteEvent" style="display:none">🗑 <span data-i18n="delete_cap">Elimina</span></button>
+      <button class="chip-btn danger" id="btnDeleteEvent" style="display:none"><span data-icon="trash" data-icon-size="14"></span> <span data-i18n="delete_cap">Elimina</span></button>
       <div style="margin-left:auto;display:flex;gap:6px">
         <button class="chip-btn" id="btnCancelEvent" data-i18n="cancel">Annulla</button>
         <button class="compose-btn" style="margin:0;width:auto;padding:8px 18px" id="btnSaveEvent" data-i18n="save">Salva</button>
@@ -675,9 +675,9 @@
 
 <!-- CONTEXT MENU MAIL -->
 <div class="ade-context-menu hidden" id="mailContextMenu">
-  <button class="ctx-item" data-action="open-popup">📨 <span data-i18n="win_open_popup">Apri in popup</span></button>
+  <button class="ctx-item" data-action="open-popup"><span data-icon="external" data-icon-size="14"></span> <span data-i18n="win_open_popup">Apri in popup</span></button>
   <div class="ctx-item ctx-has-submenu" data-action="snooze">
-    💤 <span data-i18n="snooze">Snooze</span>
+    <span data-icon="moon" data-icon-size="14"></span> <span data-i18n="snooze">Snooze</span>
     <span class="ctx-arrow">›</span>
     <div class="ctx-submenu">
       <button class="ctx-item" data-snooze="1h" data-i18n="win_snooze_1h">1 ora</button>
@@ -687,13 +687,13 @@
       <button class="ctx-item" data-snooze="monday" data-i18n="snooze_monday">Lunedì prossimo</button>
       <button class="ctx-item" data-snooze="nextweek" data-i18n="snooze_nextweek">Settimana prossima</button>
       <div class="ctx-divider"></div>
-      <button class="ctx-item" data-snooze="custom">📅 <span data-i18n="win_custom_ellipsis">Personalizzato…</span></button>
+      <button class="ctx-item" data-snooze="custom"><span data-icon="calendar" data-icon-size="14"></span> <span data-i18n="win_custom_ellipsis">Personalizzato…</span></button>
     </div>
   </div>
-  <button class="ctx-item" data-action="mark-read">✓ <span data-i18n="win_mark_read">Segna come letta</span></button>
+  <button class="ctx-item" data-action="mark-read"><span data-icon="check" data-icon-size="14"></span> <span data-i18n="win_mark_read">Segna come letta</span></button>
   <button class="ctx-item" data-action="mark-unread">○ <span data-i18n="win_mark_unread">Segna come non letta</span></button>
   <div class="ctx-divider"></div>
-  <button class="ctx-item danger" data-action="delete">🗑 <span data-i18n="delete_cap">Elimina</span></button>
+  <button class="ctx-item danger" data-action="delete"><span data-icon="trash" data-icon-size="14"></span> <span data-i18n="delete_cap">Elimina</span></button>
 </div>
 
 <!-- SNOOZE CUSTOM DATETIME PICKER -->
@@ -701,7 +701,7 @@
   <div class="modal" style="max-width:380px">
     <div class="modal-hdr">
       <span class="modal-title" data-i18n="snooze_custom">Snooze personalizzato</span>
-      <button class="icon-btn" id="snoozeCustomClose">✕</button>
+      <button class="icon-btn" id="snoozeCustomClose"><span data-icon="x" data-icon-size="16"></span></button>
     </div>
     <div class="modal-body">
       <div class="field-row">
@@ -737,6 +737,7 @@
 <script src="features.js"          defer></script>
 <script src="mail_render.js"       defer></script>
 <script src="voice_mail.js"        defer></script>
+<script src="icons.js"             defer></script>
 <script src="renderer_utils.js"    defer></script>
 <script src="renderer_bulk.js"     defer></script>
 <script src="renderer_identity.js" defer></script>

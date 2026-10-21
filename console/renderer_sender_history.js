@@ -64,13 +64,13 @@
     container.innerHTML = `
       <div class="sh-card">
         <div class="sh-main">
-          <span class="sh-icon">📋</span>
+          <span class="sh-icon">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('clipboard', 14) : '')}</span>
           <div class="sh-text">
             <div class="sh-line1"><b>${count}</b> ${_esc(withLabel)} <b>${_esc(name)}</b>${period ? ` · ${period}` : ''}</div>
             <div class="sh-line2">${hist.sent_count || 0} ${_esc(sentLabel)} · ${hist.received_count || 0} ${_esc(recvLabel)}</div>
             ${temiHtml}
           </div>
-          <button class="sh-summarize" id="shSummarizeBtn">✨ ${_esc(summarizeLabel)}</button>
+          <button class="sh-summarize" id="shSummarizeBtn">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('sparkles', 12) : '')} ${_esc(summarizeLabel)}</button>
         </div>
         <div class="sh-summary" id="shSummary" style="display:none"></div>
       </div>`;

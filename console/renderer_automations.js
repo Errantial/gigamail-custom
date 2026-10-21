@@ -83,7 +83,7 @@
     const actBtn = r.state === 'paused'
       ? `<button class="chip-btn" data-act="resume" data-id="${r.rule_id}">▶ ${T('Riattiva (Hello)', 'Resume (Hello)', '恢复 (Hello)')}</button>`
       : r.state === 'active'
-        ? `<button class="chip-btn" data-act="pause" data-id="${r.rule_id}">⏸ ${T('Pausa', 'Pause', '暂停')}</button>`
+        ? `<button class="chip-btn" data-act="pause" data-id="${r.rule_id}">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('pause', 12) : '')} ${T('Pausa', 'Pause', '暂停')}</button>`
         : '';
     return `
       <div class="ai-card" data-rule="${r.rule_id}">
@@ -91,7 +91,7 @@
           <div class="ai-card-titles">
             <div class="ai-card-title">${modeTag} ${escapeHtml(trig)}</div>
             <div class="ai-card-sub">${escapeHtml(r.reply_style || T('(nessuno stile)', '(no style)', '(无风格)'))}
-              ${docs ? ' · 📎 ' + escapeHtml(docs) : ''}</div>
+              ${docs ? ' · ' + (typeof GMIcons !== 'undefined' ? GMIcons.svg('paperclip', 11) : '') + ' ' + escapeHtml(docs) : ''}</div>
             <div class="ai-card-sub">${T('cap', 'cap', '上限')} ${r.daily_cap}/${T('g', 'd', '天')} · ${T('cooldown', 'cooldown', '冷却')} ${r.cooldown_hours}h ·
               ${T('oggi', 'today', '今天')}: ${r.sent_today} · ${fmtDays(r.expires_at)}
               ${r.pause_reason ? ' · ' + escapeHtml(r.pause_reason) : ''}</div>
@@ -100,9 +100,9 @@
         <div class="ai-card-row">
           <span class="ai-card-status ${cls}">${state}</span>
           <span style="flex:1"></span>
-          <button class="chip-btn" data-act="activity" data-id="${r.rule_id}">📋 ${T('Attività', 'Activity', '活动')}</button>
+          <button class="chip-btn" data-act="activity" data-id="${r.rule_id}">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('clipboard', 12) : '')} ${T('Attività', 'Activity', '活动')}</button>
           ${actBtn}
-          <button class="chip-btn danger" data-act="delete" data-id="${r.rule_id}">🗑</button>
+          <button class="chip-btn danger" data-act="delete" data-id="${r.rule_id}">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('trash', 13) : '')}</button>
         </div>
         <div class="hint" id="act-${r.rule_id}" style="display:none;white-space:pre-wrap;margin-top:8px"></div>
       </div>`;

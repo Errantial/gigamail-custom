@@ -21,7 +21,7 @@ const CalendarView = (() => {
       <div class="event-item" data-id="${esc(event.id)}">
         <div class="event-subject">${esc(event.subject || T('win_untitled', '(senza titolo)'))}</div>
         <div class="event-time">${esc(start)}</div>
-        ${loc ? `<div class="event-location">📍 ${esc(loc)}</div>` : ''}
+        ${loc ? `<div class="event-location">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('map', 12) : '')} ${esc(loc)}</div>` : ''}
       </div>`;
   }
 
@@ -36,18 +36,18 @@ const CalendarView = (() => {
     <div class="modal" style="max-width:440px">
       <div class="modal-hdr">
         <span class="modal-title">${esc(event.subject || T('win_untitled', '(senza titolo)'))}</span>
-        <button class="icon-btn" data-act="close" title="${T('close','Chiudi')}">✕</button>
+        <button class="icon-btn" data-act="close" title="${T('close','Chiudi')}">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('x', 16) : '')}</button>
       </div>
       <div class="modal-body">
-        <div class="ob-muted">🕐 ${esc(start)}${end ? ' → ' + esc(end) : ''}</div>
-        ${loc ? `<div class="ob-muted">📍 ${esc(loc)}</div>` : ''}
-        ${attendees ? `<div class="ob-muted">👥 ${esc(attendees)}</div>` : ''}
+        <div class="ob-muted">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('clock', 12) : '')} ${esc(start)}${end ? ' → ' + esc(end) : ''}</div>
+        ${loc ? `<div class="ob-muted">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('map', 12) : '')} ${esc(loc)}</div>` : ''}
+        ${attendees ? `<div class="ob-muted">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('users', 12) : '')} ${esc(attendees)}</div>` : ''}
         ${notes ? `<div class="ob-p" style="max-height:160px;overflow-y:auto">${esc(notes)}</div>` : ''}
       </div>
       <div class="modal-ftr">
         <span class="ob-spacer"></span>
         <button class="chip-btn" data-act="close">${T('close_upper','CHIUDI')}</button>
-        <button class="compose-btn ob-cta-inline" data-act="edit">✏ ${T('cal_edit','MODIFICA')}</button>
+        <button class="compose-btn ob-cta-inline" data-act="edit">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('pencil', 14) : '')} ${T('cal_edit','MODIFICA')}</button>
       </div>
     </div>`;
   }

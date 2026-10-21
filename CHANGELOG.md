@@ -11,6 +11,11 @@
   blocked, are listed in Automations under *Spam filters*, where new ones
   can be added and old ones removed. Only a click in the console creates
   one: the agent, or a mail it reads, cannot hide mail.
+- **Line icons instead of emoji.** The buttons of the reading pane, the
+  context menu, the folder chips, the compose and calendar panels and
+  Automations drew their icons as emoji, which every system rendered in
+  its own shapes and colours. They now use the same line icons as the
+  bar on the left (`console/icons.js`), in the accent colour.
 - **No black window while the agent works.** On Windows the Claude or
   Codex process the bar starts got a console of its own, a black "claude"
   terminal over the mail. It now runs with no window.

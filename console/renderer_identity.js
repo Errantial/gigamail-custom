@@ -18,7 +18,7 @@ async function openFolderIdentityModal(accountId, folderId, folderLabel) {
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid #E2DDD6;background:#FAF8F5;flex-shrink:0;">
         <div>
           <div style="font-size:10px;font-weight:600;letter-spacing:2px;color:#8A8280;font-family:var(--mono)">${T('identity_folder','IDENTITY CARTELLA')}</div>
-          <div style="font-size:12px;color:#8A5CE6;margin-top:2px;">📁 ${esc(folderLabel)}</div>
+          <div style="font-size:12px;color:#8A5CE6;margin-top:2px;">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('folder', 12) : '')} ${esc(folderLabel)}</div>
           <div style="font-size:10px;color:#8A8280;margin-top:1px;font-family:var(--mono)">${T('identity_folder_sub','sovrascrive identity account per questa cartella')}</div>
         </div>
         <button id="btnCloseFolderIdentity" style="background:none;border:none;color:#8A8280;font-size:16px;cursor:pointer;padding:2px 8px;">✕</button>
@@ -150,7 +150,7 @@ async function openIdentityModal(accountId, accountName) {
           <div style="display:flex;gap:8px;margin-top:5px;">
             <input id="idUrlInput" type="text" placeholder="${T('url_ph','https://... oppure incolla testo con URL')}"
               style="flex:1;background:#F4F2EE;border:1px solid #E2DDD6;border-radius:2px;padding:8px 10px;font-size:12px;outline:none;font-family:var(--mono);box-sizing:border-box;"/>
-            <button class="btn btn-secondary" id="btnExtractUrl" style="white-space:nowrap;">🔍 ${T('id_extract','ESTRAI')}</button>
+            <button class="btn btn-secondary" id="btnExtractUrl" style="white-space:nowrap;">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('search', 14) : '')} ${T('id_extract','ESTRAI')}</button>
           </div>
           <div id="idExtractStatus" style="font-size:11px;color:#8A8280;margin-top:4px;font-family:var(--mono);min-height:16px;"></div>
         </div>
@@ -158,7 +158,7 @@ async function openIdentityModal(accountId, accountName) {
           <label class="field-label">${T('useful_files','FILE UTILI')} <span style="font-weight:400;color:#8A8280">${T('useful_files_sub','(.txt .md .csv — es. listino prezzi)')}</span></label>
           <div id="idFileList" style="display:flex;flex-direction:column;gap:6px;margin:6px 0;"></div>
           <div id="idDropZone" style="border:2px dashed #C8C3BC;border-radius:4px;padding:14px;text-align:center;color:#8A8280;font-size:11px;font-family:var(--mono);cursor:pointer;transition:border-color 0.15s,background 0.15s;margin-bottom:6px;">
-            📂 ${T('id_drop_files','TRASCINA FILE O CARTELLE QUI oppure clicca per sfogliare')}<br><span style="font-size:10px;opacity:0.7">.txt .md .csv .xlsx .pdf .docx</span>
+            ${(typeof GMIcons !== 'undefined' ? GMIcons.svg('folder-open', 18) : '')} ${T('id_drop_files','TRASCINA FILE O CARTELLE QUI oppure clicca per sfogliare')}<br><span style="font-size:10px;opacity:0.7">.txt .md .csv .xlsx .pdf .docx</span>
             <input id="idFilePickerInput" type="file" multiple accept=".txt,.md,.csv,.xlsx,.xls,.pdf,.docx" style="display:none" webkitdirectory="false"/>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -182,10 +182,10 @@ async function openIdentityModal(accountId, accountName) {
   function getPathIcon(fp) {
     // Detect se è cartella (no estensione) o file
     const hasExt = /\.[a-zA-Z0-9]+$/.test(fp.trim());
-    if (!hasExt) return '📁';
+    if (!hasExt) return (typeof GMIcons !== 'undefined' ? GMIcons.svg('folder', 13) : '');
     const ext = fp.split('.').pop().toLowerCase();
-    const icons = { xlsx: '📊', xls: '📊', csv: '📊', pdf: '📄', docx: '📝', txt: '📝', md: '📝' };
-    return icons[ext] || '📎';
+    const icons = { xlsx: 'bar-chart', xls: 'bar-chart', csv: 'bar-chart', pdf: 'file-text', docx: 'file-text', txt: 'file-text', md: 'file-text' };
+    return (typeof GMIcons !== 'undefined' ? GMIcons.svg(icons[ext] || 'paperclip', 13) : '');
   }
 
   function renderFilePaths() {
@@ -359,7 +359,7 @@ async function openIdentityModal(accountId, accountName) {
       const text = document.getElementById('idUrlInput')?.value?.trim();
       if (!text) return;
       btnExtract.disabled = true;
-      btnExtract.textContent = '⏳ ' + T('id_extracting','Estrazione...');
+      btnExtract.textContent = T('id_extracting','Estrazione...');
       if (extractStatus) extractStatus.textContent = T('id_analyzing','Analisi in corso...');
       try {
         const res = await fetch(`${window.GIGAMAIL_API}/identity/extract_from_url`, {
@@ -384,7 +384,7 @@ async function openIdentityModal(accountId, accountName) {
         if (extractStatus) extractStatus.textContent = '✗ ' + T('error','Errore') + ': ' + e.message;
       } finally {
         btnExtract.disabled = false;
-        btnExtract.textContent = '🔍 ' + T('id_extract','ESTRAI');
+        btnExtract.innerHTML = (typeof GMIcons !== 'undefined' ? GMIcons.svg('search', 14) : '') + ' ' + T('id_extract','ESTRAI');
       }
     });
   }
