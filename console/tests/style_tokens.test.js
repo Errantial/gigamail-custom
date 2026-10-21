@@ -28,7 +28,7 @@ test('gradiente rosa-blu solo su avatar, logo, voce e iconcine', () => {
   const GRAD = /linear-gradient\(135deg,#eeb9dd,#b0c7f4\)|linear-gradient\(135deg,#b0c7f4,#eeb9dd\)/g;
   let total = 0;
   for (const f of FILES) total += (read(f).match(GRAD) || []).length;
-  // style_v2.css: .s-avatar + 2 stati voce; renderer_utils.js: pallino + icona calendario
+  // style_v2.css: 2 voice states; renderer_utils.js: dot + calendar icon
   assert.ok(total <= 5, `gradiente rosa-blu in ${total} punti: e' tornato sotto un testo?`);
 });
 

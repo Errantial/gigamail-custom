@@ -25,6 +25,16 @@
   (version, model, sandbox): the error line after it, the one that says
   "not logged in" or names the model, was cut off. The message now starts
   at the first line that names an error, or ends with the output's tail.
+- **New GigaMail logo.** The lightning wordmark is replaced by a flower
+  with a bolt at its centre, across the app icon, favicons, plugin icons,
+  social cards, banners and the launch video. In the console the mark now
+  sits at the bottom of the icon bar, flower above and name below, where
+  the account-initial circle was; the wordmark above the mail list is
+  gone, since the account selector already names the account in use.
+- **Demo requests from the website reach us.** The demo forms on the
+  business and real-estate pages had no destination configured, so they
+  only said "not configured" and the request was lost. They now open the
+  visitor's mail program with the request addressed to the founder's inbox.
 
 ## v0.6.0 — 2026-10-20
 
