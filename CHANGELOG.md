@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **An update installs completely.** The backend stays alive when the
+  window closes, so the next start is instant; but it kept python.exe and
+  its DLLs open while the update's installer ran, which could not
+  overwrite them and left `resources/python` half old, half new: the
+  updated app started without the `gigamail` module. When an update has
+  been downloaded, closing the app now stops the backend first.
 - **The "new mail" toast is readable in the dark theme.** Its colours were
   fixed in the code: the dark theme darkened the buttons' background and
   left their text black, so *Open* vanished. The toast now takes the

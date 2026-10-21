@@ -539,6 +539,23 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
+// Tranne quando sta per partire l'installer dell'aggiornamento: il backend
+// tiene aperti python.exe e le sue DLL in resources/python, l'installer non
+// li puo' sovrascrivere e lascia la cartella a meta' (la 0.6.1 ripartiva
+// senza il modulo gigamail). Prima di passare la mano all'installer il
+// backend va terminato, in modo sincrono: dopo before-quit non c'e' tempo.
+let updateDownloaded = false;
+function stopBackendSync() {
+  const pid = backendPid();
+  if (!pid) return;
+  if (process.platform === 'win32') {
+    try { execFileSync('taskkill', ['/PID', String(pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' }); } catch (_) { /* gone */ }
+  } else {
+    try { process.kill(pid); } catch (_) { /* gone */ }
+  }
+}
+app.on('before-quit', () => { if (updateDownloaded) stopBackendSync(); });
+
 ipcMain.on('mail-opened',  () => {});
 ipcMain.on('window-close',    () => mainWindow?.close());
 ipcMain.on('window-minimize', () => mainWindow?.minimize());
@@ -895,6 +912,7 @@ ipcMain.on('ask-window-maximize', (event) => {
 // ── AUTO-UPDATER ──────────────────────────────────────────────────────────────
 autoUpdater.on('update-available', () => mainWindow?.webContents.send('update-available'));
 autoUpdater.on('update-downloaded', (info) => {
+  updateDownloaded = true;
   // Niente quitAndInstall a tempo: l'utente puo' essere a meta' di una
   // risposta. electron-updater installa da solo alla prossima chiusura
   // (autoInstallOnAppQuit); qui si avvisa e basta.
