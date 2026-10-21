@@ -289,9 +289,9 @@
       }
       set('agentStatus', ag.available ? 'ok' : 'err',
         ag.available ? T(`pronto: ${ag.command}`, `ready: ${ag.command}`, `就绪：${ag.command}`)
-                     : T('agente non trovato: installa Claude Code o l\'app Codex / ChatGPT, o configura agent.json',
-                         'agent not found: install Claude Code or the Codex / ChatGPT app, or configure agent.json',
-                         '未找到代理：请安装 Claude Code 或 Codex / ChatGPT 应用，或配置 agent.json'));
+                     : T('agente non trovato: installa Claude Code, l\'app Codex / ChatGPT o Antigravity (agy), o configura agent.json',
+                         'agent not found: install Claude Code, the Codex / ChatGPT app or Antigravity (agy), or configure agent.json',
+                         '未找到代理：请安装 Claude Code、Codex / ChatGPT 应用或 Antigravity (agy)，或配置 agent.json'));
       set('consentStatus', st.consent_backend ? 'ok' : 'err',
         st.consent_backend || (
           T('nessun backend, approvazioni bloccate', 'no backend, approvals fail closed', '无后端，审批被阻止')

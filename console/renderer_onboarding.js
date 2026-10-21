@@ -335,7 +335,9 @@
     const isCodex = ag.agent === 'codex';
     currentSnippet = isCodex ? codexSnippet(ag) : mcpSnippet(ag);
     setText('obMcpSnippet', currentSnippet);
-    setText('obMcpLabel', T(isCodex ? 'ob_agent_mcp_codex' : 'ob_agent_mcp', ''));
+    const label = isCodex ? 'ob_agent_mcp_codex'
+      : ag.agent === 'antigravity' ? 'ob_agent_mcp_antigravity' : 'ob_agent_mcp';
+    setText('obMcpLabel', T(label, ''));
   }
 
   async function loadAgent() {

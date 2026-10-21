@@ -81,18 +81,18 @@ def cancel(run_id: str) -> bool:
     return True
 
 
-def _spawn(cmd, stdin_bytes, timeout, env, run_id):
+def _spawn(cmd, stdin_bytes, timeout, env, run_id, cwd=None):
     """(returncode, stdout, stderr). Without a run_id, subprocess.run as
     always; with one, the process is registered so cancel() can end it."""
     if not run_id:
         p = subprocess.run(cmd, capture_output=True, input=stdin_bytes,
                            stdin=None if stdin_bytes is not None else subprocess.DEVNULL,
-                           timeout=timeout, shell=False, env=env)
+                           timeout=timeout, shell=False, env=env, cwd=cwd)
         return p.returncode, p.stdout, p.stderr
     kw = {"start_new_session": True} if os.name != "nt" else {}
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             stdin=subprocess.PIPE if stdin_bytes is not None else subprocess.DEVNULL,
-                            shell=False, env=env, **kw)
+                            shell=False, env=env, cwd=cwd, **kw)
     with _LOCK:
         _RUNNING[run_id] = proc
         early = run_id in _CANCELLED
@@ -226,6 +226,73 @@ def _cmd_codex(exe: str) -> list:
             "--color", "never", "-o", "{output}", "{prompt}"]
 
 
+def _find_antigravity() -> str:
+    """Find the Google Antigravity CLI (agy): PATH first, then where its
+    install script puts it, for a process that did not inherit the PATH:
+    %LOCALAPPDATA%/agy/bin/agy.exe on Windows, ~/.local/bin/agy on macOS
+    and Linux."""
+    on_path = shutil.which("agy")
+    if on_path:
+        return on_path
+    local = os.environ.get("LOCALAPPDATA", "")
+    candidates = [os.path.join(local, "agy", "bin", "agy.exe")] if local else []
+    candidates.append(os.path.join(os.path.expanduser("~"), ".local", "bin", "agy"))
+    for cand in candidates:
+        if os.path.isfile(cand):
+            return cand
+    return "agy"
+
+
+def _cmd_antigravity(exe: str) -> list:
+    # Headless mode with the prompt as a stream-json event on stdin: agy -p
+    # takes the prompt only as an argument, which cannot carry a long or
+    # multi-line prompt, and with --input-format text agy does not read
+    # stdin. --sandbox: the agent writes a draft, it runs no commands.
+    return [exe, "--input-format", "stream-json", "--output-format", "stream-json", "--sandbox"]
+
+
+def _antigravity_stdin(prompt: str) -> bytes:
+    """One user event, then EOF: agy ends the session after that turn."""
+    event = {"event": "user", "message": {"content": prompt}}
+    return (json.dumps(event, ensure_ascii=False) + "\n").encode("utf-8")
+
+
+def _antigravity_answer(stdout: str) -> str:
+    """The response of the last `result` event of agy's NDJSON stream.
+    Anything but SUCCESS is an error, not an answer: a failed run must not
+    come back as the body of a draft."""
+    result = None
+    for line in (stdout or "").splitlines():
+        line = line.strip()
+        if not line.startswith("{"):
+            continue
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(event, dict) and event.get("event") == "result" and isinstance(event.get("result"), dict):
+            result = event["result"]
+    if result is None:
+        raise AgentUnavailable(f"Antigravity returned no result: {(stdout or '')[:400]}")
+    if result.get("status") != "SUCCESS":
+        err = result.get("error")
+        if isinstance(err, dict):
+            err = err.get("message") or json.dumps(err, ensure_ascii=False)
+        raise AgentUnavailable(f"Antigravity: {result.get('status')} {str(err or '')[:400]}".strip())
+    response = result.get("response")
+    return response.strip() if isinstance(response, str) else ""
+
+
+def _antigravity_workspace() -> str:
+    """An empty folder as agy's workspace. agy lets the agent read and write
+    files in its workspace without asking: the console's own folder is no
+    place for an agent that reads untrusted mail."""
+    from gigamail.core.data_paths import app_root
+    path = os.path.join(str(app_root()), "agent-workspace")
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
 # Agenti che la console sa riconoscere da sola. L'ordine e' quello del default.
 # `find` passa dal nome del modulo a ogni chiamata (lambda), non da un
 # riferimento preso all'import: cosi' i test possono sostituire _find_claude
@@ -235,6 +302,12 @@ AGENTS = {
                "mcp": "json"},
     "codex": {"label": "Codex", "find": lambda: _find_codex(), "command": _cmd_codex,
               "mcp": "toml"},
+    # stdin / answer / cwd: an agent whose prompt travels as data on stdin
+    # and whose answer is parsed out of its stdout.
+    "antigravity": {"label": "Antigravity", "find": lambda: _find_antigravity(),
+                    "command": _cmd_antigravity, "mcp": "json",
+                    "stdin": _antigravity_stdin, "answer": _antigravity_answer,
+                    "cwd": lambda: _antigravity_workspace()},
 }
 
 
@@ -260,7 +333,7 @@ def _default_agent() -> str:
 
 
 def get_config() -> dict:
-    """{"command": [...], "timeout": int, "agent": "claude"|"codex"|"custom"}"""
+    """{"command": [...], "timeout": int, "agent": "claude"|"codex"|"antigravity"|"custom"}"""
     env_cmd = os.environ.get("ADE_AGENT_CMD", "")
     if env_cmd:
         try:
@@ -421,7 +494,10 @@ def run(prompt: str, timeout: int | None = None, run_id: str | None = None,
     cfg = get_config()
     cmd = list(cfg["command"])
     da_stdin = None
-    if any("{prompt}" in a for a in cmd):
+    spec = AGENTS.get(cfg.get("agent"))
+    if spec and spec.get("stdin"):
+        da_stdin = spec["stdin"](prompt)
+    elif any("{prompt}" in a for a in cmd):
         pieno = [a.replace("{prompt}", prompt) for a in cmd]
         if _riga_troppo_lunga(pieno) or _va_a_capo(prompt):
             # Il prompt porta identity, listino e il corpo della mail:
@@ -460,14 +536,15 @@ def run(prompt: str, timeout: int | None = None, run_id: str | None = None,
             if out_file:
                 _unlink(out_file)
             raise AgentUnavailable(
-                f"Agente non trovato ('{exe}'). Installa Claude Code o l'app Codex / ChatGPT, "
+                f"Agente non trovato ('{exe}'). Installa Claude Code, l'app Codex / ChatGPT o Antigravity, "
                 f"scegli l'agente dalla console (Automazioni), oppure configura il "
                 f"comando in {_config_path()} "
                 '(es. {"command": ["claude", "-p", "{prompt}"]}).'
             )
+    cwd = spec["cwd"]() if spec and spec.get("cwd") else None
     try:
         returncode, stdout, stderr = _spawn(
-            cmd, da_stdin, timeout or cfg["timeout"], _env_for_child(cfg, quiet_desktop), run_id)
+            cmd, da_stdin, timeout or cfg["timeout"], _env_for_child(cfg, quiet_desktop), run_id, cwd)
     except subprocess.TimeoutExpired as e:
         if out_file:
             _unlink(out_file)
@@ -495,6 +572,8 @@ def run(prompt: str, timeout: int | None = None, run_id: str | None = None,
         # corpo della mail a un cliente.
         raise AgentUnavailable(
             f"Agente terminato con errore ({returncode}): {(err or out)[:400]}")
+    if spec and spec.get("answer"):
+        out = spec["answer"](out)
     if _non_collegato(out):
         raise AgentUnavailable(f"Agente non collegato: {out[:200]}")
     return out

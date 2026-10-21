@@ -185,18 +185,23 @@ class AgentSelectRequest(BaseModel):
     agent: str
 
 
-def _ensure_codex(request: Optional[Request]) -> None:
+def _ensure_agent_config(request: Optional[Request]) -> None:
     """With Codex as the agent, its config.toml must start this GigaMail with
     the tool approval mode codex exec needs: without it the agent bar gets an
-    agent with no GigaMail tools, or one whose every call is cancelled. Only
-    on a click in the console, which is the user asking for Codex; a failure
+    agent with no GigaMail tools, or one whose every call is cancelled (the
+    same for Antigravity, below). Only on a click in the console, which is
+    the user asking for that agent; a failure
     leaves the file alone and the run goes on (the agent says what it lacks)."""
     from gigamail.core import codex_config
 
     from . import console_click
     if request is None or not console_click.is_console_click(request.headers):
         return
-    if agent_bridge.get_config().get("agent") != "codex":
+    agent = agent_bridge.get_config().get("agent")
+    if agent == "antigravity":
+        _ensure_antigravity()
+        return
+    if agent != "codex":
         return
     try:
         if not codex_config.status()["connected"]:
@@ -205,15 +210,37 @@ def _ensure_codex(request: Optional[Request]) -> None:
         print(f"[agent] Codex config.toml not written: {type(e).__name__}: {e}", flush=True)
 
 
+def _ensure_antigravity() -> None:
+    """With Antigravity as the agent, its mcp_config.json must start this
+    GigaMail and its settings.json must allow GigaMail's tools: agy's
+    headless mode soft-denies every tool that would ask, so without the rule
+    the agent bar gets an agent with no GigaMail tools. The caller has
+    already checked that this is a click in the console."""
+    from gigamail.core import antigravity_config
+    try:
+        if not antigravity_config.status()["connected"]:
+            antigravity_config.connect()
+    except Exception as e:
+        print(f"[agent] Antigravity config not written: {type(e).__name__}: {e}", flush=True)
+
+
+@router.get("/agent/antigravity")
+def agent_antigravity_status():
+    """Whether Antigravity starts this installation's MCP server and lets
+    its headless agent call GigaMail's tools."""
+    from gigamail.core import antigravity_config
+    return antigravity_config.status()
+
+
 @router.post("/agent/select")
 def agent_select(req: AgentSelectRequest, request: Request = None):
-    """Sceglie quale CLI scrive le bozze (claude | codex). Il comando viene
+    """Sceglie quale CLI scrive le bozze (claude | codex | antigravity). Il comando viene
     risolto a ogni avvio, cosi' segue gli aggiornamenti della CLI."""
     try:
         out = agent_bridge.select_agent(req.agent)
     except ValueError as e:
         raise HTTPException(400, str(e)) from e
-    _ensure_codex(request)
+    _ensure_agent_config(request)
     return out
 
 
@@ -564,7 +591,7 @@ def agent_command(req: AgentCommandRequest, request: Request = None):
     domanda = (req.question or "").strip()
     if not domanda:
         raise HTTPException(400, "Richiesta vuota")
-    _ensure_codex(request)
+    _ensure_agent_config(request)
     aid = req.account_id or _active_id()
     prima = _id_in_sospeso()
     try:
