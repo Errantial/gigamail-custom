@@ -4,6 +4,16 @@
 
 ## v0.6.1 — 2026-10-21
 
+- **Google Antigravity as the console's agent.** Antigravity's CLI (`agy`)
+  can now write drafts and answer the agent bar, next to Claude Code and
+  Codex. The console finds `agy` on the PATH or where its installer puts
+  it (`%LOCALAPPDATA%\agy\bin` on Windows, `~/.local/bin` on macOS and
+  Linux); pick it in the first-run guide or in Automations. Choosing it
+  registers the `gigamail` server in Antigravity's `mcp_config.json` and
+  allows its tools in the CLI's `settings.json`, since headless `agy`
+  denies every tool it would have to ask about. Sending, deleting and
+  calendar writes still wait for your approval in GigaMail. Setup for
+  Antigravity's own chat is in [INTEGRATIONS.md](INTEGRATIONS.md).
 - **Codex picks a model the account can use.** With a ChatGPT account,
   Codex refused the model it was started with ("The 'gpt-5.5' model is
   not supported when using Codex with a ChatGPT account"): a model pinned

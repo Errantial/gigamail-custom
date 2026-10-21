@@ -369,7 +369,7 @@ def test_refused_model_is_retried_with_the_accounts_own_and_remembered(tmp_path,
     agent_bridge.select_agent("codex")
     calls = []
 
-    def fake_spawn(cmd, stdin_bytes, timeout, env, run_id):
+    def fake_spawn(cmd, stdin_bytes, timeout, env, run_id, cwd=None):
         calls.append(list(cmd))
         if "-m" not in cmd:
             return 1, b"", (b"model: gpt-5.5\nERROR: {\"type\":\"error\",\"status\":400,\"error\":{\"message\":"
@@ -392,7 +392,7 @@ def test_refused_model_with_no_cache_reports_the_reason(tmp_path, monkeypatch, t
     monkeypatch.setenv("CODEX_HOME", str(tmp_path / "empty"))
     monkeypatch.setattr(agent_bridge, "_find_codex", lambda: PY)
     agent_bridge.select_agent("codex")
-    monkeypatch.setattr(agent_bridge, "_spawn", lambda *a: (1, b"", b"ERROR: The 'gpt-5.5' model is not supported when using Codex with a ChatGPT account."))
+    monkeypatch.setattr(agent_bridge, "_spawn", lambda *a, **k: (1, b"", b"ERROR: The 'gpt-5.5' model is not supported when using Codex with a ChatGPT account."))
     with pytest.raises(agent_bridge.AgentUnavailable) as e:
         agent_bridge.run("hi")
     assert "gpt-5.5" in str(e.value)

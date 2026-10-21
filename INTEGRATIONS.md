@@ -178,6 +178,74 @@ prompt passed on stdin when it would exceed the Windows command-line limit.
 Verified: a reply draft came back in about 30 seconds. A command of your
 own still goes in `agent.json` as `{"command": [...]}`.
 
+## Google Antigravity — built from the docs, not yet verified
+
+Written against Antigravity's published documentation (October 2026), not
+yet run against a real install. Please report what you see.
+
+### 1. Antigravity uses GigaMail's tools
+
+The Antigravity IDE and its CLI (`agy`) read MCP servers from the same
+file: `~/.gemini/config/mcp_config.json` (on Windows
+`C:\Users\<you>\.gemini\config\mcp_config.json`), or `.agents/mcp_config.json`
+in a workspace. In the IDE you can open it from the agent panel:
+**…** → **MCP Servers** → **Manage MCP Servers** → **View raw config**.
+
+```json
+{
+  "mcpServers": {
+    "gigamail": {
+      "command": "gigamail-server",
+      "env": { "GIGAMAIL_ROOT": "C:\\Users\\<you>\\AppData\\Roaming\\ADE" }
+    }
+  }
+}
+```
+
+With the desktop app and no pip install, start the app's own Python
+instead: `"command": "<path shown in the console's first-run guide>"`,
+`"args": ["-m", "gigamail.server"]`. The first-run guide shows this
+snippet with your paths filled in. Restart Antigravity (or `/mcp` →
+reload in `agy`) after editing.
+
+Antigravity asks before each MCP tool call by default. To let it call
+GigaMail's tools without asking, add `mcp(gigamail/*)` to
+`permissions.allow` in `~/.gemini/antigravity-cli/settings.json`. That
+does not weaken GigaMail's gate: tools that send, delete or write the
+calendar still return `approval_required` until a human approves the
+request in the console, CLI or Telegram.
+
+### 2. The console uses Antigravity to write drafts
+
+The console finds `agy` on the PATH, in `%LOCALAPPDATA%\agy\bin\agy.exe`
+(Windows) or in `~/.local/bin/agy` (macOS, Linux), where Antigravity's
+CLI installer puts it. Pick **Antigravity** in the first-run guide or in
+Automations → "Agent that writes the drafts" (`{"agent": "antigravity"}`
+in `agent.json`). Sign in once by running `agy` in a terminal: headless
+runs use the saved login and stop with "authentication required" without
+it.
+
+The command used is
+
+```
+agy --input-format stream-json --output-format stream-json --sandbox
+```
+
+run in an empty folder (`%APPDATA%\ADE\agent-workspace`): agy lets its
+agent write files in the workspace without asking, and the console's own
+folder is not the place for that. The prompt goes in as one
+`{"event":"user",...}` line on stdin, so long, multi-line prompts work;
+the answer is the `response` of the final `result` event, and any status
+other than `SUCCESS` is reported as an error, never used as a draft.
+
+Selecting Antigravity in the console also writes the two entries above
+(the `gigamail` server with this installation's Python and data folder,
+and the `mcp(gigamail/*)` rule). In headless mode agy has no one to ask,
+so without that rule every GigaMail tool call would be denied. Only those
+two keys change; the rest of each file is kept, the previous file stays as
+`*.gigamail-bak`, and a file that is not plain JSON is left untouched.
+`GET /agent/antigravity` reports whether both are in place.
+
 ## One rule for every client: declare `GIGAMAIL_ROOT`
 
 (`ADE_ROOT` is the historical name and keeps working as an alias; the
