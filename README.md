@@ -17,8 +17,6 @@ option) any later version. See the LICENSE file for details.
 [![Download](https://img.shields.io/badge/Download-Windows%20installer-e0409a?logo=windows&logoColor=white)](https://github.com/adecubed/gigamail/releases/latest/download/GigaMail-Setup.exe) [![Download](https://img.shields.io/badge/Download-macOS%20app-e0409a?logo=apple&logoColor=white)](https://github.com/adecubed/gigamail/releases/latest/download/GigaMail-arm64.dmg) [![gigamail.ai](https://img.shields.io/badge/site-gigamail.ai-0B2B5C)](https://gigamail.ai) [![PyPI](https://img.shields.io/pypi/v/gigamail?label=pip%20install%20gigamail&color=5b6bff)](https://pypi.org/project/gigamail/) [![License AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-555)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/adecubed/gigamail?style=flat&color=ffb000)](https://github.com/adecubed/gigamail) [![Python](https://img.shields.io/pypi/pyversions/gigamail?color=3776ab)](https://pypi.org/project/gigamail/) [![MCP server](https://img.shields.io/badge/MCP-server-orange)](https://modelcontextprotocol.io) [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-9ACD32)](plugins/gigamail/README.md) [![Codex](https://img.shields.io/badge/Codex-plugin-9ACD32)](https://chatgpt.com/plugins/plugins_6aa41ff2b150819181fcdf4c944933a3) [![OpenClaw](https://img.shields.io/badge/OpenClaw-plugin-9ACD32)](https://clawhub.ai/adecubed/skills/gigamail) [![Hermes](https://img.shields.io/badge/Hermes_Agent-plugin-9ACD32)](https://github.com/adecubed/hermes-plugin-gigamail)
 
-<p align="center"><img src="docs/brand/gigamail-banner.gif" alt="GigaMail" width="720"></p>
-
 **MCP server that gives your agent — Claude, Codex, OpenClaw, Hermes, or any
 MCP client — safe, controlled access to your email** — multi-account (Microsoft Graph + IMAP), calendar,
 local search index, sender memory, and an agent-aware permission model.
@@ -37,9 +35,7 @@ before the agent ever sees them.
 
 
 
-[![GigaMail in one minute](docs/demo/gigamail-launch.gif)](https://gigamail.ai/demo/gigamail-launch.mp4)
-
-*One minute: the console drafts a reply, takes the figure from your own files, stops where the documents stop, and nothing leaves without your approval — from the console or from your agent.*
+<p align="center"><img src="docs/brand/gigamail-banner.gif" alt="GigaMail" width="720"></p>
 
 ## Why
 
@@ -337,9 +333,7 @@ nascondere i dati sensibili (codici fiscali, partite IVA, IBAN, email,
 telefoni — validati in modo deterministico, senza AI) prima che l'agente
 li veda.
 
-[![GigaMail in un minuto](docs/demo/gigamail-launch.gif)](https://gigamail.ai/demo/gigamail-launch.mp4)
-
-*Un minuto: la console scrive la bozza, prende la cifra dai tuoi file, si ferma dove i documenti si fermano, e niente parte senza la tua approvazione — dalla console o dal tuo agente.*
+<p align="center"><img src="docs/brand/gigamail-banner.gif" alt="GigaMail" width="720"></p>
 
 ## Perché
 
@@ -621,9 +615,7 @@ titolare del copyright.
 的机器上** —— 我们不运行任何服务，也收不到任何数据。代理读取的邮件内容当
 然会经过该代理及其模型提供商，适用他们各自的数据政策。请据此选择你的代理。
 
-[![GigaMail 一分钟](docs/demo/gigamail-launch.gif)](https://gigamail.ai/demo/gigamail-launch.mp4)
-
-*一分钟：控制台起草回复，数字取自你自己的文件，文档没有的地方就停下，未经你批准什么都不会发出 —— 无论是从控制台还是从你的代理。*
+<p align="center"><img src="docs/brand/gigamail-banner.gif" alt="GigaMail" width="720"></p>
 
 ## 为什么
 
