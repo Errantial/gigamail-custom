@@ -197,6 +197,9 @@ body { background: var(--gm-bg); color: var(--gm-ink); }
 .agent-appr-head::before { content: "● "; }
 .agent-appr-title { font-weight: 700; margin-top: 4px; }
 .agent-appr-sum { color: var(--gm-muted); font-size: 12.5px; margin-top: 2px; }
+.agent-appr-body { margin-top: 6px; font-size: 12.5px; }
+.agent-appr-body summary { cursor: pointer; color: var(--gm-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.agent-appr-body pre { white-space: pre-wrap; word-break: break-word; margin: 6px 0 0; font: inherit; max-height: 260px; overflow: auto; }
 .agent-appr-actions:empty { display: none; }
 .agent-appr-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
 .agent-btn { border-radius: 10px; padding: 6px 16px; font: 600 12.5px var(--font, inherit); cursor: pointer; }

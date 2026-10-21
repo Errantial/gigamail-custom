@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **The agent bar shows what you are approving.** The approval card had
+  only the subject and a one-line summary: the text of the reply was
+  nowhere, and the user had to open Automations to read it. The card now
+  shows the recipient and the full text, open by default.
+
 ## v0.6.3 — 2026-10-21
 
 - **An update installs completely.** The backend stays alive when the

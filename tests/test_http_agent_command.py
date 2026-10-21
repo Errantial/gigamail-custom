@@ -69,6 +69,22 @@ def test_le_richieste_aperte_durante_il_giro_tornano_alla_console(client, monkey
     assert body["approvals"][0]["subject"] == "Visita sabato"
 
 
+def test_the_card_carries_the_text_and_the_recipient(client, monkeypatch):
+    """The agent bar card showed only subject and recipient: the user had
+    to open Automations to read what they were approving."""
+    def agente(prompt, timeout=None):
+        policy.store().create(
+            "reply_mail", {"body": "La consegna è prevista per la primavera del 2028."},
+            {"replying_to": {"from": {"address": "bruna@example.com"}, "subject": "Richiesta informazioni"}})
+        return "Pronta."
+
+    monkeypatch.setattr(agent_bridge, "run", agente)
+    a = client.post("/agent/command", json={"question": "rispondi a Bruna"}).json()["approvals"][0]
+    assert a["to"] == "bruna@example.com"
+    assert a["subject"] == "Richiesta informazioni"
+    assert a["body"].startswith("La consegna")
+
+
 def test_richiesta_vuota_e_agente_assente(client, monkeypatch):
     assert client.post("/agent/command", json={"question": "  "}).status_code == 400
 

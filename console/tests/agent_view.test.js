@@ -124,6 +124,24 @@ test('the confirmation after an approval carries the request it came from', asyn
   assert.equal(sent[0].question, 'responde a Anna que vale');
 });
 
+test('the approval card shows the recipient and the full text to approve', async () => {
+  const { w } = load();
+  w.electronAPI.agentCommand = async () => ({
+    answer: 'Ready.', approvals: [{ request_id: 'req_2', tool: 'reply_mail', subject: 'Re: Info',
+      summary: 'to=bruna@example.com', to: 'bruna@example.com', body: 'Consegna <primavera 2028>.\nGrazie.' }] });
+  await ready(w);
+  const ta = w.document.getElementById('agentInput');
+  ta.value = 'rispondi a Bruna';
+  ta.dispatchEvent(new w.Event('input'));
+  w.document.getElementById('agentSend').click();
+  await new Promise((r) => setTimeout(r, 20));
+  const card = w.document.querySelector('.agent-msg.approval');
+  assert.match(card.textContent, /bruna@example\.com/);
+  const pre = card.querySelector('.agent-appr-body pre');
+  assert.equal(pre.textContent, 'Consegna <primavera 2028>.\nGrazie.');
+  assert.equal(card.querySelectorAll('.agent-appr-sum').length, 1);
+});
+
 test('in a merged view of several accounts the mail opens in its own window', async () => {
   const { w, calls } = load({ activeAccount: 6, group: 'g1' });
   await ready(w);

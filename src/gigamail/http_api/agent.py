@@ -574,14 +574,30 @@ def _richieste_nuove(prima: set) -> list:
         if rec["request_id"] in prima:
             continue
         preview = rec.get("preview") or {}
+        args = rec.get("args") or {}
         out.append({
             "request_id": rec["request_id"],
             "tool": rec["tool"],
             "subject": policy.subject_of(preview),
             "summary": policy._summarize_preview(preview),
+            # The text the user is about to approve: the card in the agent
+            # bar showed only "to" and "subject", and the body was nowhere.
+            "to": _address(preview.get("to")) or _address(
+                (preview.get("replying_to") or {}).get("from") if isinstance(preview.get("replying_to"), dict) else None),
+            "body": str(preview.get("body") or args.get("body") or "")[:20000],
             "expires_at": rec.get("expires_at"),
         })
     return out
+
+
+def _address(v) -> str:
+    if not v:
+        return ""
+    if isinstance(v, list):
+        return ", ".join(a for a in (_address(x) for x in v) if a)
+    if isinstance(v, dict):
+        return str(v.get("address") or v.get("email") or "")
+    return str(v)
 
 
 @router.post("/agent/command")
