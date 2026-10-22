@@ -283,15 +283,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   // E ogni minuto (per vedere mail risvegliate)
   setInterval(refreshSnoozedUids, 60000);
 })();
-// ══ ASK / CHAT MAIL — apre finestra esterna ════════════════════
-(function(){
-  const btn = document.getElementById('btnShowAsk');
-  btn?.addEventListener('click', () => {
-    const sel = document.getElementById('accountSelect');
-    window.electronAPI?.openAskWindow?.({ account_id: sel ? parseInt(sel.value) : null });
-  });
-})();
-
 // Buttons that used to carry onclick="..." in the page: the CSP forbids
 // inline handlers, so they are wired here.
 (function () {

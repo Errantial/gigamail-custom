@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **The "Ask your mail" icon is gone from the sidebar.** The agent bar
+  at the bottom answers the same questions, with the open mail as
+  context; the icon only opened an older window by mistake.
 - **Notification buttons open the console, not a terminal.** Read,
   Approve, Edit and Reject on an approval toast, and Reply on a client
   reply alert, opened a black command window. They now open a window in
