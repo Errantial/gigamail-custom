@@ -207,6 +207,23 @@
     return n > 9 ? '9+' : String(n);
   }
 
+  // What the "waiting for you" icon shows: the requests still to decide,
+  // and the outcomes decided since the user last opened the page, by
+  // colour (ok = sent, warn = approved and executing, err = failed,
+  // rejected or expired). Opening the page sets seenAt to now and the
+  // decided counts go away; the to-do count stays until it is zero.
+  function badgeCounts(pending, recent, seenAt, now = Date.now() / 1000) {
+    const out = { todo: (pending || []).length, ok: 0, warn: 0, err: 0 };
+    for (const rec of recent || []) {
+      const s = summarize(rec, now);
+      const at = s.decidedAt || rec.expires_at || 0;
+      if (at <= (seenAt || 0)) continue;
+      const cls = outcomeOf(s, (_k, f) => f).cls;
+      if (cls === 'ok' || cls === 'warn' || cls === 'err') out[cls] += 1;
+    }
+    return out;
+  }
+
   // The rules that paused themselves (the burst guard): a pause nobody
   // chose must be seen, not read in a card's small print days later.
   function autoPaused(rules) {
@@ -214,7 +231,7 @@
       && /^(raffica|burst)\b/i.test(String(r.pause_reason || '')));
   }
 
-  const ApprovalsView = { summarize, pendingCard, recentCard, detailHtml, outcomeOf, fmtEta, badgeText, addressOf, notifiedText, notifyFailed, autoPaused };
+  const ApprovalsView = { summarize, pendingCard, recentCard, detailHtml, outcomeOf, fmtEta, badgeText, badgeCounts, addressOf, notifiedText, notifyFailed, autoPaused };
   if (typeof window !== 'undefined') window.ApprovalsView = ApprovalsView;
   if (typeof module !== 'undefined' && module.exports) module.exports = ApprovalsView;
 })();

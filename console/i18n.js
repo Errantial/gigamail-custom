@@ -523,7 +523,7 @@
       win_console_send_hello: "Chiedi la verifica anche per invii e approvazioni dalla console",
       win_console_send_hello_hint: "Spenta: invia, rispondi, inoltra e Approva funzionano al clic. Le richieste dell'agente passano sempre dalla tua approvazione.",
       // added by the console localization sweep
-      pending_title: "Richieste in attesa", detail_notified: "Notifiche", notify_failed: "non partita", notify_failed_tag: "notifica non arrivata", detail_from: "Da", detail_to: "A", detail_subject: "Oggetto", detail_attachments: "Allegati", detail_accepted: "Accettata per", detail_error: "Errore", detail_requested: "Richiesta", detail_decided: "Decisa", detail_open: "dettagli",
+      pending_title: "Richieste in attesa", badge_err: "fallite, rifiutate o scadute", detail_notified: "Notifiche", notify_failed: "non partita", notify_failed_tag: "notifica non arrivata", detail_from: "Da", detail_to: "A", detail_subject: "Oggetto", detail_attachments: "Allegati", detail_accepted: "Accettata per", detail_error: "Errore", detail_requested: "Richiesta", detail_decided: "Decisa", detail_open: "dettagli",
       pending_sub: "Le bozze preparate dal watcher e le richieste dell'agente. Approva o rifiuta con un clic.",
       pending_none: "Nessuna richiesta in attesa.",
       pending_expires_in: "scade tra",
@@ -1048,7 +1048,7 @@
       win_console_send_hello: "Ask for verification for sends and approvals in the console too",
       win_console_send_hello_hint: "Off: send, reply, forward and Approve work on click. The agent's requests always need your approval.",
       // added by the console localization sweep
-      pending_title: "Waiting for you", detail_notified: "Notifications", notify_failed: "not sent", notify_failed_tag: "notification not delivered", detail_from: "From", detail_to: "To", detail_subject: "Subject", detail_attachments: "Attachments", detail_accepted: "Accepted for", detail_error: "Error", detail_requested: "Requested", detail_decided: "Decided", detail_open: "details",
+      pending_title: "Waiting for you", badge_err: "failed, rejected or expired", detail_notified: "Notifications", notify_failed: "not sent", notify_failed_tag: "notification not delivered", detail_from: "From", detail_to: "To", detail_subject: "Subject", detail_attachments: "Attachments", detail_accepted: "Accepted for", detail_error: "Error", detail_requested: "Requested", detail_decided: "Decided", detail_open: "details",
       pending_sub: "Drafts the watcher prepared and the agent's requests. Approve or reject with one click.",
       pending_none: "Nothing is waiting for you.",
       pending_expires_in: "expires in",
@@ -1564,7 +1564,7 @@
       win_console_send_hello: "在控制台发送和批准时也要求验证",
       win_console_send_hello_hint: "关闭时：发送、回复、转发和批准点击即生效。代理的请求始终需要你的批准。",
       // added by the console localization sweep
-      pending_title: "待处理请求", detail_notified: "通知", notify_failed: "未发送", notify_failed_tag: "通知未送达", detail_from: "发件人", detail_to: "收件人", detail_subject: "主题", detail_attachments: "附件", detail_accepted: "已接受", detail_error: "错误", detail_requested: "请求时间", detail_decided: "处理时间", detail_open: "详情",
+      pending_title: "待处理请求", badge_err: "失败、已拒绝或已过期", detail_notified: "通知", notify_failed: "未发送", notify_failed_tag: "通知未送达", detail_from: "发件人", detail_to: "收件人", detail_subject: "主题", detail_attachments: "附件", detail_accepted: "已接受", detail_error: "错误", detail_requested: "请求时间", detail_decided: "处理时间", detail_open: "详情",
       pending_sub: "监视器准备的草稿和代理的请求。点击即可批准或拒绝。",
       pending_none: "没有待处理的请求。",
       pending_expires_in: "过期倒计时",

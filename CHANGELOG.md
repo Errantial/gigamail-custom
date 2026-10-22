@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Counters on the "Waiting for you" icon.** Besides the requests still
+  to decide, the icon shows what was decided since you last opened the
+  page, by colour: green sent, amber approved and executing, red failed,
+  rejected or expired. Opening the page clears them; the count of
+  requests to decide stays until it is zero. The Automations icon shows
+  how many rules paused themselves and wait to be resumed.
 - **An approved request is carried out, whoever approved it.** A request
   the agent raised (a reply, a send, a move) and the user approved from
   Telegram, from "Waiting for you" or from the CLI stayed "approved, the

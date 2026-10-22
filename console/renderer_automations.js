@@ -395,13 +395,23 @@
   const L = (key, fallback) => (window.i18n && window.i18n.t ? window.i18n.t(key, fallback) : fallback);
   const AV = () => window.ApprovalsView;
 
-  function setBadge(n) {
+  // When the user last opened "waiting for you": the decided outcomes
+  // counted on the icon are the ones after this moment.
+  const SEEN_KEY = 'gm_pending_seen_at';
+  const seenAt = () => { try { return Number(localStorage.getItem(SEEN_KEY) || 0); } catch (_) { return 0; } };
+  const markSeen = () => { try { localStorage.setItem(SEEN_KEY, String(Date.now() / 1000)); } catch (_) { /* no storage */ } };
+
+  function setBadge(pending, recent) {
     const b = $('pendingBadge');
-    if (!b) return;
-    const text = AV() ? AV().badgeText(n) : (n > 0 ? String(n) : '');
-    b.textContent = text;
-    b.hidden = !text;
-    b.title = L('pending_title', 'Richieste in attesa');
+    if (!b || !AV()) return;
+    const c = AV().badgeCounts(pending, recent, seenAt());
+    const pill = (cls, n, title) => (n > 0
+      ? `<span class="s-pill ${cls}" title="${escapeHtml(title)}">${AV().badgeText(n)}</span>` : '');
+    b.innerHTML = pill('todo', c.todo, L('pending_title', 'Richieste in attesa'))
+      + pill('ok', c.ok, L('st_sent', 'inviata'))
+      + pill('warn', c.warn, L('st_approved_agent', 'approvata, in esecuzione'))
+      + pill('err', c.err, L('badge_err', 'fallite, rifiutate o scadute'));
+    b.hidden = !b.innerHTML;
   }
 
   async function refreshPending() {
@@ -410,7 +420,9 @@
     if (!box || !AV()) return;
     try {
       const [pending, recent] = await Promise.all([api('/approvals'), api('/approvals/recent?hours=24')]);
-      setBadge(pending.length);
+      // the page is open: what it shows is seen
+      markSeen();
+      setBadge(pending, recent);
       box.innerHTML = pending.length
         ? pending.map((r) => AV().pendingCard(r, L)).join('')
         : `<div class="hint">${L('pending_none', 'Nessuna richiesta in attesa.')}</div>`;
@@ -429,8 +441,8 @@
 
   async function pollBadge() {
     try {
-      const pending = await api('/approvals');
-      setBadge(pending.length);
+      const [pending, recent] = await Promise.all([api('/approvals'), api('/approvals/recent?hours=24')]);
+      setBadge(pending, recent);
       setRulesBadge(await api('/rules'));
     } catch (_) { /* no backend yet: the badge stays as it is */ }
   }
