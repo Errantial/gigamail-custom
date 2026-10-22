@@ -107,8 +107,32 @@ def approve_request(request_id: str, request: Request = None):
     by = f"{_who()} (console click)" if clic else _who()
     if not policy.store().approve(request_id, by=by):
         raise HTTPException(409, "Richiesta non approvabile (già decisa o scaduta)")
-    return {"success": True, "request_id": request_id, "status": "approved",
-            "completed_by": _completed_by(request_id)}
+    out = {"success": True, "request_id": request_id, "status": "approved",
+           "completed_by": _completed_by(request_id)}
+    if out["completed_by"] == "agent":
+        out.update(complete_agent_request(request_id))
+    return out
+
+
+def complete_agent_request(request_id: str) -> dict:
+    """An approved request of the agent is completed by GigaMail itself,
+    with the arguments stored with it. Before, only the agent bar made
+    the agent call the tool again: approved from Telegram, from this
+    page or from the CLI, the request stayed "approved" and the mail
+    never left. Returns what was recorded: status, outcome, error."""
+    from gigamail import server
+    try:
+        server.execute_approved(request_id)
+    except Exception as e:
+        rec = policy.store().get(request_id) or {}
+        return {"status": rec.get("status", "approved"),
+                "outcome": rec.get("execution_outcome") or "failed",
+                "error": str(e)[:500]}
+    rec = policy.store().get(request_id) or {}
+    return {"status": rec.get("status", "executed"),
+            "outcome": rec.get("execution_outcome") or "",
+            "error": (rec.get("provider_result") or {}).get("error", "")
+            if isinstance(rec.get("provider_result"), dict) else ""}
 
 
 @router.post("/approvals/{request_id}/reject")

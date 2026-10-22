@@ -365,11 +365,23 @@ def cmd_approvals_approve(args) -> int:
               + (f": {motivo}." if motivo else " o annullata.")
               + " La richiesta resta in attesa e non e' partito nulla.")
         return 1
-    if policy.store().approve(args.request_id, by=_cli_who()):
-        print("Approvata. L'agente puo' ora completare l'azione.")
+    if not policy.store().approve(args.request_id, by=_cli_who()):
+        print("Non approvabile: gia' decisa o scaduta.")
+        return 1
+    from gigamail.core import rules as rules_mod
+    if rules_mod.store().find_by_request(args.request_id):
+        print("Approvata. La invia il watcher al prossimo giro.")
         return 0
-    print("Non approvabile: gia' decisa o scaduta.")
-    return 1
+    from gigamail import server
+    try:
+        server.execute_approved(args.request_id)
+    except Exception as e:
+        print(f"Approvata ma non eseguita: {e}")
+        return 1
+    esito = (policy.store().get(args.request_id) or {}).get("execution_outcome")
+    print("Approvata ed eseguita." if esito in ("ok", "dryrun")
+          else f"Approvata, ma l'esecuzione e' fallita ({esito}).")
+    return 0 if esito in ("ok", "dryrun") else 1
 
 
 def cmd_approvals_check(args) -> int:

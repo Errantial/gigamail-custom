@@ -507,3 +507,32 @@ def test_il_pin_sbagliato_viene_cancellato_comunque(world):
     w.handle_telegram_event(world["tg"], _ev_cb(f"a:{rid}"))
     w.handle_telegram_event(world["tg"], _ev_text("000000", message_id=77))
     assert 77 in world["tg"].deleted
+
+
+def test_tap_approva_una_richiesta_dell_agente_la_esegue(world, monkeypatch):
+    """Una richiesta aperta dall'agente (non da una regola) approvata da
+    Telegram restava "approvata" per sempre: la fase 2 la faceva solo la
+    barra agente della console. Ora la completa GigaMail con gli
+    argomenti salvati, e dice com'e' andata."""
+    from gigamail import server
+    monkeypatch.delenv("ADE_MAIL_DRYRUN", raising=False)
+    sent = []
+    monkeypatch.setitem(server.APPROVED_EXECUTORS, "send_mail",
+                        lambda a: sent.append(a) or {"success": True})
+    rid = policy.store().create("send_mail", {"to": "bruna@example.com", "body": "x"},
+                                {"to": "bruna@example.com", "subject": "Re: info"})
+    w = watcher_mod.Watcher()
+    w.handle_telegram_event(world["tg"], _ev_cb(f"a:{rid}"))
+    assert sent == [{"to": "bruna@example.com", "body": "x"}]
+    rec = policy.store().get(rid)
+    assert rec["status"] == policy.EXECUTED and rec["execution_outcome"] == "ok"
+    assert "✅" in world["tg"].sent[-1]["text"]
+    assert "agente" not in world["tg"].sent[-1]["text"]
+
+    monkeypatch.setitem(server.APPROVED_EXECUTORS, "send_mail",
+                        lambda a: (_ for _ in ()).throw(RuntimeError("SMTP down")))
+    rid2 = policy.store().create("send_mail", {"to": "c@example.com", "body": "y"},
+                                 {"to": "c@example.com", "subject": "s"})
+    w.handle_telegram_event(world["tg"], _ev_cb(f"a:{rid2}"))
+    assert "SMTP down" in world["tg"].sent[-1]["text"]
+    assert policy.store().get(rid2)["execution_outcome"] == "failed"

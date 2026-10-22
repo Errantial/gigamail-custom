@@ -95,3 +95,39 @@ def test_approving_reports_who_sends(client, monkeypatch):
     r = client.post(f"/approvals/{watcher_rid}/approve")
     assert r.status_code == 200 and r.json()["completed_by"] == "watcher"
     assert policy.store().get(watcher_rid)["status"] == policy.APPROVED
+
+
+def test_an_agent_request_approved_here_is_executed_by_gigamail(client, monkeypatch):
+    """Approved from this page (or Telegram, or the CLI) a request of the
+    agent stayed "approved" for good: only the agent bar made the agent
+    call the tool again. GigaMail now completes it with the stored
+    arguments, and says what happened."""
+    from gigamail import consent, server
+    monkeypatch.setattr(consent, "require_human", lambda reason: True)
+    monkeypatch.delenv("ADE_MAIL_DRYRUN", raising=False)
+    sent = []
+    monkeypatch.setitem(server.APPROVED_EXECUTORS, "send_mail",
+                        lambda a: sent.append(a) or {"success": True, "provider_result": {"accepted": [a["to"]]}})
+    rid = _request()
+    r = client.post(f"/approvals/{rid}/approve")
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "executed" and r.json()["outcome"] == "ok"
+    assert sent == [{"to": "mario.rossi@example.com"}]
+    rec = policy.store().get(rid)
+    assert rec["status"] == policy.EXECUTED and rec["execution_outcome"] == "ok"
+    # a second approval cannot send it again
+    assert client.post(f"/approvals/{rid}/approve").status_code == 409
+
+    # a failure is recorded and reported, not hidden behind "approved"
+    monkeypatch.setitem(server.APPROVED_EXECUTORS, "send_mail",
+                        lambda a: (_ for _ in ()).throw(RuntimeError("SMTP down")))
+    rid2 = _request(to="anna.bianchi@example.com")
+    r = client.post(f"/approvals/{rid2}/approve")
+    assert r.status_code == 200
+    assert r.json()["status"] == "executed" and r.json()["outcome"] == "failed"
+    assert "SMTP down" in r.json()["error"]
+    # a watcher draft is still left to the watcher
+    rid3 = _request(to="w@example.com")
+    _born_from_rule(rid3)
+    assert client.post(f"/approvals/{rid3}/approve").json()["status"] == "approved"
+    assert policy.store().get(rid3)["status"] == policy.APPROVED

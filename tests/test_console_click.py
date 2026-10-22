@@ -172,7 +172,8 @@ def test_approve_clicked_in_the_console_needs_no_hello(client, monkeypatch, tmp_
                         lambda reason: (_ for _ in ()).throw(AssertionError("no prompt for a console click")))
     rid = policy.store().create("send_mail", {"to": "x@example.com"}, {"subject": "Invito"})
     r = client.post(f"/approvals/{rid}/approve", headers={"X-ADE-Human": SECRET})
-    assert r.status_code == 200 and r.json()["status"] == "approved"
+    # approved by the click, then carried out at once (dryrun here)
+    assert r.status_code == 200 and r.json()["status"] == "executed"
     assert "console click" in (policy.store().get(rid).get("decided_by") or "")
     policy.set_store(None)
 

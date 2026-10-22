@@ -92,7 +92,7 @@
     if (s.status === 'approved') {
       return { cls: 'warn', text: s.completedBy === 'watcher'
         ? t('st_approved_watcher', 'approvata, la invia il watcher')
-        : t('st_approved_agent', "approvata, la completa l'agente") };
+        : t('st_approved_agent', 'approvata, in esecuzione') };
     }
     if (s.status === 'rejected') return { cls: 'err', text: t('st_rejected', 'rifiutata') };
     if (s.status === 'pending' && s.expired) return { cls: 'err', text: t('st_expired', 'scaduta senza decisione') };

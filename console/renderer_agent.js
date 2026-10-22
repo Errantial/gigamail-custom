@@ -209,8 +209,9 @@
         h.textContent = L('agent_hello_wait', 'In attesa della verifica di Windows Hello: se non la vedi, è dietro le finestre (Alt+Tab).');
         el.querySelector('.agent-appr-actions').before(h);
       }, 3000);
+      let approved;
       try {
-        await window.electronAPI.approveRequest(a.request_id);
+        approved = await window.electronAPI.approveRequest(a.request_id);
       } catch (e) {
         clearTimeout(hint);
         el.querySelector('.agent-appr-wait')?.remove();
@@ -220,6 +221,15 @@
       }
       clearTimeout(hint);
       el.querySelector('.agent-appr-wait')?.remove();
+      // GigaMail completes an approved request itself (the same from
+      // Telegram, the pending page or the CLI): nothing left for the
+      // agent to call. Older backends answer "approved" and still wait
+      // for the agent.
+      if (approved && approved.status === 'executed') {
+        state(approved.outcome === 'failed' ? 'failed' : 'executed');
+        if (approved.outcome === 'failed' && approved.error) say('error', approved.error);
+        return;
+      }
       state('approved');
       const wait = addThinking();
       setBusy(true);

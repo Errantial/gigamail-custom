@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **An approved request is carried out, whoever approved it.** A request
+  the agent raised (a reply, a send, a move) and the user approved from
+  Telegram, from "Waiting for you" or from the CLI stayed "approved, the
+  agent completes it", and nothing ever did: only the Approve button in
+  the agent bar made the agent call the tool again. GigaMail now
+  completes an approved request itself, with the arguments stored with
+  it, from every channel, and reports sent or failed where the approval
+  was given. The agent bar no longer calls the agent back after an
+  approval.
 - **A rule that paused itself is impossible to miss.** When the burst
   guard pauses a rule (too many matching mails in ten minutes), the rule
   answered nothing until someone read "paused" in its card. Now an amber

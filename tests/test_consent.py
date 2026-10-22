@@ -151,7 +151,8 @@ def test_cli_approve_con_consenso_approva(monkeypatch):
     monkeypatch.setenv("ADE_MAIL_DRYRUN", "1")
     rid = _nuova_richiesta()
     assert _run_cli(["approvals", "approve", rid]) == 0
-    assert policy.store().get(rid)["status"] == policy.APPROVED
+    # approved and carried out at once (dryrun here), not left to the agent
+    assert policy.store().get(rid)["status"] == policy.EXECUTED
 
 
 def test_cli_reject_non_richiede_consenso(monkeypatch):
@@ -204,7 +205,7 @@ def test_console_approve_con_consenso(client, monkeypatch):
     rid = _nuova_richiesta()
     r = client.post(f"/approvals/{rid}/approve", headers=H)
     assert r.status_code == 200
-    assert policy.store().get(rid)["status"] == policy.APPROVED
+    assert policy.store().get(rid)["status"] == policy.EXECUTED
 
 
 def test_console_reject_senza_consenso(client, monkeypatch):

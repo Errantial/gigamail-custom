@@ -75,7 +75,7 @@ test('outcome labels: executed means consumed, the provider outcome says sent', 
   assert.equal(o({ status: 'executed', execution_outcome: 'dryrun' }), 'prova, non inviata');
   assert.equal(o({ status: 'executed' }), 'in esecuzione');
   assert.equal(o({ status: 'approved', completed_by: 'watcher' }), 'approvata, la invia il watcher');
-  assert.equal(o({ status: 'approved' }), "approvata, la completa l'agente");
+  assert.equal(o({ status: 'approved' }), 'approvata, in esecuzione');
   assert.equal(o({ status: 'rejected' }), 'rifiutata');
   assert.equal(o({ status: 'pending', expires_at: NOW - 5 }), 'scaduta senza decisione');
 });

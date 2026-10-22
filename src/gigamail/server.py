@@ -537,6 +537,110 @@ def _approved_mail_account(args: dict) -> int:
     return int(args["account_id"])
 
 
+# ── Executing an approved request without the agent ───────────────────────
+# Phase two of a dangerous tool is "the tool called again with the
+# request_id": the arguments executed are the ones stored with the request.
+# Only the agent bar used to trigger that call; a request approved from
+# Telegram, the "waiting for you" page, the CLI or a toast stayed
+# "approved" for good (a reply to a customer, approved on the phone at
+# 18:31, never left). The same execute functions live here by tool name,
+# so GigaMail itself completes an approved request from any channel; the
+# at-most-once consume in policy.execute_dangerous keeps a double call
+# (the agent and the console) from sending twice.
+
+def _exec_move_message(a: dict) -> dict:
+    return {"success": mail_router.move_to_folder(
+        account_id=_approved_mail_account(a), message_id=a["message_id"],
+        folder_id=a["folder_id"], source_folder=a["source_folder"] or None)}
+
+
+def _exec_send_mail(a: dict):
+    return mail_router.send_message(
+        account_id=_approved_mail_account(a), to=a["to"], subject=a["subject"],
+        body=a["body"], cc=a["cc"], bcc=a["bcc"],
+        attachments=_attachments_payload(a.get("attachments")))
+
+
+def _exec_reply_mail(a: dict):
+    # Watcher approvals share this tool and can explicitly target a portal
+    # contact shown in the preview (a["to"]): that approved route is kept.
+    if a.get("to"):
+        return mail_router.send_message(
+            account_id=_approved_mail_account(a), to=a["to"],
+            subject=a.get("subject") or "", body=a["body"],
+            attachments=_attachments_payload(a.get("attachments")),
+            cc=a.get("cc"), auto_submitted=True)
+    return mail_router.reply_message(
+        account_id=_approved_mail_account(a), message_id=a["message_id"],
+        body=a["body"], attachments=_attachments_payload(a.get("attachments")),
+        cc=a.get("cc"), folder=a.get("folder") or "inbox")
+
+
+def _exec_delete_message(a: dict) -> dict:
+    return {"success": mail_router.delete_message(
+        account_id=_approved_mail_account(a), message_id=a["message_id"],
+        folder=a["folder"] or None)}
+
+
+def _exec_delete_folder(a: dict) -> dict:
+    return {"success": mail_router.delete_folder(
+        account_id=_approved_mail_account(a), folder_id=a["folder_id"])}
+
+
+def _exec_create_event(a: dict):
+    return calendar_router.bind_action("create_event", a.get("destination") or {})(
+        subject=a["subject"], start=a["start"], end=a["end"],
+        body=a["body"], location=a["location"], all_day=bool(a.get("all_day")))
+
+
+def _exec_delete_event(a: dict) -> dict:
+    return {"success": calendar_router.bind_action(
+        "delete_event", a.get("destination") or {})(event_id=a["event_id"])}
+
+
+def _exec_create_zoom_meeting(a: dict):
+    return zoom.crea_riunione(a["topic"], a["start"], a["duration_minutes"],
+                              agenda=a["agenda"])
+
+
+def _exec_drive_upload_file(a: dict):
+    return google_drive.upload_file(a["local_path"], name=a["name"],
+                                    folder_id=a["folder_id"])
+
+
+def _exec_drive_delete_file(a: dict) -> dict:
+    return {"success": google_drive.delete_file(a["file_id"])}
+
+
+APPROVED_EXECUTORS = {
+    "move_message": _exec_move_message,
+    "send_mail": _exec_send_mail,
+    "reply_mail": _exec_reply_mail,
+    "delete_message": _exec_delete_message,
+    "delete_folder": _exec_delete_folder,
+    "create_event": _exec_create_event,
+    "delete_event": _exec_delete_event,
+    "create_zoom_meeting": _exec_create_zoom_meeting,
+    "drive_upload_file": _exec_drive_upload_file,
+    "drive_delete_file": _exec_drive_delete_file,
+}
+
+
+def execute_approved(request_id: str):
+    """Completes an APPROVED request with the arguments stored with it,
+    exactly as the tool called again with the request_id would. Returns
+    the tool result; raises ValueError when the request is unknown, not
+    approved any more, or of a tool that cannot be run here."""
+    rec = policy.store().get(request_id)
+    if not rec:
+        raise ValueError(f"request {request_id} not found")
+    fn = APPROVED_EXECUTORS.get(rec["tool"])
+    if fn is None:
+        raise ValueError(f"{rec['tool']} cannot be completed from here")
+    return policy.execute_dangerous(rec["tool"], {}, request_id,
+                                    preview_fn=lambda: {}, execute_fn=fn)
+
+
 @mcp.tool(annotations=DANGEROUS, description=_two_phase(
     """Move a message to another folder of the same account.""",
     """
@@ -579,13 +683,7 @@ def move_message(
     return policy.execute_dangerous(
         "move_message", args, request_id,
         preview_fn=_preview,
-        execute_fn=lambda a: {
-            "success": mail_router.move_to_folder(
-                account_id=_approved_mail_account(a), message_id=a["message_id"],
-                folder_id=a["folder_id"],
-                source_folder=a["source_folder"] or None,
-            )
-        },
+        execute_fn=_exec_move_message,
     )
 
 
@@ -654,11 +752,7 @@ def send_mail(
             "subject": subject, "body": body,
             "attachments": _attachments_preview(allegati),
         },
-        execute_fn=lambda a: mail_router.send_message(
-            account_id=_approved_mail_account(a), to=a["to"], subject=a["subject"],
-            body=a["body"], cc=a["cc"], bcc=a["bcc"],
-            attachments=_attachments_payload(a.get("attachments")),
-        ),
+        execute_fn=_exec_send_mail,
     )
 
 
@@ -761,18 +855,7 @@ def reply_mail(
         # Watcher approvals share this tool and can explicitly target a
         # portal contact shown in the preview. Preserve that approved route
         # even when an MCP client consumes the request before the watcher.
-        execute_fn=lambda a: mail_router.send_message(
-            account_id=_approved_mail_account(a), to=a["to"],
-            subject=a.get("subject") or "", body=a["body"],
-            attachments=_attachments_payload(a.get("attachments")),
-            cc=a.get("cc"), auto_submitted=True,
-        ) if a.get("to") else mail_router.reply_message(
-            account_id=_approved_mail_account(a), message_id=a["message_id"],
-            body=a["body"],
-            attachments=_attachments_payload(a.get("attachments")),
-            cc=a.get("cc"),
-            folder=a.get("folder") or "inbox",
-        ),
+        execute_fn=_exec_reply_mail,
     )
 
 
@@ -806,12 +889,7 @@ def delete_message(
     return policy.execute_dangerous(
         "delete_message", args, request_id,
         preview_fn=_preview,
-        execute_fn=lambda a: {
-            "success": mail_router.delete_message(
-                account_id=_approved_mail_account(a), message_id=a["message_id"],
-                folder=a["folder"] or None,
-            )
-        },
+        execute_fn=_exec_delete_message,
     )
 
 
@@ -833,11 +911,7 @@ def delete_folder(
     return policy.execute_dangerous(
         "delete_folder", args, request_id,
         preview_fn=lambda: {"action": "delete_folder", "folder_id": folder_id},
-        execute_fn=lambda a: {
-            "success": mail_router.delete_folder(
-                account_id=_approved_mail_account(a), folder_id=a["folder_id"]
-            )
-        },
+        execute_fn=_exec_delete_folder,
     )
 
 
@@ -865,12 +939,7 @@ def create_event(
     return policy.execute_dangerous(
         "create_event", args, request_id,
         preview_fn=lambda: dict(args),
-        execute_fn=lambda a: calendar_router.bind_action(
-            "create_event", a.get("destination") or {})(
-            subject=a["subject"], start=a["start"], end=a["end"],
-            body=a["body"], location=a["location"],
-            all_day=bool(a.get("all_day")),
-        ),
+        execute_fn=_exec_create_event,
     )
 
 
@@ -891,8 +960,7 @@ def delete_event(
     return policy.execute_dangerous(
         "delete_event", args, request_id,
         preview_fn=lambda: {"action": "delete_event", **args},
-        execute_fn=lambda a: {"success": calendar_router.bind_action(
-            "delete_event", a.get("destination") or {})(event_id=a["event_id"])},
+        execute_fn=_exec_delete_event,
     )
 
 
@@ -937,9 +1005,7 @@ def create_zoom_meeting(
     return policy.execute_dangerous(
         "create_zoom_meeting", args, request_id,
         preview_fn=lambda: dict(args),
-        execute_fn=lambda a: zoom.crea_riunione(
-            a["topic"], a["start"], a["duration_minutes"],
-            agenda=a["agenda"]),
+        execute_fn=_exec_create_zoom_meeting,
     )
 
 
@@ -1034,8 +1100,7 @@ def drive_upload_file(
             "folder_id": folder_id or "(root)",
             "size": os.path.getsize(local_path) if os.path.isfile(local_path) else None,
         },
-        execute_fn=lambda a: google_drive.upload_file(
-            a["local_path"], name=a["name"], folder_id=a["folder_id"]),
+        execute_fn=_exec_drive_upload_file,
     )
 
 
@@ -1063,7 +1128,7 @@ def drive_delete_file(
     return policy.execute_dangerous(
         "drive_delete_file", args, request_id,
         preview_fn=_preview,
-        execute_fn=lambda a: {"success": google_drive.delete_file(a["file_id"])},
+        execute_fn=_exec_drive_delete_file,
     )
 
 
