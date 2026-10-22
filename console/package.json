@@ -1,7 +1,7 @@
 {
   "name": "gigamail",
   "productName": "GigaMail",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "description": "GigaMail — secure agentic email console",
   "main": "main.js",
   "author": {
@@ -92,6 +92,7 @@
         ]
       }
     },
+    "protocols": [{ "name": "GigaMail", "schemes": ["gigamail"] }],
     "nsis": {
       "include": "installer/installer.nsh",
       "oneClick": false,

@@ -51,6 +51,46 @@ def bottone(chiave: str, lang: str) -> List[List[Dict[str, str]]]:
               "callback_data": f"w:{chiave}"}]]
 
 
+class DesktopAndTelegram:
+    """For work queued from the desktop when Telegram is configured too:
+    the status lines ("writing the reply", "can't write the draft") go to
+    the desktop, where the request came from, and to Telegram; the
+    approval keeps Telegram's buttons. Before, a reply asked from the PC
+    failed in silence there and said why only on the phone."""
+
+    def __init__(self, tg):
+        self.tg = tg
+        self.desktop = DesktopChannel()
+        self.chat_id = tg.chat_id
+        self.approve_enabled = tg.approve_enabled
+
+    def send(self, text: str, buttons=None, html: bool = False) -> bool:
+        self.desktop.send(text)
+        try:
+            return bool(self.tg.send(text, buttons=buttons, html=html))
+        except Exception:
+            return False
+
+    def send_message(self, text: str, buttons=None, html: bool = False) -> int:
+        self.desktop.send(text)
+        try:
+            return int(self.tg.send_message(text, buttons=buttons, html=html) or 0)
+        except Exception:
+            return 0
+
+    def action_buttons(self, request_id: str, lang: str, can_approve: bool):
+        return self.tg.action_buttons(request_id, lang, can_approve)
+
+    def clear_buttons(self, message_id: int) -> bool:
+        try:
+            return bool(self.tg.clear_buttons(message_id))
+        except Exception:
+            return False
+
+    def __getattr__(self, name):
+        return getattr(self.tg, name)
+
+
 class DesktopChannel:
     """Stands in for Telegram when it is not configured, and for work
     queued from the desktop: messages become desktop notifications, and
@@ -374,7 +414,7 @@ def process_desktop_queue(w, tg) -> int:
             entry = json.loads(raw)
         except Exception:
             continue
-        channel = tg or DesktopChannel()
+        channel = DesktopAndTelegram(tg) if tg else DesktopChannel()
         if entry.get("request_id"):
             rifai(w, channel, entry["request_id"], entry.get("feedback") or "")
         else:

@@ -75,7 +75,7 @@ test('outcome labels: executed means consumed, the provider outcome says sent', 
   assert.equal(o({ status: 'executed', execution_outcome: 'dryrun' }), 'prova, non inviata');
   assert.equal(o({ status: 'executed' }), 'in esecuzione');
   assert.equal(o({ status: 'approved', completed_by: 'watcher' }), 'approvata, la invia il watcher');
-  assert.equal(o({ status: 'approved' }), "approvata, la completa l'agente");
+  assert.equal(o({ status: 'approved' }), 'approvata, in esecuzione');
   assert.equal(o({ status: 'rejected' }), 'rifiutata');
   assert.equal(o({ status: 'pending', expires_at: NOW - 5 }), 'scaduta senza decisione');
 });
@@ -123,7 +123,9 @@ test('opening Automations lists what waits, counts it on the badge, and Reject r
     calls.push(`${opts.method || 'GET'} ${p}`);
     if (p === '/approvals') return { ok: true, status: 200, json: async () => pending };
     if (p.startsWith('/approvals/recent')) {
-      return { ok: true, status: 200, json: async () => [{ ...AGENT_SEND, status: 'rejected', decided_by: 'console:tester', decided_at: NOW }] };
+      // decided a minute ago: seen once the page opens, so the icon only
+      // counts what is still to decide
+      return { ok: true, status: 200, json: async () => [{ ...AGENT_SEND, status: 'rejected', decided_by: 'console:tester', decided_at: Date.now() / 1000 - 60 }] };
     }
     if (p === '/approvals/req_abc/reject') { pending = []; return { ok: true, status: 200, json: async () => ({ success: true }) }; }
     return { ok: false, status: 404, json: async () => ({ detail: 'not in this test' }) };
@@ -136,7 +138,7 @@ test('opening Automations lists what waits, counts it on the badge, and Reject r
     await new Promise((r) => w.document.addEventListener('DOMContentLoaded', () => r(), { once: true }));
   }
   const tick = () => new Promise((r) => setTimeout(r, 30));
-
+  try {
   w.document.getElementById('btnShowAutomations').click();
   await tick();
   assert.ok(w.document.getElementById('view-automations').classList.contains('active'));
@@ -153,7 +155,11 @@ test('opening Automations lists what waits, counts it on the badge, and Reject r
   assert.ok(calls.includes('POST /approvals/req_abc/reject'), calls.join(', '));
   assert.ok(!list.querySelector('.pending-card'), 'the list is read again after the decision');
   assert.equal(badge.hidden, true);
-  w.close();
+  } finally {
+    // a failed assertion must not leave the window's timers running: the
+    // test process would never exit
+    w.close();
+  }
 });
 
 test('Waiting for you has its own view and icon, which carries the badge', () => {
@@ -184,4 +190,49 @@ test('a recently decided card opens on what was sent, escaped', () => {
   assert.ok(html.includes('class="recent-body">Hello</pre>'));
   const failed = V.recentCard({ ...rec, execution_outcome: 'failed', provider_result: { error: 'SMTP <550>' } }, t, NOW);
   assert.ok(failed.includes('SMTP &lt;550&gt;'));
+});
+
+test('a request whose notification failed says so, with the channel and the reason', () => {
+  const rec = { ...WATCHER_REPLY, status: 'expired', expires_at: NOW - 10,
+    notified: [{ channel: 'desktop', ok: true, error: '' },
+      { channel: 'telegram', ok: false, error: 'sendMessage: 401 Unauthorized' }] };
+  const s = V.summarize(rec, NOW);
+  assert.equal(V.notifyFailed(s), true);
+  assert.equal(V.notifiedText(s, t), 'desktop ✓ · telegram: sendMessage: 401 Unauthorized');
+  const html = V.recentCard(rec, t, NOW);
+  assert.match(html, /notifica non arrivata/);
+  assert.match(html, /Notifiche<\/span><span class="recent-v">desktop ✓ · telegram: sendMessage: 401 Unauthorized/);
+  // all delivered, or nothing recorded: no tag
+  assert.doesNotMatch(V.pendingCard(WATCHER_REPLY, t, NOW), /notifica non arrivata/);
+  const ok = { ...WATCHER_REPLY, notified: [{ channel: 'telegram', ok: true, error: '' }] };
+  assert.doesNotMatch(V.pendingCard(ok, t, NOW), /notifica non arrivata/);
+});
+
+test('only a rule paused by the burst guard counts as paused by itself', () => {
+  const rules = [
+    { rule_id: 'a', state: 'paused', pause_reason: 'raffica: 10 match in 10 minuti' },
+    { rule_id: 'b', state: 'paused', pause_reason: 'burst: 6 matches in 10 minutes' },
+    { rule_id: 'c', state: 'paused', pause_reason: '' },
+    { rule_id: 'd', state: 'active', pause_reason: 'raffica: 10 match in 10 minuti' },
+    { rule_id: 'e', state: 'expired' },
+  ];
+  assert.deepEqual(V.autoPaused(rules).map((r) => r.rule_id), ['a', 'b']);
+  assert.deepEqual(V.autoPaused([]), []);
+});
+
+test('the icon counts what is to decide and what was decided since the page was last opened, by colour', () => {
+  const decided = (over, at, extra = {}) => ({ ...AGENT_SEND, request_id: 'r' + at, status: 'executed',
+    decided_at: at, execution_outcome: over, ...extra });
+  const recent = [
+    decided('ok', NOW - 100),                       // sent → green
+    decided('failed', NOW - 90),                    // send failed → red
+    { ...AGENT_SEND, request_id: 'exp', status: 'pending', expires_at: NOW - 80 },   // expired → red
+    { ...AGENT_SEND, request_id: 'app', status: 'approved', decided_at: NOW - 70 },  // executing → amber
+    { ...AGENT_SEND, request_id: 'rej', status: 'rejected', decided_at: NOW - 60 },  // rejected → red
+    decided('ok', NOW - 1000),                      // before the last visit: not counted
+  ];
+  assert.deepEqual(V.badgeCounts([WATCHER_REPLY], recent, NOW - 500, NOW), { todo: 1, ok: 1, warn: 1, err: 3 });
+  // the page opened just now: only what is still to decide remains
+  assert.deepEqual(V.badgeCounts([WATCHER_REPLY], recent, NOW, NOW), { todo: 1, ok: 0, warn: 0, err: 0 });
+  assert.deepEqual(V.badgeCounts([], [], 0, NOW), { todo: 0, ok: 0, warn: 0, err: 0 });
 });

@@ -119,14 +119,43 @@
     if (!box) return;
     try {
       const rules = await api('/rules');
-      box.innerHTML = rules.length
+      setRulesBadge(rules);
+      box.innerHTML = pausedBanner(rules) + (rules.length
         ? rules.map(ruleCard).join('')
         : `<div class="hint">${T('Nessuna regola. Creane una qui sotto: la conferma finale è Windows Hello.',
                                  'No rules yet. Create one below: the final confirmation is Windows Hello.',
-                                 '还没有规则。在下方创建一条：最终确认由 Windows Hello 完成。')}</div>`;
+                                 '还没有规则。在下方创建一条：最终确认由 Windows Hello 完成。')}</div>`);
     } catch (e) {
       box.innerHTML = `<div class="hint">${T('Errore', 'Error', '错误')}: ${escapeHtml(e.message)}</div>`;
     }
+  }
+
+  // A rule that paused itself (burst guard) stops answering until a human
+  // resumes it with Hello: a banner above the list and a mark on the
+  // sidebar icon, visible from any view, until that happens.
+  function pausedBanner(rules) {
+    const stuck = AV() ? AV().autoPaused(rules) : [];
+    return stuck.map((r) => `
+      <div class="ai-card gm-rule-alert" data-rule-alert="${escapeHtml(r.rule_id)}">
+        <div class="ai-card-title">${T('Regola in pausa da sola', 'Rule paused itself', '规则已自动暂停')}: ${escapeHtml((r.trigger_values || []).join(', '))}</div>
+        <div class="ai-card-sub">${escapeHtml(r.pause_reason || '')} · ${T('non risponde a nessuna mail finché non la riattivi.', 'it answers no mail until you resume it.', '在你恢复之前不会回复任何邮件。')}</div>
+        <div class="ai-card-row" style="margin-top:8px">
+          <span style="flex:1"></span>
+          <button class="chip-btn" data-act="activity" data-id="${escapeHtml(r.rule_id)}">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('clipboard', 12) : '')} ${T('Attività', 'Activity', '活动')}</button>
+          <button class="chip-btn" data-act="resume" data-id="${escapeHtml(r.rule_id)}">▶ ${T('Riattiva (Hello)', 'Resume (Hello)', '恢复 (Hello)')}</button>
+        </div>
+      </div>`).join('');
+  }
+
+  function setRulesBadge(rules) {
+    const b = $('automationsBadge');
+    if (!b) return;
+    // how many rules wait for a human to resume them (paused by the burst
+    // guard): what needs doing here, not a statistic
+    const n = AV() ? AV().autoPaused(rules).length : 0;
+    b.textContent = AV() ? AV().badgeText(n) : (n ? String(n) : '');
+    b.hidden = !n;
+    b.title = T('Regole in pausa da sole, da riattivare', 'Rules paused by themselves, to resume', '已自动暂停、待恢复的规则');
   }
 
   async function onRuleAction(e) {
@@ -141,7 +170,7 @@
         toast(T('Conferma con Windows Hello…', 'Confirm with Windows Hello…', '请用 Windows Hello 确认…'));
         await api(`/rules/${id}/resume`, { method: 'POST' });
       } else if (act === 'delete') {
-        if (!confirm(T('Eliminare la regola?', 'Delete the rule?', '删除此规则？'))) return;
+        if (!(await GMDialog.confirm(T('Eliminare la regola?', 'Delete the rule?', '删除此规则？'), { danger: true }))) return;
         await api(`/rules/${id}`, { method: 'DELETE' });
       } else if (act === 'activity') {
         const el = $(`act-${id}`);
@@ -366,13 +395,23 @@
   const L = (key, fallback) => (window.i18n && window.i18n.t ? window.i18n.t(key, fallback) : fallback);
   const AV = () => window.ApprovalsView;
 
-  function setBadge(n) {
+  // When the user last opened "waiting for you": the decided outcomes
+  // counted on the icon are the ones after this moment.
+  const SEEN_KEY = 'gm_pending_seen_at';
+  const seenAt = () => { try { return Number(localStorage.getItem(SEEN_KEY) || 0); } catch (_) { return 0; } };
+  const markSeen = () => { try { localStorage.setItem(SEEN_KEY, String(Date.now() / 1000)); } catch (_) { /* no storage */ } };
+
+  function setBadge(pending, recent) {
     const b = $('pendingBadge');
-    if (!b) return;
-    const text = AV() ? AV().badgeText(n) : (n > 0 ? String(n) : '');
-    b.textContent = text;
-    b.hidden = !text;
-    b.title = L('pending_title', 'Richieste in attesa');
+    if (!b || !AV()) return;
+    const c = AV().badgeCounts(pending, recent, seenAt());
+    const pill = (cls, n, title) => (n > 0
+      ? `<span class="s-pill ${cls}" title="${escapeHtml(title)}">${AV().badgeText(n)}</span>` : '');
+    b.innerHTML = pill('todo', c.todo, L('pending_title', 'Richieste in attesa'))
+      + pill('ok', c.ok, L('st_sent', 'inviata'))
+      + pill('warn', c.warn, L('st_approved_agent', 'approvata, in esecuzione'))
+      + pill('err', c.err, L('badge_err', 'fallite, rifiutate o scadute'));
+    b.hidden = !b.innerHTML;
   }
 
   async function refreshPending() {
@@ -381,7 +420,9 @@
     if (!box || !AV()) return;
     try {
       const [pending, recent] = await Promise.all([api('/approvals'), api('/approvals/recent?hours=24')]);
-      setBadge(pending.length);
+      // the page is open: what it shows is seen
+      markSeen();
+      setBadge(pending, recent);
       box.innerHTML = pending.length
         ? pending.map((r) => AV().pendingCard(r, L)).join('')
         : `<div class="hint">${L('pending_none', 'Nessuna richiesta in attesa.')}</div>`;
@@ -400,8 +441,9 @@
 
   async function pollBadge() {
     try {
-      const pending = await api('/approvals');
-      setBadge(pending.length);
+      const [pending, recent] = await Promise.all([api('/approvals'), api('/approvals/recent?hours=24')]);
+      setBadge(pending, recent);
+      setRulesBadge(await api('/rules'));
     } catch (_) { /* no backend yet: the badge stays as it is */ }
   }
 
@@ -437,6 +479,8 @@
   document.addEventListener('DOMContentLoaded', () => {
     $('btnShowAutomations')?.addEventListener('click', showView);
     $('btnShowPending')?.addEventListener('click', showPendingView);
+    // a popup opened by a notification asks the main window for the list
+    if (window.electronAPI?.onShowPending) window.electronAPI.onShowPending(showPendingView);
     $('agentSelect')?.addEventListener('change', async (e) => {
       try {
         await api('/agent/select', { method: 'POST', body: JSON.stringify({ agent: e.target.value }) });

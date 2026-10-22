@@ -15,7 +15,8 @@
        is the signed installer's
     3. checks that all three signatures are there and valid
     4. replaces exe and latest.yml on the draft, removes the zip, checks
-       what is online and publishes (unless -NoPublish)
+       what is online, waits for the Mac jobs of the Release run, and
+       publishes (unless -NoPublish)
 
   Publishing re-runs release.yml, which publishes the package to PyPI.
 
@@ -220,6 +221,26 @@ Write-Host (Say "Online: $exeName firmato, latest.yml coerente." "Online: $exeNa
 
 if ($NoPublish) {
   Write-Host (Say "Bozza lasciata in bozza (-NoPublish). Pubblica con: " "Left as a draft (-NoPublish). Publish with: ") "gh release edit $Tag --repo $Repo --draft=false --latest"
+  exit 0
+}
+# The Mac jobs of the same Release run attach their DMGs to the draft and
+# refuse a published Release: publishing while they still run (0.6.4, the
+# x64 DMG came ten minutes after the Windows installer) leaves the Release
+# without them. Wait for the run to end first.
+$deadline = (Get-Date).AddMinutes(45)
+while ($true) {
+  $runs = gh run list --repo $Repo --workflow Release --branch $Tag --json status --jq '[.[] | select(.status != "completed")] | length' 2>$null
+  if ($LASTEXITCODE -ne 0 -or -not $runs -or [int]$runs -eq 0) { break }
+  if ((Get-Date) -gt $deadline) {
+    Write-Host (Say "I job Mac non hanno finito in 45 minuti: la Release resta in bozza. Pubblica con: " "The Mac jobs did not finish within 45 minutes: the Release stays a draft. Publish with: ") "gh release edit $Tag --repo $Repo --draft=false --latest"
+    exit 0
+  }
+  Write-Host (Say "Aspetto i job Mac della Release run..." "Waiting for the Release run's Mac jobs...")
+  Start-Sleep -Seconds 30
+}
+$missing = @("GigaMail-x64.dmg", "GigaMail-arm64.dmg") | Where-Object { $_ -notin (gh release view $Tag --repo $Repo --json assets --jq ".assets[].name") }
+if ($missing) {
+  Write-Host (Say "Mancano i DMG Mac ($($missing -join ', ')): la Release resta in bozza. Rilancia i job falliti (gh run rerun --failed) e poi pubblica con: " "Mac DMGs missing ($($missing -join ', ')): the Release stays a draft. Re-run the failed jobs (gh run rerun --failed), then publish with: ") "gh release edit $Tag --repo $Repo --draft=false --latest"
   exit 0
 }
 gh release edit $Tag --repo $Repo --draft=false --latest

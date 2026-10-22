@@ -472,6 +472,119 @@ if (DEV_ICON) {
 }
 
 // ── APP ───────────────────────────────────────────────────────────────────────
+// ── gigamail:// links: toast buttons, the CLI's forward, the agent's links ──
+// One instance: a second launch (Windows opens the protocol handler as a
+// new process) hands its argv to this one and exits. The CLI, registered
+// on the scheme in HKLM for the toasts, forwards the URL to the bridge
+// below when the console runs, and starts it with --open-url when not.
+const OpenUrl = require('./open_url');
+let pendingUrl = OpenUrl.fromArgv(process.argv);
+const BRIDGE_TOKEN = crypto.randomBytes(24).toString('hex');
+let bridgeServer = null;
+
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on('second-instance', (_event, argv) => {
+    const url = OpenUrl.fromArgv(argv);
+    if (url) handleOpenUrl(url);
+    else if (mainWindow) { if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.focus(); }
+  });
+  app.on('open-url', (event, url) => { event.preventDefault(); handleOpenUrl(url); });
+  try {
+    if (app.isPackaged) app.setAsDefaultProtocolClient('gigamail');
+    else app.setAsDefaultProtocolClient('gigamail', process.execPath, [path.resolve(process.argv[1] || '.')]);
+  } catch (_) { /* best effort: HKLM, written by desktop-setup, is what the toasts read */ }
+}
+
+function handleOpenUrl(url) {
+  const req = OpenUrl.parse(url);
+  if (!req) return;
+  if (!mainWindow) { pendingUrl = url; return; }   // handled once the window exists
+  if (req.kind === 'approval') openApprovalWindow(req.id, req.action);
+  else if (req.kind === 'reply') openReplyAlertWindow(req.key);
+  else if (req.kind === 'mail') {
+    mainWindow.webContents.send('open-mail', { id: req.id, folder: req.folder || null, account_id: req.account_id || null });
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
+}
+
+// Where the CLI reaches this console: console.json next to the backend's
+// data, with the bridge's port and token and how to start the app.
+function startBridge() {
+  bridgeServer = http.createServer((req, res) => {
+    if (req.method !== 'POST' || req.url !== '/open-url' || req.headers['x-gigamail-bridge'] !== BRIDGE_TOKEN) {
+      res.writeHead(404); res.end(); return;
+    }
+    let body = '';
+    req.on('data', (c) => { body += c; if (body.length > 4096) req.destroy(); });
+    req.on('end', () => {
+      let url = '';
+      try { url = String(JSON.parse(body).url || ''); } catch (_) { url = ''; }
+      if (!OpenUrl.parse(url)) { res.writeHead(400); res.end(); return; }
+      handleOpenUrl(url);
+      res.writeHead(204); res.end();
+    });
+  });
+  bridgeServer.listen(0, '127.0.0.1', () => {
+    const info = {
+      port: bridgeServer.address().port, token: BRIDGE_TOKEN, pid: process.pid,
+      exe: process.execPath, args: app.isPackaged ? [] : [path.resolve(process.argv[1] || '.')],
+    };
+    try { fs.writeFileSync(path.join(appPaths.dataRoot(), 'console.json'), JSON.stringify(info), { mode: 0o600 }); }
+    catch (e) { console.error('[GIGAMAIL] console.json not written: toast buttons fall back to the terminal', e.message); }
+  });
+}
+
+function popupWindow(width, height, preload, file, title) {
+  const main = mainWindow?.getBounds() || { x: 100, y: 100, width: 1280, height: 820 };
+  const win = new BrowserWindow({
+    x: main.x + Math.floor((main.width - width) / 2),
+    y: main.y + Math.floor((main.height - height) / 2),
+    width, height, minWidth: 420, minHeight: 360,
+    frame: false, transparent: false, backgroundColor: '#EBF2FA', resizable: true,
+    title, parent: childParent(), show: false,
+    webPreferences: {
+      additionalArguments: [`--gigamail-api=${API}`],
+      preload: path.join(__dirname, preload),
+      contextIsolation: true, nodeIntegration: false,
+    },
+  });
+  win.loadFile(path.join(__dirname, file));
+  hardenWindow(win);
+  win.once('ready-to-show', () => { win.show(); win.focus(); });
+  return win;
+}
+
+const approvalWindows = new Map();   // request_id -> window: one per request
+function openApprovalWindow(requestId, action) {
+  const open = approvalWindows.get(requestId);
+  if (open && !open.isDestroyed()) {
+    open.webContents.send('load-approval', { request_id: requestId, action });
+    open.focus();
+    return;
+  }
+  const win = popupWindow(620, 640, 'preload_approval.js', 'approval_window.html', mt('title_approval'));
+  approvalWindows.set(requestId, win);
+  win.on('closed', () => { if (approvalWindows.get(requestId) === win) approvalWindows.delete(requestId); });
+  win.webContents.once('did-finish-load', () => win.webContents.send('load-approval', { request_id: requestId, action }));
+}
+
+function openReplyAlertWindow(key) {
+  const win = popupWindow(560, 520, 'preload_reply_alert.js', 'reply_alert_window.html', mt('title_reply'));
+  win.webContents.once('did-finish-load', () => win.webContents.send('load-reply-alert', { key }));
+}
+
+ipcMain.on('approval-window-close', (event) => { BrowserWindow.fromWebContents(event.sender)?.close(); });
+ipcMain.on('approval-window-minimize', (event) => { BrowserWindow.fromWebContents(event.sender)?.minimize(); });
+ipcMain.on('approval-window-open-pending', () => {
+  if (!mainWindow) return;
+  mainWindow.webContents.send('show-pending-view');
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.focus();
+});
+
 app.whenReady().then(async () => {
   if (DEV_ICON && process.platform === 'darwin' && app.dock) {
     try { app.dock.setIcon(path.join(__dirname, '..', 'docs', 'brand', 'gigamail-logo-1024.png')); } catch {}
@@ -526,6 +639,11 @@ app.whenReady().then(async () => {
   if (!backendReady) console.error('[GIGAMAIL] Backend non raggiungibile entro 20s — apro comunque la finestra');
   createWindow();
   startPolling();
+  startBridge();
+  if (pendingUrl) {
+    const url = pendingUrl; pendingUrl = '';
+    mainWindow.webContents.once('did-finish-load', () => setTimeout(() => handleOpenUrl(url), 300));
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -534,6 +652,13 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
   stopPolling();
+  // The bridge goes; how to start the app stays, so a toast button pressed
+  // while the console is closed (the CLI reads this file) can open it.
+  try {
+    bridgeServer?.close();
+    const info = { exe: process.execPath, args: app.isPackaged ? [] : [path.resolve(process.argv[1] || '.')] };
+    fs.writeFileSync(path.join(appPaths.dataRoot(), 'console.json'), JSON.stringify(info), { mode: 0o600 });
+  } catch (_) { /* best effort */ }
   // Il backend NON viene killato: resta in background cosi' il prossimo
   // avvio dell'app e' istantaneo (il check /health pre-spawn lo riusa).
   if (process.platform !== 'darwin') app.quit();

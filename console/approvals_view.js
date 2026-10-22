@@ -48,6 +48,8 @@
       cc: addressOf(p.cc),
       bcc: addressOf(p.bcc),
       createdAt: rec.created_at || null,
+      // the notifications sent for it, and the ones that failed
+      notified: Array.isArray(rec.notified) ? rec.notified : [],
       error: rec.provider_result && typeof rec.provider_result === 'object'
         ? String(rec.provider_result.error || '') : '',
       accepted: rec.provider_result && typeof rec.provider_result === 'object'
@@ -90,7 +92,7 @@
     if (s.status === 'approved') {
       return { cls: 'warn', text: s.completedBy === 'watcher'
         ? t('st_approved_watcher', 'approvata, la invia il watcher')
-        : t('st_approved_agent', "approvata, la completa l'agente") };
+        : t('st_approved_agent', 'approvata, in esecuzione') };
     }
     if (s.status === 'rejected') return { cls: 'err', text: t('st_rejected', 'rifiutata') };
     if (s.status === 'pending' && s.expired) return { cls: 'err', text: t('st_expired', 'scaduta senza decisione') };
@@ -126,6 +128,7 @@
         ${bodyBlock(s, t)}
         <div class="ai-card-row" style="margin-top:8px">
           <span class="ai-card-status ${s.expiresIn < 120 ? 'warn' : ''}">${fmtEta(s.expiresIn, t)}</span>
+          ${notifyFailed(s) ? `<span class="ai-card-status warn">${esc(t('notify_failed_tag', 'notifica non arrivata'))}</span>` : ''}
           <span style="flex:1"></span>
           <button class="chip-btn" data-act="approve" data-id="${esc(s.id)}">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('check', 12) : '')} ${esc(t('pending_approve', 'Approva'))}</button>
           <button class="chip-btn danger" data-act="reject" data-id="${esc(s.id)}">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('x', 12) : '')} ${esc(t('pending_reject', 'Rifiuta'))}</button>
@@ -142,6 +145,19 @@
 
   // What was sent, or what was refused: the request as GigaMail stored it
   // (the same payload the send executes), opened by clicking the card.
+  // "telegram ✓ · desktop ✓ · telegram: 401 Unauthorized": what was sent
+  // to reach the user, and what did not leave, so a request that expired
+  // unseen says why.
+  function notifiedText(s, t) {
+    return (s.notified || []).map((n) => (n.ok
+      ? `${n.channel} ✓`
+      : `${n.channel}: ${n.error || t('notify_failed', 'non partita')}`)).join(' · ');
+  }
+
+  function notifyFailed(s) {
+    return (s.notified || []).some((n) => !n.ok);
+  }
+
   function detailHtml(s, t) {
     const row = (label, value) => (value
       ? `<div class="recent-row"><span class="recent-k">${esc(label)}</span><span class="recent-v">${esc(value)}</span></div>` : '');
@@ -156,6 +172,7 @@
         ${s.body ? `<pre class="recent-body">${esc(s.body)}</pre>` : ''}
         ${row(t('detail_accepted', 'Accettata per'), accepted)}
         ${row(t('detail_error', 'Errore'), s.error)}
+        ${row(t('detail_notified', 'Notifiche'), notifiedText(s, t))}
         ${row(t('detail_requested', 'Richiesta'), fmtDateTime(s.createdAt))}
         ${row(t('detail_decided', 'Decisa'), [fmtDateTime(s.decidedAt), s.decidedBy ? fmtBy(s.decidedBy, t) : ''].filter(Boolean).join(' · '))}
         <div class="recent-row"><span class="recent-k">id</span><span class="recent-v hint">${esc(s.tool)} · ${esc(s.id)}</span></div>
@@ -174,6 +191,7 @@
           ${head(s, t)}
           <div class="ai-card-row" style="margin-top:6px">
             <span class="ai-card-status ${o.cls}">${o.text}</span>
+            ${notifyFailed(s) ? `<span class="ai-card-status warn">${esc(t('notify_failed_tag', 'notifica non arrivata'))}</span>` : ''}
             <span class="hint">${esc(when)}${by}</span>
             <span style="flex:1"></span>
             <span class="hint recent-more">${esc(t('detail_open', 'dettagli'))}</span>
@@ -189,7 +207,31 @@
     return n > 9 ? '9+' : String(n);
   }
 
-  const ApprovalsView = { summarize, pendingCard, recentCard, detailHtml, outcomeOf, fmtEta, badgeText, addressOf };
+  // What the "waiting for you" icon shows: the requests still to decide,
+  // and the outcomes decided since the user last opened the page, by
+  // colour (ok = sent, warn = approved and executing, err = failed,
+  // rejected or expired). Opening the page sets seenAt to now and the
+  // decided counts go away; the to-do count stays until it is zero.
+  function badgeCounts(pending, recent, seenAt, now = Date.now() / 1000) {
+    const out = { todo: (pending || []).length, ok: 0, warn: 0, err: 0 };
+    for (const rec of recent || []) {
+      const s = summarize(rec, now);
+      const at = s.decidedAt || rec.expires_at || 0;
+      if (at <= (seenAt || 0)) continue;
+      const cls = outcomeOf(s, (_k, f) => f).cls;
+      if (cls === 'ok' || cls === 'warn' || cls === 'err') out[cls] += 1;
+    }
+    return out;
+  }
+
+  // The rules that paused themselves (the burst guard): a pause nobody
+  // chose must be seen, not read in a card's small print days later.
+  function autoPaused(rules) {
+    return (rules || []).filter((r) => r && r.state === 'paused'
+      && /^(raffica|burst)\b/i.test(String(r.pause_reason || '')));
+  }
+
+  const ApprovalsView = { summarize, pendingCard, recentCard, detailHtml, outcomeOf, fmtEta, badgeText, badgeCounts, addressOf, notifiedText, notifyFailed, autoPaused };
   if (typeof window !== 'undefined') window.ApprovalsView = ApprovalsView;
   if (typeof module !== 'undefined' && module.exports) module.exports = ApprovalsView;
 })();

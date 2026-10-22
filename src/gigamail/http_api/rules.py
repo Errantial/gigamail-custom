@@ -1,5 +1,7 @@
 """Automazioni (0.2.1): regole di risposta e watcher (processo separato)."""
 import os
+import threading
+import time
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -156,17 +158,14 @@ def watch_status():
     return _watch_state()
 
 
-@router.post("/watch/start")
-def watch_start(interval: int = 60):
-    """Avvia `gigamail watch` come processo staccato (sopravvive alla
-    console), log in app_root()/watch.log."""
+def _spawn_watch(interval: int) -> int:
+    """`gigamail watch` come processo staccato (sopravvive alla console),
+    log in app_root()/watch.log. Ritorna il pid."""
     import subprocess
     import sys as _sys
 
+    from gigamail.core import rules as rules_mod
     from gigamail.core.data_paths import app_root
-    st = _watch_state()
-    if st["running"]:
-        return st
     log_path = os.path.join(str(app_root()), "watch.log")
     log = open(log_path, "a", encoding="utf-8")
     kwargs = {}
@@ -179,35 +178,129 @@ def watch_start(interval: int = 60):
          "--verbose", "--interval", str(max(int(interval), 10))],
         stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,
         env=dict(os.environ), **kwargs)
-    from gigamail.core import rules as rules_mod
     rules_mod.store().kv_set("watch_pid", str(proc.pid))
-    policy.audit("watch", {"pid": proc.pid, "interval": interval}, "watch_started",
-                 detail=_who())
-    return {"running": True, "pid": proc.pid, "interval": interval,
-            "last_tick_age_seconds": None, "active_rules": st["active_rules"]}
+    return proc.pid
+
+
+# kv flag: the user pressed Stop. The guard that restarts a dead watcher
+# must not undo a stop someone chose; only an explicit start (the button,
+# or `gigamail watch` by hand) clears it. Written BEFORE the process is
+# ended, under the same lock the guard takes: a guard that woke up between
+# the kill and the flag used to start a watcher again.
+USER_STOPPED_KEY = "watch_user_stopped"
+_WATCH_LOCK = threading.RLock()
+
+
+@router.post("/watch/start")
+def watch_start(interval: int = 60):
+    from gigamail.core import rules as rules_mod
+    with _WATCH_LOCK:
+        rules_mod.store().kv_set(USER_STOPPED_KEY, "0")
+        st = _watch_state()
+        if st["running"]:
+            return st
+        pid = _spawn_watch(interval)
+        policy.audit("watch", {"pid": pid, "interval": interval}, "watch_started",
+                     detail=_who())
+        return {"running": True, "pid": pid, "interval": interval,
+                "last_tick_age_seconds": None, "active_rules": st["active_rules"]}
+
+
+def watch_autostart() -> Optional[int]:
+    """A watcher that should be running, and is not, is started; one that
+    runs OLD code (its code stamp differs from the sources on disk: an
+    update, a git pull) is stopped and started again, so the new code
+    runs without anyone pressing Stop and Start. The watcher is its own
+    process: before, only the button in Automations brought it back, and
+    a mail a rule should have answered waited until someone noticed.
+    Returns the new pid, or None when nothing was started."""
+    with _WATCH_LOCK:
+        return _watch_autostart_locked()
+
+
+def _watch_autostart_locked() -> Optional[int]:
+    from gigamail.core import rules as rules_mod
+    from gigamail.core.code_stamp import code_stamp
+    st = _watch_state()
+    if not st["active_rules"]:
+        return None
+    if rules_mod.store().kv_get(USER_STOPPED_KEY, "0") == "1":
+        return None    # stopped on purpose: Start is the user's to press
+    reason = "backend start"
+    if st["running"]:
+        stamp = st.get("code_stamp") or ""
+        if not stamp or stamp == code_stamp():
+            return None
+        try:
+            _stop_watch_process(int(st["pid"]))
+        except Exception as e:
+            policy.audit("watch", {"pid": st["pid"]}, "watch_restart_failed", detail=str(e)[:200])
+            return None
+        rules_mod.store().kv_set("watch_heartbeat", "0")
+        reason = "code changed"
+    interval = int(rules_mod.store().kv_get("watch_interval", "60") or 60)
+    pid = _spawn_watch(interval)
+    policy.audit("watch", {"pid": pid, "interval": interval},
+                 "watch_restarted" if reason == "code changed" else "watch_autostarted",
+                 detail=reason)
+    return pid
+
+
+WATCH_GUARD_SECONDS = 60
+
+
+def start_watch_guard(interval: int = WATCH_GUARD_SECONDS) -> None:
+    """A daemon thread of the backend: watch_autostart now and every
+    minute. Covers the watcher dying at any time, and an update landing
+    while the backend keeps running (the console reuses a live backend)."""
+    import threading
+
+    def _loop():
+        while True:
+            try:
+                pid = watch_autostart()
+                if pid:
+                    print(f"[console] watcher started (pid {pid})", flush=True)
+            except Exception as e:
+                print(f"[console] watcher guard: {e}", flush=True)
+            time.sleep(interval)
+
+    threading.Thread(target=_loop, name="watch-guard", daemon=True).start()
+
+
+def _stop_watch_process(pid: int, wait: float = 10.0) -> None:
+    """Ends the watcher and its children (on Windows the venv's python.exe
+    is a launcher: without /T its child kept running, and the restarted
+    watcher ran next to the old one), then waits for it to be gone."""
+    if os.name == "nt":
+        import subprocess
+        subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                       timeout=15)
+    else:
+        import signal
+        os.kill(pid, signal.SIGTERM)
+    deadline = time.time() + wait
+    while time.time() < deadline and _pid_alive(pid):
+        time.sleep(0.2)
 
 
 @router.post("/watch/stop")
 def watch_stop():
     from gigamail.core import rules as rules_mod
-    rs = rules_mod.store()
-    pid = int(rs.kv_get("watch_pid", "0") or 0)
-    if pid and _pid_alive(pid):
-        try:
-            if os.name == "nt":
-                import subprocess
-                subprocess.run(["taskkill", "/PID", str(pid), "/F"],
-                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                               timeout=15)
-            else:
-                import signal
-                os.kill(pid, signal.SIGTERM)
-        except Exception as e:
-            raise HTTPException(500, f"stop fallito: {e}") from e
-    rs.kv_set("watch_pid", "0")
-    rs.kv_set("watch_heartbeat", "0")
-    policy.audit("watch", {"pid": pid}, "watch_stopped", detail=_who())
-    return _watch_state()
+    with _WATCH_LOCK:
+        rs = rules_mod.store()
+        rs.kv_set(USER_STOPPED_KEY, "1")   # first: the guard reads it before it starts anything
+        pid = int(rs.kv_get("watch_pid", "0") or 0)
+        if pid and _pid_alive(pid):
+            try:
+                _stop_watch_process(pid)
+            except Exception as e:
+                raise HTTPException(500, f"stop fallito: {e}") from e
+        rs.kv_set("watch_pid", "0")
+        rs.kv_set("watch_heartbeat", "0")
+        policy.audit("watch", {"pid": pid}, "watch_stopped", detail=_who())
+        return _watch_state()
 
 
 @router.get("/watch/log")

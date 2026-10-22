@@ -72,10 +72,23 @@ class RuleStore:
         conn = sqlite3.connect(self.path, timeout=10,
                                factory=_ClosingConnection)
         conn.row_factory = sqlite3.Row
+        # WAL (set once, kept by the file) and synchronous=NORMAL (per
+        # connection): the watcher writes its heartbeat many times a tick,
+        # and a full fsync per write stalled a slow Windows disk (CI timed
+        # out inside kv_set). Durable across a crash of the process; a
+        # power loss can lose the last heartbeat, which is nothing.
+        try:
+            conn.execute("PRAGMA synchronous=NORMAL")
+        except sqlite3.Error:
+            pass
         return conn
 
     def _init(self) -> None:
         with self._conn() as conn:
+            try:
+                conn.execute("PRAGMA journal_mode=WAL")
+            except sqlite3.Error:
+                pass
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS rules (
                     rule_id           TEXT PRIMARY KEY,
@@ -128,10 +141,28 @@ class RuleStore:
             conn.execute(
                 "CREATE INDEX IF NOT EXISTS ix_handled_rule_ts"
                 " ON handled (rule_id, ts)")
+            # The people a rule has answered: a reply from one of them
+            # belongs to that rule, whatever the trigger says. A lead
+            # from the site form was answered; the person wrote back from
+            # her own address, and no rule matched her.
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS contacts (
+                    rule_id    TEXT NOT NULL,
+                    account_id INTEGER NOT NULL,
+                    address    TEXT NOT NULL,
+                    ts         REAL NOT NULL,
+                    PRIMARY KEY (rule_id, address)
+                )
+            """)
             # feedback dell'umano per "rifiuta e riprova con modifica"
             cols = {r[1] for r in conn.execute("PRAGMA table_info(handled)")}
             if "feedback" not in cols:
                 conn.execute("ALTER TABLE handled ADD COLUMN feedback TEXT")
+            # When the mail ARRIVED: the burst guard counts by this, not by
+            # when the watcher got to it (a night's backlog read in one
+            # tick is not a burst).
+            if "received_ts" not in cols:
+                conn.execute("ALTER TABLE handled ADD COLUMN received_ts REAL")
             cols = {r[1] for r in conn.execute("PRAGMA table_info(rules)")}
             if "reply_to_body_address" not in cols:
                 conn.execute("ALTER TABLE rules ADD COLUMN"
@@ -236,6 +267,23 @@ class RuleStore:
                 " ORDER BY created_at", (now,)).fetchall()
         return [self._row_to_rule(r) for r in rows]
 
+    def record_contact(self, rule_id: str, account_id: int, address: str) -> None:
+        """The rule answered (or drafted an answer to) this person."""
+        address = (address or "").strip().lower()
+        if not address or "@" not in address:
+            return
+        with self._conn() as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO contacts (rule_id, account_id, address, ts)"
+                " VALUES (?,?,?,?)", (rule_id, int(account_id), address, time.time()))
+
+    def is_contact(self, rule_id: str, address: str) -> bool:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT 1 FROM contacts WHERE rule_id=? AND address=? LIMIT 1",
+                (rule_id, (address or "").strip().lower())).fetchone()
+        return row is not None
+
     def pause(self, rule_id: str, reason: str = "") -> bool:
         """Mettere in pausa e' sempre lecito, da chiunque: riduce l'autonomia.
         E' riattivare che richiede l'umano."""
@@ -286,15 +334,20 @@ class RuleStore:
 
     def record(self, rule_id: str, account_id: int, message_id: str,
                sender: str, status: str, reason: str = "",
-               request_id: str = "") -> None:
+               request_id: str = "", received_ts: Optional[float] = None) -> None:
         with self._conn() as conn:
+            if received_ts is None:
+                row = conn.execute(
+                    "SELECT received_ts FROM handled WHERE rule_id=? AND message_id=?",
+                    (rule_id, str(message_id))).fetchone()
+                received_ts = row["received_ts"] if row else None
             conn.execute(
                 "INSERT OR REPLACE INTO handled (rule_id, account_id,"
-                " message_id, sender, status, reason, request_id, ts)"
-                " VALUES (?,?,?,?,?,?,?,?)",
+                " message_id, sender, status, reason, request_id, ts, received_ts)"
+                " VALUES (?,?,?,?,?,?,?,?,?)",
                 (rule_id, int(account_id), str(message_id),
                  (sender or "").lower(), status, reason or None,
-                 request_id or None, time.time()))
+                 request_id or None, time.time(), received_ts))
 
     def set_status(self, rule_id: str, message_id: str, status: str,
                    reason: str = "") -> None:
@@ -358,6 +411,12 @@ class RuleStore:
             conn.execute("INSERT OR REPLACE INTO kv (key, value) VALUES (?,?)",
                          (key, str(value)))
 
+    def kv_set_many(self, values: Dict[str, str]) -> None:
+        """Several keys in one transaction: one commit, not one per key."""
+        with self._conn() as conn:
+            conn.executemany("INSERT OR REPLACE INTO kv (key, value) VALUES (?,?)",
+                             [(k, str(v)) for k, v in values.items()])
+
     def kv_keys(self, prefix: str) -> List[str]:
         """Keys starting with `prefix`, in key order."""
         like = prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
@@ -411,6 +470,17 @@ class RuleStore:
             row = conn.execute(
                 "SELECT COUNT(*) AS n FROM handled WHERE rule_id=? AND ts > ?",
                 (rule_id, since_ts)).fetchone()
+        return int(row["n"]) if row else 0
+
+    def matches_received_between(self, rule_id: str, lo: float, hi: float) -> int:
+        """Mails of this rule that ARRIVED in [lo, hi]: the burst window
+        by arrival, so six mails spread over a night are six mails, not
+        a burst, however many the watcher reads in one tick."""
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT COUNT(*) AS n FROM handled WHERE rule_id=?"
+                " AND received_ts IS NOT NULL AND received_ts >= ? AND received_ts <= ?",
+                (rule_id, lo, hi)).fetchone()
         return int(row["n"]) if row else 0
 
     def ever_replied_to(self, sender: str, account_id: int) -> bool:

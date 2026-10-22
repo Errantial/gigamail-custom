@@ -105,6 +105,19 @@ body {
   box-shadow:0 1px 4px rgba(0,0,0,0.25); pointer-events:none;
 }
 .s-badge[hidden] { display:none; }
+/* "Waiting for you": one pill per colour (to decide, sent, executing,
+   failed), side by side above the icon */
+#pendingBadge { display:flex; gap:2px; padding:0; background:transparent; box-shadow:none; min-width:0; right:-8px; }
+#pendingBadge[hidden] { display:none; }
+.s-pill {
+  min-width:16px; height:16px; padding:0 4px; border-radius:10px; color:#fff;
+  font-size:9px; font-weight:700; line-height:16px; text-align:center;
+  box-shadow:0 1px 4px rgba(0,0,0,0.25);
+}
+.s-pill.todo { background:var(--accent, #dc2626); }
+.s-pill.ok { background:#16a34a; }
+.s-pill.warn { background:#d97706; }
+.s-pill.err { background:#dc2626; }
 
 /* Tooltip nome al hover — posizionato fixed via JS */
 .s-tooltip {

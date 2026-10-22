@@ -121,10 +121,12 @@ PROTOCOL = "gigamail"
 
 
 _PROTOCOL_ARGS = '-m gigamail.cli open-url "%1"'
-# Le macchine registrate prima del rinomino del modulo hanno questo in
-# HKLM. Funziona ancora (ade_mail_agent reindirizza a gigamail): se non lo
-# riconoscessimo, le toast perderebbero i bottoni finche' qualcuno non
-# rifa' desktop-setup con il prompt UAC.
+# Machines registered before the module was renamed have this in HKLM,
+# pointing at the OLD project's venv. It was accepted as valid, and the
+# toast buttons kept opening that old CLI in a terminal (no bridge to the
+# console, a python process left waiting for ENTER at every click). Not
+# ours any more: the console offers "enable the buttons" again, and one
+# UAC prompt moves HKLM to this installation.
 _LEGACY_PROTOCOL_ARGS = '-m ade_mail_agent.cli open-url "%1"'
 
 
@@ -166,10 +168,9 @@ def registered_command_ok(val: str) -> bool:
     il caso "secondo interprete" resta coperto da un test invece che da un
     registro di Windows."""
     val = (val or "").strip()
-    for args in (_PROTOCOL_ARGS, _LEGACY_PROTOCOL_ARGS):
-        if val.lower().endswith(args.lower()):
-            exe = val[: -len(args)].strip().strip('"')
-            return bool(exe) and os.path.exists(exe)
+    if val.lower().endswith(_PROTOCOL_ARGS.lower()):
+        exe = val[: -len(_PROTOCOL_ARGS)].strip().strip('"')
+        return bool(exe) and os.path.exists(exe)
     return False
 
 
@@ -181,6 +182,7 @@ def register_protocol_machine() -> bool:
         return False
     if protocol_registered():
         return True
+    # A legacy registration is REPLACED, not kept: that is the point.
     cmd = protocol_command().replace("'", "''")
     base = "HKLM:\\Software\\Classes\\" + PROTOCOL
     sub = base + "\\shell\\open\\command"

@@ -19,7 +19,7 @@ async function generateBulkCopy() {
       if (byId('bulkSubject')) byId('bulkSubject').value = result.subject;
     } else if (result.subject) {
       // Proponi oggetto se già c'è qualcosa
-      if (confirm(`${T('cmp_bulk_replace_subject', 'Sostituire oggetto con:')}\n"${result.subject}"?`)) {
+      if (await GMDialog.confirm(`${T('cmp_bulk_replace_subject', 'Sostituire oggetto con:')}\n"${result.subject}"?`)) {
         if (byId('bulkSubject')) byId('bulkSubject').value = result.subject;
       }
     }
@@ -128,7 +128,7 @@ async function startBulkSend() {
   const sleepMax = parseInt(byId('bulkSleepMax')?.value || '40');
 
   const startPrompt = T('cmp_bulk_start_confirm', 'Avviare invio a {n} destinatari?').replace('{n}', _bulkRecipients.length);
-  if (!confirm(`${startPrompt}\n\n${T('subject_word', 'Oggetto')}: ${subject}\n\n${T('cmp_bulk_background', "L'invio girerà in background. Puoi chiudere questa finestra.")}`)) return;
+  if (!(await GMDialog.confirm(`${startPrompt}\n\n${T('subject_word', 'Oggetto')}: ${subject}\n\n${T('cmp_bulk_background', "L'invio girerà in background. Puoi chiudere questa finestra.")}`))) return;
 
   try {
     await api.bulkStart({

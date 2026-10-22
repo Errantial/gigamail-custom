@@ -22,6 +22,24 @@ def say(tg, it: str, en: str) -> None:
     tg.send(it if policy.user_lang() == "it" else en)
 
 
+def _complete_agent_request(tg, rid: str) -> None:
+    """A request of the agent, approved here: GigaMail completes it with
+    the stored arguments and says what happened. It used to answer
+    "the agent completes it", and nothing ever did."""
+    from gigamail import server
+    try:
+        server.execute_approved(rid)
+    except Exception as e:
+        say(tg, f"⚠ Approvata ma non eseguita ({rid}): {e}",
+            f"⚠ Approved but not executed ({rid}): {e}")
+        return
+    rec = policy.store().get(rid) or {}
+    ok = rec.get("execution_outcome") in ("ok", "dryrun")
+    say(tg,
+        f"✅ Eseguita ({rid})." if ok else f"⚠ Approvata ma esecuzione fallita ({rid}).",
+        f"✅ Done ({rid})." if ok else f"⚠ Approved but execution failed ({rid}).")
+
+
 def approve_allowed(tg) -> bool:
     """L'approvazione da Telegram vale solo se il chat_id configurato
     in notify.json COINCIDE con quello registrato dietro Hello al
@@ -246,14 +264,7 @@ def action(w, tg, act: str, rid: str, rs, message_id: int = 0) -> None:
             say(tg, f"{rid}: non approvabile.", f"{rid}: not approvable.")
             return
         if not da_regola:
-            # Nessuno qui puo' eseguirla: la fase 2 di un tool la
-            # completa l'agente che l'ha chiesta. Dirlo, invece di
-            # far credere che sia partita.
-            say(tg,
-                f"✅ Approvata ({rid}). Non e' ancora partita: "
-                "la completa l'agente che l'ha richiesta.",
-                f"✅ Approved ({rid}). Not sent yet: the agent "
-                "that asked for it completes the send.")
+            _complete_agent_request(tg, rid)
             tg.clear_buttons(message_id)
             return
         w.execute_approved()
@@ -349,11 +360,7 @@ def check_pin(w, tg, rid: str, text: str, rs, message_id: int = 0) -> None:
         return
     row = rs.find_by_request(rid)
     if not row:
-        say(tg,
-            f"✅ Approvata ({rid}). Non e' ancora partita: la "
-            "completa l'agente che l'ha richiesta.",
-            f"✅ Approved ({rid}). Not sent yet: the agent that "
-            "asked for it completes the send.")
+        _complete_agent_request(tg, rid)
         return
     w.execute_approved()
     h = rs.get_handled(row["rule_id"], row["message_id"]) or {}

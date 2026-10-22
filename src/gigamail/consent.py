@@ -161,6 +161,53 @@ def last_reason() -> str:
     return _ultimo_motivo
 
 
+# The window class of the Windows Hello / credential dialog host.
+_HELLO_DIALOG_CLASS = "Credential Dialog Xaml Host"
+
+
+def _bring_hello_to_front(seconds: float = 8.0) -> None:
+    """Puts the Windows Hello dialog in front of the other windows.
+
+    Asked by a process without a window of its own (the console's backend,
+    the watcher), the dialog opens behind whatever has the focus: the user
+    clicks "Resume (Hello)", nothing appears, and only Alt+Tab finds it.
+    Here a thread looks for the dialog for a few seconds and brings it up
+    with the foreground thread's input attached, the one way a background
+    process may take the foreground. Best effort: a failure changes
+    nothing, the dialog is still there behind."""
+    import ctypes
+    import threading
+    import time as _time
+
+    def _runner():
+        try:
+            u32 = ctypes.windll.user32
+            k32 = ctypes.windll.kernel32
+            deadline = _time.monotonic() + seconds
+            while _time.monotonic() < deadline:
+                hwnd = u32.FindWindowW(_HELLO_DIALOG_CLASS, None)
+                if hwnd:
+                    fg = u32.GetForegroundWindow()
+                    fg_thread = u32.GetWindowThreadProcessId(fg, None) if fg else 0
+                    me = k32.GetCurrentThreadId()
+                    attached = bool(fg_thread) and fg_thread != me \
+                        and u32.AttachThreadInput(me, fg_thread, True)
+                    try:
+                        u32.ShowWindow(hwnd, 5)          # SW_SHOW
+                        u32.BringWindowToTop(hwnd)
+                        u32.SetForegroundWindow(hwnd)
+                        u32.SwitchToThisWindow(hwnd, True)
+                    finally:
+                        if attached:
+                            u32.AttachThreadInput(me, fg_thread, False)
+                    return
+                _time.sleep(0.15)
+        except Exception:
+            pass
+
+    threading.Thread(target=_runner, daemon=True).start()
+
+
 def _win_ask(reason: str) -> bool:
     global _ultimo_motivo
     from winrt.windows.security.credentials.ui import (
@@ -169,6 +216,7 @@ def _win_ask(reason: str) -> bool:
     from winrt.windows.security.credentials.ui import (  # type: ignore
         UserConsentVerifier,
     )
+    _bring_hello_to_front()
     # Il messaggio e' mostrato dentro il dialogo di Windows Hello.
     r = _run_winrt(UserConsentVerifier.request_verification_async(reason))
     ok = int(r) == int(R.VERIFIED)

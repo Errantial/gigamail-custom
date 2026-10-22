@@ -78,10 +78,11 @@ async function deleteCurrentAccount(accountId) {
   if (!accountId) return;
   const sel = byId('accountSelect');
   const label = sel?.selectedOptions?.[0]?.textContent || `account ${accountId}`;
-  const ok = confirm(
+  const ok = await GMDialog.confirm(
     T('app_confirm_delete_account', 'Eliminare "{name}"?').replace('{name}', () => label) + '\n\n' +
     T('app_delete_account_local', "Verranno rimossi l'account e tutte le sue mail indicizzate localmente.") + '\n' +
-    T('app_delete_account_server', 'Le mail sui server (Microsoft/IMAP) NON vengono toccate.')
+    T('app_delete_account_server', 'Le mail sui server (Microsoft/IMAP) NON vengono toccate.'),
+    { danger: true }
   );
   if (!ok) return;
 

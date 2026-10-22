@@ -28,7 +28,7 @@ from gigamail.core import (
 )
 from gigamail.core import rules as rules_mod
 
-from . import drafting, notify
+from . import drafting, ingestion, notify
 from .addressing import _reply_subject, body_reply_address
 from .approvals import TOOL, _create_request, _execute_reply, _preview_for
 from .ingestion import folder_of
@@ -70,8 +70,19 @@ def process_message(w, rule: Dict[str, Any], message: Dict[str, Any],
     # 6. RAFFICA (fail-closed, prima di tutto): il match si conta
     # comunque, e se il volume in finestra supera la soglia la regola
     # si pausa da sola e riparte solo con Hello.
-    rs.record(rule_id, account_id, message_id, sender, "matched")
-    n = rs.matches_since(rule_id, time.time() - rules_mod.BURST_WINDOW_SECONDS)
+    # The window is by ARRIVAL: a night's backlog read in one tick after
+    # a restart (or a resume) was counted as a burst and paused the rule
+    # again at once.
+    _dt = mail_router._message_datetime(str(message.get("receivedDateTime") or ""))
+    received_ts = _dt.timestamp() if _dt is not None else None
+    rs.record(rule_id, account_id, message_id, sender, "matched",
+              received_ts=received_ts)
+    if received_ts is not None:
+        n = rs.matches_received_between(
+            rule_id, received_ts - rules_mod.BURST_WINDOW_SECONDS,
+            received_ts + rules_mod.BURST_WINDOW_SECONDS)
+    else:
+        n = rs.matches_since(rule_id, time.time() - rules_mod.BURST_WINDOW_SECONDS)
     if n > rules_mod.BURST_MAX:
         window_min = rules_mod.BURST_WINDOW_SECONDS // 60
         reason = (f"raffica: {n} match in {window_min} minuti"
@@ -92,7 +103,7 @@ def process_message(w, rule: Dict[str, Any], message: Dict[str, Any],
         policy.notify_approval_requested(
             "-", f"rule_paused:{rule_id}",
             {"action": "rule autopaused", "reason": reason},
-            message=pause_msg)
+            message=pause_msg, immediate=True)
         return "paused"
 
     # One reply per mail: the appointment paths (confirmation drafted at
@@ -254,7 +265,11 @@ def process_message(w, rule: Dict[str, Any], message: Dict[str, Any],
     args = {"message_id": message_id, "body": body, "account_id": account_id,
             "folder": folder}
     to_address = None
-    if rule.get("reply_to_body_address"):
+    # A follow-up from the person the rule already answered is a normal
+    # mail: the reply goes to its From, not to an address found in the
+    # quoted text below it.
+    followup = ingestion.is_followup(rule, sender)
+    if rule.get("reply_to_body_address") and not followup:
         to_address = body_reply_address(full, sender)
         if not to_address:
             # La regola promette di scrivere alla persona e la
@@ -316,6 +331,8 @@ def process_message(w, rule: Dict[str, Any], message: Dict[str, Any],
     if not request_id:
         rs.set_status(rule_id, message_id, "skipped", "approval-cap")
         return "skipped"
+    # From now on a mail from this person belongs to this rule.
+    rs.record_contact(rule_id, account_id, to_address or sender)
 
     if mode == "semi":
         rs.record(rule_id, account_id, message_id, sender,

@@ -55,6 +55,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   rejectRequest:  (id)   => apiJson(`${API}/approvals/${encodeURIComponent(id)}/reject`, { method: 'POST' }),
   openExternal:   (url) => ipcRenderer.invoke('open-external', url),  // whitelist nel main
   onOpenMail:     (callback) => ipcRenderer.on('open-mail', (_, data) => callback(data)),
+  onShowPending:  (callback) => ipcRenderer.on('show-pending-view', () => callback()),
   onNewMail:      (callback) => ipcRenderer.on('new-mail',  (_, data) => callback(data)),
   closeWindow:    () => ipcRenderer.send('window-close'),
   minimizeWindow: () => ipcRenderer.send('window-minimize'),

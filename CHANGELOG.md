@@ -1,7 +1,108 @@
 # Changelog
 
-## Unreleased
+## v0.6.5 — 2026-10-22
 
+- **A lighter watcher heartbeat.** It wrote four rows in four commits a
+  dozen times per tick; on a slow disk the commits took longer than the
+  tick (CI on Windows timed out inside them). One transaction, at most
+  one every two seconds, and rules.db in WAL mode.
+- **Notification buttons registered on the old "ADE Mail" are replaced.**
+  A machine that had the old project kept its `gigamail://` registration
+  pointing at that project's Python: every toast button opened the old
+  CLI in a terminal, and the console called that registration valid. It
+  no longer does: "enable the buttons" appears again and one UAC prompt
+  moves the registration to this installation.
+- **One watcher, never three.** After two restarts three watchers ran
+  side by side: on Windows the venv's python.exe is a launcher, the
+  stop ended it but not its child, and the old ones kept taking turns
+  on the same approvals (a reply to a customer was consumed by one of
+  them and never reported). Stop now ends the whole process tree and
+  waits; and every watcher checks at each tick that it is still the
+  one, leaving when another runs with the current code or when the
+  code on disk changed since it started.
+- **The notification windows close by themselves.** Approved, rejected
+  or edited, the request window shows the outcome for a moment and goes
+  away; the reply box does the same once the instruction is queued, and
+  says the draft comes within a couple of minutes. A reply asked from the
+  PC now reports on the PC too (writing it, or why the agent could not),
+  not only on Telegram.
+- **"Move to spam?", "Delete?" and the other questions look like the
+  console.** They were the browser's grey boxes with OK and Annulla, in
+  every window. They are now the console's own dialog, in its colours
+  and in the dark theme too, with the destructive choice in red; Enter
+  confirms, Escape cancels. Error messages that used the same box follow.
+- **The "Ask your mail" icon is gone from the sidebar.** The agent bar
+  at the bottom answers the same questions, with the open mail as
+  context; the icon only opened an older window by mistake.
+- **Notification buttons open the console, not a terminal.** Read,
+  Approve, Edit and Reject on an approval toast, and Reply on a client
+  reply alert, opened a black command window. They now open a window in
+  the console's own style: the request with its text and the three
+  decisions (Approve still goes through the console's click or Windows
+  Hello; Edit closes the request with a note and the watcher redrafts
+  it), or the reply box that asks what to answer. When the console is
+  closed, the button starts it. Nothing to set up again: the existing
+  registration keeps working, and the console registers itself on install.
+- **A rule follows the conversations it opened.** The site form relays a
+  lead, the rule answers the person named in it; when that person wrote
+  back from her own address, no rule matched her and the mail waited
+  for a human. A rule now remembers whom it answered: a mail from that
+  person belongs to the rule, and the reply goes to her, in the thread,
+  not to an address quoted below.
+- **A night's mail is not a burst.** The guard that pauses a rule after
+  too many matching mails in ten minutes counted by when the watcher
+  read them: back after an update, it read the night's form mails in
+  one tick and paused the rule again at once. It now counts by when the
+  mails arrived.
+- **One notification per tick, not one per draft.** Seventeen drafts
+  born together meant seventeen toasts and seventeen Telegram messages.
+  Past three in one tick, a single summary says how many wait and for
+  what; a rule that paused itself is still told on its own.
+- **Counters on the "Waiting for you" icon.** Besides the requests still
+  to decide, the icon shows what was decided since you last opened the
+  page, by colour: green sent, amber approved and executing, red failed,
+  rejected or expired. Opening the page clears them; the count of
+  requests to decide stays until it is zero. The Automations icon shows
+  how many rules paused themselves and wait to be resumed.
+- **An approved request is carried out, whoever approved it.** A request
+  the agent raised (a reply, a send, a move) and the user approved from
+  Telegram, from "Waiting for you" or from the CLI stayed "approved, the
+  agent completes it", and nothing ever did: only the Approve button in
+  the agent bar made the agent call the tool again. GigaMail now
+  completes an approved request itself, with the arguments stored with
+  it, from every channel, and reports sent or failed where the approval
+  was given. The agent bar no longer calls the agent back after an
+  approval.
+- **A rule that paused itself is impossible to miss.** When the burst
+  guard pauses a rule (too many matching mails in ten minutes), the rule
+  answered nothing until someone read "paused" in its card. Now an amber
+  banner sits above the rules with a Resume button, and the Automations
+  icon shows how many rules wait to be resumed, from any view.
+- **A notification that never left says so.** A watcher draft expired at
+  night because the Telegram send had failed, and nothing recorded it.
+  Every Telegram send now lands in the audit with its outcome and
+  reason, and the request's card shows "notification not delivered" and
+  the channels that were tried.
+- **The Windows Hello prompt comes to the front.** Opened by the backend
+  (no window of its own) it sat behind the other windows: "Resume
+  (Hello)" seemed to do nothing. The prompt is now brought to the
+  foreground when it appears.
+- **The watcher comes back by itself, with the current code.** It is
+  its own process and dies with every update (the installer ends the
+  python processes of the install folder) or a crash; only the button
+  in Automations started it again, so a mail a rule should have answered
+  waited until someone noticed. A guard in the backend now checks every
+  minute: no watcher while rules are active, it starts one; a watcher
+  running older code than the sources on disk (an update landed while it
+  ran), it restarts it. Telegram approvals and the rules then follow the
+  new code without a Stop and Start by hand.
+- **CI: the Graph archive test no longer times out on a slow Windows
+  runner** (30 archived ids instead of 250, same check).
+- **The release script waits for the Mac builds before publishing.**
+  It published as soon as the Windows installer was signed; the Mac
+  jobs, still running, then refused to attach their DMGs to a public
+  release (0.6.4 went out without the Intel DMG). It now waits for the
+  Release run to end and checks both DMGs are there.
 - **"Sent via GigaMail Desktop".** Every mail now ends with one line,
   under the account's signature and in the user's language ("Inviato da
   GigaMail Desktop" / "Sent via GigaMail Desktop"), as mobile mail apps

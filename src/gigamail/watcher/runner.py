@@ -4,6 +4,7 @@ I metodi sono deleghe sottili: la logica vive nei moduli per
 responsabilita' (ingestion, pipeline, execution, telegram, process_state).
 I nomi con underscore restano perche' test e console li chiamano.
 """
+import os
 from typing import Any, Dict, List, Optional
 
 from gigamail import policy
@@ -95,17 +96,23 @@ class Watcher:
         # Spam filters before the rules: a mail they hide gets no draft.
         stats["spam"] = self.apply_spam_filters()
         self.heartbeat()
-        for rule in rules_mod.store().active():
-            for message in self._poll_folder(rule):
-                if not self._matches(rule, message):
-                    continue
-                message_id = str(message.get("id"))
-                if rules_mod.store().already_handled(rule["rule_id"], message_id):
-                    continue
-                self.heartbeat()   # una bozza puo' durare minuti
-                self.process_message(rule, message)
-                stats["processed"] += 1
-                self.heartbeat()
+        # One notification per tick when many drafts are born together
+        # (a night's mail after a restart), not one per draft.
+        policy.begin_notify_batch()
+        try:
+            for rule in rules_mod.store().active():
+                for message in self._poll_folder(rule):
+                    if not self._matches(rule, message):
+                        continue
+                    message_id = str(message.get("id"))
+                    if rules_mod.store().already_handled(rule["rule_id"], message_id):
+                        continue
+                    self.heartbeat()   # una bozza puo' durare minuti
+                    self.process_message(rule, message)
+                    stats["processed"] += 1
+                    self.heartbeat()
+        finally:
+            policy.end_notify_batch()
         # Dopo le regole, non prima: una mail si sposta solo quando la sua
         # regola l'ha gia' gestita in questo stesso giro o in uno precedente.
         stats["archived"] = self.archive_mail()
@@ -354,6 +361,11 @@ class Watcher:
                          "telegram_trusted_chat")
             self.check_telegram_trust(tg)
         while True:
+            reason = process_state.should_yield(self.interval)
+            if reason:
+                _log(f"mi fermo: {reason}", True)
+                policy.audit("watch", {"pid": os.getpid()}, "watch_yielded", detail=reason)
+                return
             try:
                 stats = self.tick()
                 if (stats["processed"] or stats["executed"]

@@ -156,7 +156,7 @@ function bindCalendarEvents() {
 
   on('btnDeleteEvent', 'click', async () => {
     const id = byId('eventId')?.value || '';
-    if (!id || !confirm(T('win_event_delete_confirm', 'Eliminare questo evento?'))) return;
+    if (!id || !(await GMDialog.confirm(T('win_event_delete_confirm', 'Eliminare questo evento?'), { danger: true }))) return;
     try {
       const r = await fetch(`${window.GIGAMAIL_API}/calendar/${encodeURIComponent(id)}`, { method: 'DELETE' });
       let data = {};

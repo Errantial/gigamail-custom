@@ -150,3 +150,23 @@ test('in a merged view of several accounts the mail opens in its own window', as
   assert.equal(calls.pane.length, 0);
   assert.deepEqual(calls.window, [{ id: '77', folder: null, account_id: 6 }]);
 });
+
+test('when the backend already executed the approved request, the agent is not called again', async () => {
+  const { w } = load();
+  let completed = 0;
+  w.electronAPI.agentCommand = async () => ({
+    answer: 'Waiting.', approvals: [{ request_id: 'req_9', tool: 'send_mail', subject: 'Offer' }] });
+  w.electronAPI.approveRequest = async () => ({ success: true, status: 'executed', outcome: 'ok', completed_by: 'agent' });
+  w.electronAPI.agentComplete = async () => { completed += 1; return { answer: 'x', status: 'executed' }; };
+  await ready(w);
+  const ta = w.document.getElementById('agentInput');
+  ta.value = 'send the offer';
+  ta.dispatchEvent(new w.Event('input'));
+  w.document.getElementById('agentSend').click();
+  await new Promise((r) => setTimeout(r, 20));
+  w.document.querySelector('[data-act="approve"]').click();
+  await new Promise((r) => setTimeout(r, 20));
+  assert.equal(completed, 0);
+  assert.ok(w.document.querySelector('.agent-msg.approval').classList.contains('approved'));
+  assert.match(w.document.querySelector('.agent-appr-head').textContent, /eseguita/i);
+});

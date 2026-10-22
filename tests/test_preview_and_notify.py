@@ -389,3 +389,141 @@ def test_preview_move_mostra_la_destinazione_su_telegram():
         "folder_from": "Inbox", "folder_to": "Archivio",
     })
     assert "Archivio" in testo and "Inbox" in testo
+
+
+def test_a_telegram_send_that_fails_is_on_record_with_its_reason(monkeypatch, tmp_path):
+    """A watcher draft at 01:31 expired unseen: the Telegram send had
+    failed and nothing said so. Now the audit has the outcome, and the
+    console reads it back next to the request."""
+    import threading
+
+    from gigamail.core import desktop_notify, telegram_channel
+    monkeypatch.setenv("GIGAMAIL_ROOT", str(tmp_path))
+    monkeypatch.setattr(desktop_notify, "notify", lambda *a, **k: False)
+    monkeypatch.delenv("GIGAMAIL_APPROVAL_NOTIFY_CMD", raising=False)
+    threads = []
+    real_thread = threading.Thread
+
+    class JoinedThread(real_thread):
+        def start(self):
+            super().start()
+            threads.append(self)
+
+    monkeypatch.setattr(threading, "Thread", JoinedThread)
+
+    class Down:
+        last_error = ""
+
+        def send(self, text, buttons=None, html=False):
+            self.last_error = "sendMessage: ConnectionError: name resolution failed"
+            return False
+
+    monkeypatch.setattr(telegram_channel, "channel", lambda: Down())
+    assert policy.notify_approval_requested("req_tg1", "reply_mail", {"subject": "s"}) is True
+    for t in threads:
+        t.join(5)
+    seen = policy.notifications_of(["req_tg1", "req_other"])
+    assert seen["req_other"] == []
+    assert seen["req_tg1"] == [{"channel": "telegram", "ok": False,
+                                "error": "sendMessage: ConnectionError: name resolution failed"}]
+
+    class Up(Down):
+        def send(self, text, buttons=None, html=False):
+            return True
+
+    monkeypatch.setattr(telegram_channel, "channel", lambda: Up())
+    policy.notify_approval_requested("req_tg2", "reply_mail", {"subject": "s"})
+    for t in threads:
+        t.join(5)
+    assert policy.notifications_of(["req_tg2"])["req_tg2"] == [
+        {"channel": "telegram", "ok": True, "error": ""}]
+
+
+def test_the_recent_list_carries_the_notifications(monkeypatch, tmp_path):
+    from fastapi.testclient import TestClient
+
+    from gigamail import http_api
+    monkeypatch.setenv("GIGAMAIL_ROOT", str(tmp_path))
+    policy.set_store(policy.ApprovalStore(str(tmp_path / "approvals.db")))
+    try:
+        rid = policy.store().create("reply_mail", {"body": "x"}, {"subject": "s"}, ttl=1)
+        policy.audit("reply_mail", {"request_id": rid}, "approval_notify_failed",
+                     detail="telegram: sendMessage: 401 Unauthorized")
+        with TestClient(http_api.app) as c:
+            pending = c.get("/approvals").json()
+            assert pending[0]["notified"] == [
+                {"channel": "telegram", "ok": False, "error": "sendMessage: 401 Unauthorized"}]
+    finally:
+        policy.set_store(None)
+
+
+def test_a_rule_that_paused_itself_is_told_at_once_even_inside_a_batch(monkeypatch):
+    from gigamail.core import desktop_notify
+    seen = []
+    monkeypatch.setattr(desktop_notify, "notify", lambda title, body, **k: seen.append(body) or True)
+    monkeypatch.setattr(policy, "audit", lambda *a, **k: None)
+    monkeypatch.delenv("GIGAMAIL_APPROVAL_NOTIFY_CMD", raising=False)
+    policy.begin_notify_batch()
+    policy.notify_approval_requested("req_a", "reply_mail", {"subject": "a"})
+    policy.notify_approval_requested("-", "rule_paused:r1", {"action": "rule autopaused"},
+                                     message="Rule r1 PAUSED itself", immediate=True)
+    assert seen == ["Rule r1 PAUSED itself"]
+    assert policy.end_notify_batch() == 1
+    assert len(seen) == 2 and "a" in seen[1]
+    assert policy.end_notify_batch() == 0
+
+
+def test_a_toast_button_goes_to_the_running_console_first(monkeypatch, tmp_path):
+    """The CLI, registered on gigamail:// for the toasts, hands the URL to
+    the console's bridge when the console runs (console.json says where),
+    starts the console with --open-url when it is installed but closed,
+    and only without either falls back to its own terminal flow."""
+    import json as _json
+    import urllib.request
+
+    from gigamail import cli
+    monkeypatch.setenv("GIGAMAIL_ROOT", str(tmp_path))
+    posted = []
+
+    class Resp:
+        status = 204
+
+        def __enter__(self): return self
+
+        def __exit__(self, *a): return False
+
+    def fake_urlopen(req, timeout=0):
+        posted.append((req.full_url, req.get_header("X-gigamail-bridge"), _json.loads(req.data)))
+        return Resp()
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    terminal = []
+    monkeypatch.setattr(cli, "cmd_open_url_show", lambda rid: terminal.append(rid) or 0)
+    monkeypatch.setattr(cli, "_console_utf8", lambda: None)
+
+    class A:
+        url = "gigamail://show/req_ab12"
+    # no console.json: the terminal flow
+    assert cli.cmd_open_url(A) == 0 and terminal == ["req_ab12"] and posted == []
+    # the console runs: the bridge takes it, nothing is printed here
+    (tmp_path / "console.json").write_text(_json.dumps({"port": 4321, "token": "tok", "exe": "/nope/GigaMail"}))
+    assert cli.cmd_open_url(A) == 0
+    assert posted == [("http://127.0.0.1:4321/open-url", "tok", {"url": "gigamail://show/req_ab12"})]
+    assert terminal == ["req_ab12"]
+    # the console is closed and its exe is gone: the terminal flow again
+    monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=0: (_ for _ in ()).throw(OSError("refused")))
+    assert cli.cmd_open_url(A) == 0 and terminal == ["req_ab12", "req_ab12"]
+    # the exe exists: started with the URL
+    exe = tmp_path / "GigaMail"
+    exe.write_text("")
+    (tmp_path / "console.json").write_text(_json.dumps({"port": 4321, "token": "tok", "exe": str(exe), "args": []}))
+    started = []
+    import subprocess
+
+    class P:
+        pass
+
+    monkeypatch.setattr(subprocess, "Popen", lambda cmd, **k: started.append(cmd) or P())
+    assert cli.cmd_open_url(A) == 0
+    assert started == [[str(exe), "--open-url=gigamail://show/req_ab12"]]
+    assert terminal == ["req_ab12", "req_ab12"]

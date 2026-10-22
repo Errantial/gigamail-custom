@@ -146,7 +146,7 @@ const ZoomView = (() => {
   }
 
   async function scollega() {
-    if (!confirm(T('app_zoom_confirm_disconnect', "Scollegare Zoom? Le video call confermate non avranno piu' il link automatico."))) return;
+    if (!(await GMDialog.confirm(T('app_zoom_confirm_disconnect', "Scollegare Zoom? Le video call confermate non avranno piu' il link automatico.")))) return;
     try {
       await api().zoomRemove();
       await render();
