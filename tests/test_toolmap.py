@@ -53,3 +53,17 @@ def test_qualita_descrizioni_tool():
         assert t.annotations.destructive_hint is (cls == "DANGEROUS"), t.name
         if cls == "DANGEROUS":
             assert "TWO-PHASE" in desc and "request_id" in desc, t.name
+
+
+def test_map_is_english_first_then_italian():
+    """The map is in English first, then Italian, each with its own
+    generated tool box listing the same tools."""
+    text = gen_toolmap._mappa_path().read_text(encoding="utf-8")
+    en_begin, en_end = gen_toolmap.MARKERS["en"]
+    it_begin, it_end = gen_toolmap.MARKERS["it"]
+    assert text.index(en_begin) < text.index('<a id="italiano"></a>') < text.index(it_begin)
+    en_box = text.split(en_begin)[1].split(en_end)[0]
+    it_box = text.split(it_begin)[1].split(it_end)[0]
+    assert "Exposed tools" in en_box and "Riepilogo tool esposti" in it_box
+    names = lambda box: sorted(n for n in box.split("`")[1::2])  # noqa: E731
+    assert names(en_box) == names(it_box)

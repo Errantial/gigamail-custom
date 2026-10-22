@@ -1,4 +1,170 @@
+<a id="english"></a>
+
+# GigaMail — Map: MCP surface and risk classes
+
+**English** · [Italiano](#italiano)
+
+How GigaMail's capabilities are exposed to an agent, and under which policy.
+
+**Two surfaces, one core:**
+
+| Surface | Who uses it | Transport |
+|---|---|---|
+| MCP server | the agent | **stdio**, no network port |
+| Console (optional) | the human | local HTTP API on `127.0.0.1`, session token |
+
+No built-in LLM in either: the reasoning always belongs to the user's
+agent (from the console it goes through `agent_bridge`).
+
+Every tool has a **risk class** that sets its policy:
+
+| Class | Policy | Examples |
+|---|---|---|
+| `READ` | free | reading, search, listings |
+| `WRITE_SAFE` | free + audit log | mark as read, create a folder |
+| `DANGEROUS` | two-phase confirmation + audit log | send, reply, delete, calendar events |
+| `ADMIN` | **CLI only, never exposed to the agent** | login, credentials, account management |
+
+Two-phase confirmation works like this: the first call (without `request_id`) does
+NOT execute; it returns a full preview plus an **inert** `request_id` (valid for
+15 minutes, `GIGAMAIL_APPROVAL_TTL`). Approval happens **out of band** — console,
+CLI or Telegram, behind Windows Hello / Touch ID — never through the agent: the agent
+shows the preview, waits for the human to approve, then calls the same tool again with
+the `request_id`. What runs is the approved payload, not the one the agent passes back;
+an approved request that has not run yet can be revoked.
+
+---
+
+## 1. Accounts
+
+| Current endpoint | MCP tool | Class | Notes |
+|---|---|---|---|
+| `GET /accounts` | `list_accounts` | READ | No sensitive data (no password/token in the payload) |
+| `GET /accounts/active` | — (included in `list_accounts`) | — | `active` flag per account |
+| `POST /accounts/active/{id}` | — | — | Not needed: every tool takes an optional `account_id` |
+| `DELETE /accounts/{id}` | — | ADMIN | CLI only: `gigamail accounts remove` |
+| `GET /accounts/{id}/identity` | `get_identity` | READ | "Who I am / what I do / tone" context the agent needs to write drafts |
+| `POST /accounts/{id}/identity` | — | ADMIN | CLI only: `gigamail identity set` (the agent reads the identity, never changes it: a hostile mail cannot poison it) |
+| `GET /accounts/{id}/identity/files` | `list_knowledge_files` | READ | Knowledge files registered by the user (price lists, terms, data sheets) |
+| reading an identity file | `read_knowledge_file` | READ | Extracts the text of a registered file. Allow-list = ONLY the paths registered via CLI (`identity add-file`), never the rest of the filesystem |
+| `POST /accounts/imap` | — | ADMIN | CLI only: `gigamail accounts add-imap` |
+| `GET /accounts/providers` | — | ADMIN | Provider presets inside the CLI |
+| `GET /auth/status` | — *(planned: `auth_status`)* | READ | Token state per account (valid/expired), never the token itself |
+| `GET /auth/login`, `POST /auth/complete` | — | ADMIN | CLI only: `gigamail login` (Microsoft device flow) |
+| `POST /auth/logout` | — | ADMIN | CLI only |
+| `GET /addresses`, `GET /addresses/search` | — *(planned: `search_contacts`)* | READ | Address book derived from history |
+
+## 2. Reading mail
+
+| Current endpoint | MCP tool | Class | Notes |
+|---|---|---|---|
+| `GET /mail` | `list_messages(folder="inbox")` | READ | One tool for every folder |
+| `GET /mail/sent` | `list_messages(folder="sent")` | READ | |
+| `GET /mail/spam` | `list_messages(folder="spam")` | READ | |
+| `GET /mail/deleted` | `list_messages(folder="deleted")` | READ | |
+| `GET /mail/drafts` | `list_messages(folder="drafts")` | READ | |
+| `GET /mail/folder/{id}` | `list_messages(folder=<id>)` | READ | |
+| `GET /mail/unread` | `list_unread` | READ | |
+| `GET /mail/unread_count` | — (field of `list_unread`) | — | |
+| `GET /mail/{id}` | `read_message` | READ | Full body + attachment list. **Without** `_reply_suggestion` (it was an LLM) |
+| `GET /mail/folders` | `list_folders` | READ | |
+| `GET /mail/search/{q}` | `search_mail` | READ | Merges provider search and the local index (hybrid) |
+| `GET /mail/memory/search` | — (merged into `search_mail`) | — | |
+| `GET /mail/sender_history` | `sender_history` | READ | History + sender profile from mail_memory |
+| `GET /mail/memory/sender/{email}` | — (merged into `sender_history`) | — | |
+| `GET /mail/followup_needed` | — *(planned: `list_followup_needed`)* | READ | Non-LLM heuristic: sent mail with no reply |
+| attachments (part of `GET /mail/{id}`) | `read_attachment` | READ | Extracts text (pdfplumber/docx/openpyxl); binaries never reach the agent |
+| `GET /mail/memory/stats` | `memory_stats` | READ | State of the local index |
+| `GET /observer/stats` | `observer_context` | READ | The user's correction patterns per sender/topic — valuable context for the agent's drafts |
+| `GET /health` | — | — | Not needed over stdio |
+
+## 3. Mail actions
+
+| Current endpoint | MCP tool | Class | Notes |
+|---|---|---|---|
+| `POST /mail/{id}/read` / `unread` | `mark_read` | WRITE_SAFE | `is_read` parameter |
+| `POST /mail/{id}/move` | `move_message` | DANGEROUS | MCP two-phase; from the console, Windows Hello / Touch ID check |
+| `POST /mail/folders` | `create_folder` | WRITE_SAFE | |
+| `DELETE /mail/folders/{id}` | `delete_folder` | DANGEROUS | Two-phase confirmation |
+| `POST /mail/send` | `send_mail` | DANGEROUS | Two-phase: preview (to/cc/subject/body/attachments) → token → send |
+| `POST /mail/reply_direct` | `reply_mail` | DANGEROUS | Two-phase; quotes the original message |
+| `DELETE /mail/{id}` | `delete_message` | DANGEROUS | Two-phase |
+| `POST /mail/{id}/spam` / `not_spam` | — *(planned: `mark_spam`)* | DANGEROUS | Two-phase (moves folder, mail can be lost) |
+| `POST /snooze`, `GET /snooze/list`, … | — | — | Out of v1 (UI feature); the agent can use its own scheduler |
+
+## 4. Calendar
+
+| Current endpoint | MCP tool | Class | Notes |
+|---|---|---|---|
+| `GET /calendar`, `GET /calendar/today` | `list_events` | READ | Date range as parameters |
+| `POST /calendar` | `create_event` | DANGEROUS | Two-phase (can send invitations to others) |
+| `PATCH /calendar/{id}` | — *(planned: `update_event`)* | DANGEROUS | Two-phase |
+| `DELETE /calendar/{id}` | `delete_event` | DANGEROUS | Two-phase |
+| `POST /calendar/caldav/test|setup`, `DELETE …` | — | ADMIN | CLI only: `gigamail caldav setup` |
+| `GET /calendar/caldav/status`, `GET /calendar/primary` | — (field of `list_accounts`) | — | |
+| `POST /calendar/primary/{id}` | — | ADMIN | CLI only |
+
+## 5. Privacy / masking
+
+| Current endpoint | MCP tool | Class | Notes |
+|---|---|---|---|
+| `POST /mask/detect`, `/mask`, `/unmask`, `GET/POST /masks` | — (internal) | — | **Today**: manual masking from the console — you select text and mask it before it goes to the agent; personal masks per account saved in the DB. **Planned**: a transparent filter on the MCP side (every READ output passes through `ade_masker`, `send_mail` unmasks on the way out), switched on per account via CLI |
+
+## 6. Local index
+
+| Current endpoint | MCP tool | Class | Notes |
+|---|---|---|---|
+| `POST /mail/memory/index` / `stop`, `GET /mail/memory/indexer_state` | — | ADMIN | CLI: `gigamail index` (or lazy indexing on first use). Embeddings are optional: without a key/Ollama, search falls back to FTS keywords, never an error |
+| `POST /cache/clear` | — | ADMIN | CLI |
+
+## 7. Outside the MCP surface (and where they went)
+
+These functions **are not MCP tools**. The built-in LLM (`llm.py`) has been
+removed; the functions that depended on it now live in the console and are
+delegated to the user's agent through `agent_bridge`.
+
+| Function | Where it lives today |
+|---|---|
+| `generate_draft`, `smart_draft`, `mail_ask`, `sender_summary` | **Console**, delegated to the agent via `agent_bridge`. Not MCP tools: an agent that speaks MCP already has `read_message`, `search_mail`, `get_identity`, `observer_context` and reasons on its own — a "write the draft" tool would be an LLM inside the LLM |
+| AI provider setup (`ai_setup`, `openai/auth`) | Removed: no auth towards AI providers, the agent brings the intelligence |
+| Voice (`tts`, `voice/transcribe`, `voice/command`) | Out of v1: the agent has its own audio channels |
+| Bulk marketing (`bulk/*`) | In the console, out of MCP v1 (candidate for a pro tier) |
+| Document generation (`office/excel`, `office/word`) | Out: the agent has its own document tools |
+| `files/local`, `identity/extract_from_url` | Removed: filesystem/scraping surface not needed, less risk |
+| `snooze/*`, `ui/pending`, `debug/folders` | Console / debug only |
+
+General rule: **the agent gets capabilities, not cognitive shortcuts.**
+
+---
+
+<!-- TOOLMAP:BEGIN (generated by gen_toolmap — do not edit by hand) -->
+## Exposed tools (29 — generated from the server)
+
+**READ (17):** `list_accounts`, `get_identity`, `list_knowledge_files`, `read_knowledge_file`, `list_messages`, `list_unread`, `read_message`, `read_attachment`, `list_folders`, `search_mail`, `sender_history`, `observer_context`, `memory_stats`, `list_events`, `find_free_slots`, `drive_list_files`, `drive_read_file`
+**WRITE_SAFE (2):** `mark_read`, `create_folder`
+**DANGEROUS (10, two-phase):** `move_message`, `send_mail`, `reply_mail`, `delete_message`, `delete_folder`, `create_event`, `delete_event`, `create_zoom_meeting`, `drive_upload_file`, `drive_delete_file`
+<!-- TOOLMAP:END -->
+
+Rows marked *(planned)* in the tables above describe the design, not the code: those tools do not exist yet. The box above is generated from the live server, so it lists exactly what the agent can call today.
+
+**CLI only (never MCP):** Microsoft login/logout, add/remove IMAP accounts, CalDAV setup, indexing, masking configuration, data deletion.
+Rationale: credentials never travel through the agent channel; a prompt injection in a mail cannot add accounts, exfiltrate tokens or reconfigure the system.
+
+## Design decisions built in
+
+1. **stdio, not HTTP**: the "port 8002 without auth" problem no longer exists.
+2. **Optional `account_id` everywhere** (default: all accounts or the active one): no "active account" state the agent can change.
+3. **Append-only action log** in `%APPDATA%\ADE\agent_audit.jsonl`: every WRITE_SAFE/DANGEROUS call with timestamp, tool, parameters, outcome. An honest note: append-only means GigaMail does not change past entries, NOT that the file is tamper-proof — anyone with filesystem access can alter it. An integrity chain (hash chaining) will make sense only once there is an external anchor for the head hash.
+4. **Anti prompt injection**: mail content is untrusted data. DANGEROUS tools can never confirm themselves: the confirmation token has to be shown to the human by the MCP client (Claude asks for confirmation before running destructive tools — two-phase makes it structural).
+5. **PyMuPDF not required**: PDF extraction uses pdfplumber.
+
+---
+
+<a id="italiano"></a>
+
 # GigaMail — Mappa: superficie MCP e classi di rischio
+
+[English](#english) · **Italiano**
 
 Come sono esposte le capacità di GigaMail a un agente, e con quale policy.
 
@@ -17,7 +183,7 @@ Ogni tool ha una **classe di rischio** che determina la policy:
 | Classe | Policy | Esempi |
 |---|---|---|
 | `READ` | libera | lettura, ricerca, elenchi |
-| `WRITE_SAFE` | libera + audit log | segna letto, sposta in cartella |
+| `WRITE_SAFE` | libera + audit log | segna letto, crea cartella |
 | `DANGEROUS` | conferma a due fasi + audit log | invio, risposta, cancellazione, eventi calendario |
 | `ADMIN` | **solo CLI, mai esposta all'agente** | login, credenziali, gestione account |
 
@@ -133,13 +299,13 @@ Regola generale: **l'agente riceve capacità, non scorciatoie cognitive.**
 
 ---
 
-<!-- TOOLMAP:BEGIN (generato da gen_toolmap — non editare a mano) -->
+<!-- TOOLMAP-IT:BEGIN (generated by gen_toolmap — do not edit by hand) -->
 ## Riepilogo tool esposti (29 — generato dal server)
 
 **READ (17):** `list_accounts`, `get_identity`, `list_knowledge_files`, `read_knowledge_file`, `list_messages`, `list_unread`, `read_message`, `read_attachment`, `list_folders`, `search_mail`, `sender_history`, `observer_context`, `memory_stats`, `list_events`, `find_free_slots`, `drive_list_files`, `drive_read_file`
 **WRITE_SAFE (2):** `mark_read`, `create_folder`
 **DANGEROUS (10, due fasi):** `move_message`, `send_mail`, `reply_mail`, `delete_message`, `delete_folder`, `create_event`, `delete_event`, `create_zoom_meeting`, `drive_upload_file`, `drive_delete_file`
-<!-- TOOLMAP:END -->
+<!-- TOOLMAP-IT:END -->
 
 Le righe marcate *(pianificato)* nelle tabelle sopra descrivono il disegno, non il codice: quei tool non esistono ancora. Il riquadro qui sopra e' generato dal server vivo, quindi elenca esattamente cio' che l'agente puo' chiamare oggi.
 
