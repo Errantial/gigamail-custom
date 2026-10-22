@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+- **Search on IMAP accounts answers in seconds and no longer marks mail
+  as read.** In every folder where the server found fewer than ten hits,
+  the search also downloaded up to 3000 whole messages to scan them
+  locally: on a mailbox with many folders the search bar showed nothing
+  for minutes, and the agent's `search_mail` never came back, so the
+  agent bar stayed on "working". Those downloads also marked every message
+  they touched as read. The search now uses only the server's hits, opens
+  folders read-only, starts from the inbox and the sent folder, and stops
+  at the requested number of results or after 25 seconds
+  (`GIGAMAIL_SEARCH_BUDGET_S`). The search bar says it is searching, and
+  shows the error if the search fails.
+- **Previews of mail written in Outlook are readable.** The mail list, the
+  Telegram alerts and the text the agent reads opened with Outlook's CSS
+  (`v\:* {behavior:url(#default#VML);}`) and showed entities such as
+  `&nbsp;`: the style block hidden in Outlook's conditional comments
+  survived the tag stripping. One shared conversion now drops comments,
+  styles and scripts and decodes every entity.
+
 ## v0.6.4 — 2026-10-21
 
 - **The installer closes a GigaMail backend left running anywhere.** It

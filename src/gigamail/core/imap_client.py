@@ -20,6 +20,7 @@ from email.utils import parsedate_to_datetime
 from typing import Dict, Iterator, List, Optional, Tuple
 
 from .addresses import split_addresses
+from .html_text import html_to_text
 
 # Alias canonici → nomi IMAP comuni
 _FOLDER_ALIASES = {
@@ -583,9 +584,9 @@ def fetch_messages_by_uids(
                     if "<" in from_raw
                     else from_raw.strip()
                 )
-                body, _ = _get_body(msg)
-                preview = re.sub(r"<[^>]+>", " ", body or "")
-                preview = re.sub(r"\s+", " ", preview).strip()[:500]
+                body, body_type = _get_body(msg)
+                preview = (html_to_text(body) if body_type == "html"
+                           else re.sub(r"\s+", " ", body or "").strip())[:500]
                 results.append({
                     "id": uid,
                     "subject": _decode_header(msg.get("Subject", "")),
@@ -1433,9 +1434,7 @@ def get_message(
             name = _decode_header(from_raw.split("<")[0].strip())
             addr = from_raw.split("<")[-1].strip(">") if "<" in from_raw else from_raw.strip()
             if body_type == "html":
-                import re as _re
-                plain_preview = _re.sub(r"<[^>]+>", " ", body)
-                plain_preview = _re.sub(r"\s+", " ", plain_preview).strip()[:4000]
+                plain_preview = html_to_text(body, keep_lines=True)[:4000]
             else:
                 plain_preview = body[:4000]
             return {
@@ -1769,8 +1768,7 @@ def _matches_query_local(msg, query: str) -> bool:
 
     try:
         body, _ = _get_body(msg)
-        body_text = re.sub(r"<[^>]+>", " ", body or "")
-        body_text = re.sub(r"\s+", " ", body_text).lower()
+        body_text = html_to_text(body).lower()
         return q in body_text
     except Exception:
         return False
@@ -1799,6 +1797,28 @@ def _uid_search_safe(conn: imaplib.IMAP4_SSL, field: str, query: str) -> List[by
     return []
 
 
+# How long one search may keep going, across all folders. The console's
+# search bar and the agent's search_mail both wait for it.
+_SEARCH_BUDGET_S = float(os.environ.get("GIGAMAIL_SEARCH_BUDGET_S", "25") or 25)
+
+
+def _search_folder_order(folders: List[str]) -> List[str]:
+    """INBOX first, then the sent folder, then the rest as the server lists
+    them; drafts and outbox are skipped. With a time budget, the folders a
+    user looks in first get searched first."""
+    def rank(name: str) -> int:
+        clean = (name or "").lower().replace(".", "").replace("/", "").replace(" ", "")
+        if clean == "inbox":
+            return 0
+        if "sent" in clean or "inviat" in clean:
+            return 1
+        return 2
+    kept = [f for f in folders
+            if (f or "").lower().replace(".", "").replace("/", "").replace(" ", "").strip()
+            not in {"drafts", "outbox"}]
+    return sorted(kept, key=rank)
+
+
 def search_messages(
     imap_host: str,
     imap_port: int,
@@ -1807,6 +1827,18 @@ def search_messages(
     query: str,
     top: int = 20,
 ) -> List[Dict]:
+    """Messages matching `query` in subject, sender, recipients or text,
+    newest first, using the server's own SEARCH.
+
+    Before, every folder where the server found fewer than `top` hits was
+    also scanned locally by downloading up to 3000 whole messages: on a
+    mailbox with a few dozen folders a search ran for many minutes, the
+    search bar showed nothing meanwhile and the agent's search_mail never
+    came back. Those downloads also used RFC822 on a read-write SELECT,
+    which marks every message fetched as read. Now folders are opened
+    read-only, messages are fetched with BODY.PEEK[], only the server's hits
+    are fetched, and the whole search stops at `top` results or after
+    _SEARCH_BUDGET_S seconds."""
     conn_key, conn = _acquire_connection(imap_host, imap_port, email_addr, password)
     bad_conn = False
 
@@ -1815,30 +1847,21 @@ def search_messages(
         if not q:
             return []
 
+        deadline = time.monotonic() + _SEARCH_BUDGET_S
         try:
             all_folders = _list_folders(conn)
         except Exception:
             all_folders = ["INBOX"]
-
-        folders_to_search = []
-
-        for folder in all_folders or ["INBOX"]:
-            fl_clean = (folder or "").lower().replace(".", "").replace("/", "").replace(" ", "").strip()
-
-            if fl_clean in {"drafts", "outbox"}:
-                continue
-
-            folders_to_search.append(folder)
-
-        if not folders_to_search:
-            folders_to_search = ["INBOX"]
+        folders_to_search = _search_folder_order(all_folders or ["INBOX"]) or ["INBOX"]
 
         results: List[Dict] = []
         seen: set = set()
 
         for folder in folders_to_search:
+            if len(results) >= top or time.monotonic() > deadline:
+                break
             try:
-                status, select_data = conn.select(f'"{folder}"')
+                status, _ = conn.select(f'"{folder}"', readonly=True)
                 if status != "OK":
                     continue
             except Exception:
@@ -1849,53 +1872,27 @@ def search_messages(
             ids_to = _uid_search_safe(conn, "TO", q)
             ids_text = _uid_search_safe(conn, "TEXT", q) if len(q) >= 4 else []
 
-            folder_ids = list(set(ids_subject) | set(ids_from) | set(ids_to) | set(ids_text))
+            folder_ids = set(ids_subject) | set(ids_from) | set(ids_to) | set(ids_text)
 
-            if len(folder_ids) < top:
+            def _uid_num(uid) -> int:
                 try:
-                    total = int((select_data[0] or b"0").decode(errors="replace")) if select_data and select_data[0] else 0
-                except Exception:
-                    total = 0
+                    return int(uid)
+                except (TypeError, ValueError):
+                    return 0
 
-                if total > 0:
-                    window = min(total, int(os.environ.get("ADE_MAIL_SEARCH_WINDOW", "3000")))
-                    start = max(1, total - window + 1)
-
-                    try:
-                        typ, data = conn.fetch(f"{start}:{total}", "(UID RFC822)")
-                        if typ == "OK" and data:
-                            for part in data:
-                                if not isinstance(part, tuple) or len(part) < 2:
-                                    continue
-
-                                meta_raw, raw = part
-                                meta = meta_raw.decode("utf-8", errors="replace") if isinstance(meta_raw, bytes) else str(meta_raw)
-                                uid_match = re.search(r"UID\s+(\d+)", meta, re.IGNORECASE)
-
-                                if not uid_match:
-                                    continue
-
-                                msg = email.message_from_bytes(raw)
-
-                                if _matches_query_local(msg, q):
-                                    folder_ids.append(uid_match.group(1).encode())
-                    except Exception:
-                        pass
-
-            for uid in folder_ids:
-                if len(results) >= top * 3:
+            # Higher UIDs are newer: fetch those first.
+            for uid in sorted(folder_ids, key=_uid_num, reverse=True):
+                if len(results) >= top or time.monotonic() > deadline:
                     break
 
                 uid_str = uid.decode() if isinstance(uid, bytes) else str(uid)
                 key = f"{folder}:{uid_str}"
-
                 if key in seen:
                     continue
-
                 seen.add(key)
 
                 try:
-                    _, msg_data = _uid_fetch(conn, uid_str, "(RFC822)")
+                    _, msg_data = _uid_fetch(conn, uid_str, "(BODY.PEEK[])")
                     if not msg_data or not msg_data[0] or not isinstance(msg_data[0], tuple):
                         continue
 
@@ -1914,10 +1911,8 @@ def search_messages(
                     )
 
                     body, body_type = _get_body(msg)
-
                     if body_type == "html":
-                        preview = re.sub(r"<[^>]+>", " ", body)
-                        preview = re.sub(r"\s+", " ", preview).strip()[:500]
+                        preview = html_to_text(body)[:500]
                     else:
                         preview = (body or "")[:500]
 

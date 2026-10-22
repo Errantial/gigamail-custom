@@ -42,6 +42,8 @@ from email.utils import getaddresses, parsedate_to_datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from .html_text import html_to_text
+
 logger = logging.getLogger("gigamail.archivio")
 
 # Il prefisso degli id restituiti dall'archivio. Non puo' collidere con un
@@ -86,14 +88,9 @@ class _ClosingConnection(sqlite3.Connection):
 # ── LETTURA DEL MIME ─────────────────────────────────────────────────
 
 def _testo_da_html(html: str) -> str:
-    t = re.sub(r"(?is)<(script|style)[^>]*>.*?</\1>", " ", html or "")
-    t = re.sub(r"(?i)<br\s*/?>|</p>|</div>|</tr>", "\n", t)
-    t = re.sub(r"<[^>]+>", " ", t)
-    t = (t.replace("&nbsp;", " ").replace("&amp;", "&")
-          .replace("&lt;", "<").replace("&gt;", ">").replace("&#39;", "'")
-          .replace("&quot;", '"'))
-    t = re.sub(r"[ \t\r\f\v]+", " ", t)
-    return re.sub(r"\n\s*\n+", "\n\n", t).strip()
+    # Shared with the IMAP previews: also drops the conditional comments
+    # where Outlook hides its <style>, and decodes every entity.
+    return html_to_text(html, keep_lines=True)
 
 
 def _nome_allegato(part) -> str:
