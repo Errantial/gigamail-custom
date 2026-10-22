@@ -26,8 +26,8 @@ _SENT_VIA_KEY = "sent_via_account_{}"
 # with one of them (a redraft, a language switched in between) is not
 # tagged twice.
 SENT_VIA = {
-    "it": "Inviato da GigaMail Desktop – gigamail.ai",
-    "en": "Sent via GigaMail Desktop – gigamail.ai",
+    "it": "Inviato da GigaMail Desktop",
+    "en": "Sent via GigaMail Desktop",
 }
 MAX_CHARS = 1000
 

@@ -4,8 +4,8 @@
 
 - **"Sent via GigaMail Desktop".** Every mail now ends with one line,
   under the account's signature and in the user's language ("Inviato da
-  GigaMail Desktop – gigamail.ai" / "Sent via GigaMail Desktop –
-  gigamail.ai"), as mobile mail apps do. It shows in the preview you
+  GigaMail Desktop" / "Sent via GigaMail Desktop"), as mobile mail apps
+  do. It shows in the preview you
   approve, and can be switched off per account under the signature, in
   the account's identity settings.
 - **Search results say they are search results.** The list title stayed
