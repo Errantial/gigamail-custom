@@ -21,9 +21,15 @@ test('installer and uninstaller stop the backend before touching files', () => {
   assert.match(nsh, /powershell\.exe .*-File "\$PLUGINSDIR\\stop_backend\.ps1" "\$INSTDIR"/);
 });
 
-test('python from the install folder and the GigaMail backend on the port are ended, nothing else', () => {
-  assert.match(ps1, /Name = 'python\.exe'/);
+test('every process from the install folder and the GigaMail backend on the port are ended, nothing else', () => {
+  // the app, the backend, the watcher, the MCP server run by ChatGPT/Codex
+  // or Claude Desktop, and their launchers: anything under $INSTDIR
   assert.match(ps1, /ExecutablePath\.StartsWith\(\$root/);
+  assert.doesNotMatch(ps1, /Name = 'python\.exe'/);
+  // an MCP client restarts its server at once: python.exe and the
+  // launcher are renamed away until the new files are in place
+  assert.match(ps1, /Rename-Item -LiteralPath \$path -NewName .*\.updating/);
+  assert.match(ps1, /Scripts\\gigamail-server\.exe/);
   // a backend from another folder (an older install, the sources) holds
   // the port: only a listener started as gigamail.http_api is ended
   assert.match(ps1, /Get-NetTCPConnection -LocalPort \$port -State Listen/);

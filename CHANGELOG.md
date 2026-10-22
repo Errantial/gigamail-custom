@@ -1,7 +1,17 @@
 # Changelog
 
-## Unreleased
+## v0.6.6 — 2026-10-22
 
+- **An update installs even while ChatGPT, Codex or Claude Desktop run
+  GigaMail's MCP server.** Those apps start the server from the install
+  folder and restart it the instant it is killed; electron-builder's
+  check for processes from that folder then never came clean, the old
+  uninstaller gave up, and the installer sat forever on a hidden "error
+  opening file for writing" box (0.6.5, on every machine with one of
+  those apps open). The installer now ends every process from the folder
+  and renames python.exe and the server launcher away until the new
+  files are in place, so the automatic restart fails instead of getting
+  in the way; the client picks the new server up on its next start.
 - **Release script: the wait for the Mac builds works on Windows
   PowerShell.** The jq filter carried double quotes, which Windows
   PowerShell strips from a native command's arguments; the wait failed
