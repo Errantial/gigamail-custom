@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **Notification buttons open the console, not a terminal.** Read,
+  Approve, Edit and Reject on an approval toast, and Reply on a client
+  reply alert, opened a black command window. They now open a window in
+  the console's own style: the request with its text and the three
+  decisions (Approve still goes through the console's click or Windows
+  Hello; Edit closes the request with a note and the watcher redrafts
+  it), or the reply box that asks what to answer. When the console is
+  closed, the button starts it. Nothing to set up again: the existing
+  registration keeps working, and the console registers itself on install.
 - **A rule follows the conversations it opened.** The site form relays a
   lead, the rule answers the person named in it; when that person wrote
   back from her own address, no rule matched her and the mail waited

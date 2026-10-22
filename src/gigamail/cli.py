@@ -1058,27 +1058,11 @@ def cmd_open_url_show(rid: str) -> int:
 
 def _retry_di_regola(rid: str, nota: str) -> bool:
     """Se la richiesta e' una bozza nata da una regola, la rimette in
-    coda con la nota: il watcher la riscrive e la ripropone. E'
-    quello che significa "Modifica" per una bozza — annullarla e
-    basta lascerebbe il cliente senza risposta. Torna False per le
-    richieste che una regola non ha prodotto."""
+    coda con la nota: il watcher la riscrive e la ripropone (lo stesso
+    che fa il popup della console: watcher.approvals.requeue_with_note)."""
     try:
-        from gigamail.core import rules as rules_mod
-        from gigamail.watcher import after_appointment, tg_risposte
-        rs = rules_mod.store()
-        row = rs.find_by_request(rid)
-        if not row:
-            return False
-        if row["rule_id"] == after_appointment.RULE_ID:
-            # A follow-up has no rule to redo it: the watcher rewrites it
-            # from the contact's notes, with this change.
-            return after_appointment.queue_edit(rid, nota)
-        if row["rule_id"] == tg_risposte.RULE_ID:
-            # Same for a reply drafted from an instruction: the watcher
-            # redrafts it with the same instruction plus this change.
-            return tg_risposte.queue_desktop_edit(rid, nota)
-        rs.request_retry(row["rule_id"], row["message_id"], nota)
-        return True
+        from gigamail.watcher.approvals import requeue_with_note
+        return requeue_with_note(rid, nota)
     except Exception:
         return False
 
@@ -1235,11 +1219,58 @@ def cmd_open_url_reply(key: str) -> int:
     return 0
 
 
+def _forward_to_console(url: str) -> bool:
+    """A toast button: the console, when it runs, opens the request in
+    one of its own windows instead of this terminal. The console writes
+    where to reach it (console.json under the data folder); when it is
+    not running but installed, it is started with the URL. False when
+    neither is possible: the terminal flow below takes over."""
+    import json as _json
+    import os
+    import subprocess as _sp
+    import urllib.request as _ur
+
+    from gigamail.core.data_paths import app_root
+    try:
+        with open(app_root() / "console.json", encoding="utf-8") as f:
+            info = _json.load(f) or {}
+    except Exception:
+        return False
+    port, token = info.get("port"), info.get("token")
+    if port and token:
+        try:
+            req = _ur.Request(f"http://127.0.0.1:{int(port)}/open-url",
+                              data=_json.dumps({"url": url}).encode("utf-8"),
+                              headers={"Content-Type": "application/json",
+                                       "X-GigaMail-Bridge": str(token)},
+                              method="POST")
+            with _ur.urlopen(req, timeout=3) as r:
+                if 200 <= r.status < 300:
+                    return True
+        except Exception:
+            pass
+    exe = info.get("exe")
+    if exe and os.path.exists(exe):
+        try:
+            _sp.Popen([exe, *list(info.get("args") or []), f"--open-url={url}"],
+                      stdin=_sp.DEVNULL, stdout=_sp.DEVNULL, stderr=_sp.DEVNULL,
+                      **({"creationflags": 0x00000008} if os.name == "nt" else
+                         {"start_new_session": True}))
+            return True
+        except Exception:
+            return False
+    return False
+
+
 def cmd_open_url(args) -> int:
-    """Handler dello schema gigamail:// (click su una toast). Traduce
-    l'URL in un comando della CLI: approve → Hello. La finestra resta
-    aperta finche' l'utente non preme INVIO, cosi' vede l'esito."""
+    """Handler dello schema gigamail:// (click su una toast). Se la
+    console e' installata, apre la richiesta in una sua finestra;
+    altrimenti traduce l'URL in un comando della CLI: approve → Hello. La
+    finestra resta aperta finche' l'utente non preme INVIO, cosi' vede
+    l'esito."""
     import re as _re
+    if _forward_to_console((args.url or "").strip()):
+        return 0
     _console_utf8()
     # Largo come il tag della toast: un id che non combacia con la
     # regex fa rispondere "URL non riconosciuto" a un bottone che

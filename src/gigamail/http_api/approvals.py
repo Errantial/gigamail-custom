@@ -4,6 +4,7 @@ import os
 import time
 
 from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
 
 from gigamail import policy
 
@@ -140,6 +141,77 @@ def reject_request(request_id: str):
     if not policy.store().reject(request_id, by=_who()):
         raise HTTPException(409, "Richiesta non rifiutabile (già decisa o scaduta)")
     return {"success": True, "request_id": request_id, "status": "rejected"}
+
+
+class EditRequest(BaseModel):
+    note: str = ""
+
+
+@router.post("/approvals/{request_id}/edit")
+def edit_request(request_id: str, req: EditRequest, request: Request = None):
+    """"Edit" from the console's popup: a request is frozen to what would
+    be executed, so editing means closing THIS one with a note. A draft
+    born from a rule is redrafted by the watcher with that note; for the
+    agent's own request the note is reported back to the agent. Rejecting
+    never needs Hello: it closes a door."""
+    from gigamail.watcher.approvals import requeue_with_note
+
+    from . import console_click
+    if not console_click.is_console_click(request.headers if request else {}):
+        raise HTTPException(403, "only from the console")
+    rec = policy.store().get(request_id)
+    if not rec:
+        raise HTTPException(404, "Richiesta inesistente")
+    note = (req.note or "").strip()[:500]
+    if not note:
+        raise HTTPException(400, "nota vuota")
+    who = f"{_who()} modifica: {note[:200]}"
+    if rec["status"] == policy.APPROVED:
+        ok = policy.store().revoke(request_id, by=who)
+    else:
+        ok = policy.store().reject(request_id, by=who)
+    if not ok:
+        raise HTTPException(409, "Non modificabile: già eseguita o scaduta")
+    return {"success": True, "request_id": request_id,
+            "requeued": requeue_with_note(request_id, note)}
+
+
+@router.get("/alerts/{key}")
+def alert_context(key: str):
+    """The client-reply alert behind a desktop "Reply" button."""
+    from gigamail.watcher import tg_risposte
+    ctx = tg_risposte.contesto(key)
+    if not ctx:
+        raise HTTPException(404, "avviso non trovato")
+    out = dict(ctx)
+    try:
+        from gigamail.core import mail_router
+        m = mail_router.get_message(account_id=ctx.get("account_id"),
+                                    message_id=ctx.get("message_id") or "",
+                                    folder=ctx.get("folder") or "inbox") or {}
+        out["testo"] = str(m.get("body_text") or m.get("bodyPreview") or "")[:4000]
+    except Exception:
+        out["testo"] = ""
+    return out
+
+
+class AlertReply(BaseModel):
+    instruction: str = ""
+
+
+@router.post("/alerts/{key}/reply")
+def alert_reply(key: str, req: AlertReply, request: Request = None):
+    """What to answer: the watcher drafts it on its next tick and sends it
+    for approval. Nothing is sent here."""
+    from gigamail.watcher import tg_risposte
+
+    from . import console_click
+    if not console_click.is_console_click(request.headers if request else {}):
+        raise HTTPException(403, "only from the console")
+    if not tg_risposte.queue_desktop_reply(key, (req.instruction or "").strip()[:2000]):
+        raise HTTPException(400, "avviso sconosciuto o istruzione vuota")
+    policy.audit("reply_mail", {"alert": key}, "desktop_reply_queued", detail=_who())
+    return {"success": True}
 
 
 @router.get("/audit")

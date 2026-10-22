@@ -131,3 +131,53 @@ def test_an_agent_request_approved_here_is_executed_by_gigamail(client, monkeypa
     _born_from_rule(rid3)
     assert client.post(f"/approvals/{rid3}/approve").json()["status"] == "approved"
     assert policy.store().get(rid3)["status"] == policy.APPROVED
+
+
+def test_edit_closes_the_request_with_a_note_and_requeues_a_rule_draft(client, monkeypatch):
+    """The popup's Edit: a request is frozen to what would run, so editing
+    closes this one with a note; a draft born from a rule is redrafted
+    by the watcher with it."""
+    from gigamail.http_api import console_click
+    secret = "s" * 40
+    console_click.set_secret(secret)
+    try:
+        H = {console_click.HEADER: secret}
+        rid = _request()
+        _born_from_rule(rid)
+        assert client.post(f"/approvals/{rid}/edit", json={"note": "shorter"}).status_code == 403
+        assert client.post(f"/approvals/{rid}/edit", json={"note": " "}, headers=H).status_code == 400
+        r = client.post(f"/approvals/{rid}/edit", json={"note": "shorter"}, headers=H)
+        assert r.status_code == 200 and r.json()["requeued"] is True
+        assert policy.store().get(rid)["status"] == policy.REJECTED
+        h = rules_mod.store().get_handled("rule_x", "m1")
+        assert h["status"] == "retry" and h["feedback"] == "shorter"
+        # the agent's own request: closed, the note is for the agent
+        rid2 = _request(to="anna.bianchi@example.com")
+        r = client.post(f"/approvals/{rid2}/edit", json={"note": "add the price"}, headers=H)
+        assert r.status_code == 200 and r.json()["requeued"] is False
+        assert client.post(f"/approvals/{rid2}/edit", json={"note": "x"}, headers=H).status_code == 409
+    finally:
+        console_click.set_secret("")
+
+
+def test_the_reply_alert_popup_reads_the_context_and_queues_the_instruction(client, monkeypatch):
+    from gigamail.core import mail_router
+    from gigamail.http_api import console_click
+    from gigamail.watcher import tg_risposte
+    monkeypatch.setattr(mail_router, "get_message",
+                        lambda **kw: {"bodyPreview": "Quanto costa il trilocale?"})
+    key = tg_risposte.register_context(1, {"id": "m7", "subject": "Info",
+                                           "from": {"emailAddress": {"name": "Bruna", "address": "bruna@example.com"}}})
+    assert client.get("/alerts/nope1234").status_code == 404
+    ctx = client.get(f"/alerts/{key}").json()
+    assert ctx["mittente"] == "bruna@example.com" and ctx["testo"].startswith("Quanto costa")
+    secret = "s" * 40
+    console_click.set_secret(secret)
+    try:
+        H = {console_click.HEADER: secret}
+        assert client.post(f"/alerts/{key}/reply", json={"instruction": "ok"}).status_code == 403
+        assert client.post(f"/alerts/{key}/reply", json={"instruction": " "}, headers=H).status_code == 400
+        assert client.post(f"/alerts/{key}/reply", json={"instruction": "ok, va bene"}, headers=H).status_code == 200
+        assert rules_mod.store().kv_keys(tg_risposte._KV_DESKTOP)
+    finally:
+        console_click.set_secret("")

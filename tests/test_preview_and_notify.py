@@ -471,3 +471,59 @@ def test_a_rule_that_paused_itself_is_told_at_once_even_inside_a_batch(monkeypat
     assert policy.end_notify_batch() == 1
     assert len(seen) == 2 and "a" in seen[1]
     assert policy.end_notify_batch() == 0
+
+
+def test_a_toast_button_goes_to_the_running_console_first(monkeypatch, tmp_path):
+    """The CLI, registered on gigamail:// for the toasts, hands the URL to
+    the console's bridge when the console runs (console.json says where),
+    starts the console with --open-url when it is installed but closed,
+    and only without either falls back to its own terminal flow."""
+    import json as _json
+    import urllib.request
+
+    from gigamail import cli
+    monkeypatch.setenv("GIGAMAIL_ROOT", str(tmp_path))
+    posted = []
+
+    class Resp:
+        status = 204
+
+        def __enter__(self): return self
+
+        def __exit__(self, *a): return False
+
+    def fake_urlopen(req, timeout=0):
+        posted.append((req.full_url, req.get_header("X-gigamail-bridge"), _json.loads(req.data)))
+        return Resp()
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    terminal = []
+    monkeypatch.setattr(cli, "cmd_open_url_show", lambda rid: terminal.append(rid) or 0)
+    monkeypatch.setattr(cli, "_console_utf8", lambda: None)
+
+    class A:
+        url = "gigamail://show/req_ab12"
+    # no console.json: the terminal flow
+    assert cli.cmd_open_url(A) == 0 and terminal == ["req_ab12"] and posted == []
+    # the console runs: the bridge takes it, nothing is printed here
+    (tmp_path / "console.json").write_text(_json.dumps({"port": 4321, "token": "tok", "exe": "/nope/GigaMail"}))
+    assert cli.cmd_open_url(A) == 0
+    assert posted == [("http://127.0.0.1:4321/open-url", "tok", {"url": "gigamail://show/req_ab12"})]
+    assert terminal == ["req_ab12"]
+    # the console is closed and its exe is gone: the terminal flow again
+    monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=0: (_ for _ in ()).throw(OSError("refused")))
+    assert cli.cmd_open_url(A) == 0 and terminal == ["req_ab12", "req_ab12"]
+    # the exe exists: started with the URL
+    exe = tmp_path / "GigaMail"
+    exe.write_text("")
+    (tmp_path / "console.json").write_text(_json.dumps({"port": 4321, "token": "tok", "exe": str(exe), "args": []}))
+    started = []
+    import subprocess
+
+    class P:
+        pass
+
+    monkeypatch.setattr(subprocess, "Popen", lambda cmd, **k: started.append(cmd) or P())
+    assert cli.cmd_open_url(A) == 0
+    assert started == [[str(exe), "--open-url=gigamail://show/req_ab12"]]
+    assert terminal == ["req_ab12", "req_ab12"]

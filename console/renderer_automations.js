@@ -479,6 +479,8 @@
   document.addEventListener('DOMContentLoaded', () => {
     $('btnShowAutomations')?.addEventListener('click', showView);
     $('btnShowPending')?.addEventListener('click', showPendingView);
+    // a popup opened by a notification asks the main window for the list
+    if (window.electronAPI?.onShowPending) window.electronAPI.onShowPending(showPendingView);
     $('agentSelect')?.addEventListener('change', async (e) => {
       try {
         await api('/agent/select', { method: 'POST', body: JSON.stringify({ agent: e.target.value }) });

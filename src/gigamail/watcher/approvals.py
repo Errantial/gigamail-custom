@@ -93,3 +93,26 @@ def _create_request(rule: Dict[str, Any], args: Dict[str, Any],
     policy.audit(TOOL, args, "approval_requested",
                  detail=f"rule:{rule['rule_id']}")
     return request_id, True
+
+
+def requeue_with_note(request_id: str, note: str) -> bool:
+    """"Edit" on a draft born from a rule: the request is already revoked
+    or rejected; the watcher redrafts it with the note and proposes it
+    again. Annulling it alone would leave the customer unanswered. Returns
+    False for a request no rule produced (the agent's own): then the note
+    is for the agent."""
+    try:
+        from gigamail.core import rules as rules_mod
+        from gigamail.watcher import after_appointment, tg_risposte
+        rs = rules_mod.store()
+        row = rs.find_by_request(request_id)
+        if not row:
+            return False
+        if row["rule_id"] == after_appointment.RULE_ID:
+            return after_appointment.queue_edit(request_id, note)
+        if row["rule_id"] == tg_risposte.RULE_ID:
+            return tg_risposte.queue_desktop_edit(request_id, note)
+        rs.request_retry(row["rule_id"], row["message_id"], note)
+        return True
+    except Exception:
+        return False
