@@ -62,6 +62,39 @@ def heartbeat(interval: int) -> None:
         logger.warning("heartbeat non scritto: %s", e)
 
 
+def should_yield(interval: int) -> str:
+    """Why this watcher process should stop, or "" to go on.
+
+    Two watchers on the same rules draft and send twice. It happened:
+    the guard restarted the watcher after an update, the old one lived
+    on (a venv python.exe launcher whose child survived the kill), and
+    three of them took turns on the same approvals. So at every tick a
+    watcher checks that it is still the one: if another process, alive
+    and ticking, holds the heartbeat with the current code, this one
+    leaves; and if the code on disk changed since it started, it leaves
+    so the guard starts one with the new code."""
+    try:
+        from gigamail.core.code_stamp import code_stamp
+        on_disk = code_stamp()
+    except Exception:
+        on_disk = ""
+    mine = my_code_stamp()
+    if on_disk and mine not in ("", "?") and on_disk != mine:
+        return "code changed on disk"
+    try:
+        rs = rules_mod.store()
+        other = int(rs.kv_get("watch_pid", "0") or 0)
+        hb = float(rs.kv_get("watch_heartbeat", "0") or 0)
+        stamp = rs.kv_get("watch_stamp", "") or ""
+    except Exception:
+        return ""
+    if other and other != os.getpid() and pid_alive(other) \
+            and hb and time.time() - hb < max(interval * 3, 90) \
+            and stamp == mine:
+        return f"another watcher is running (pid {other})"
+    return ""
+
+
 def running_state() -> Dict[str, Any]:
     """C'e' un watcher vivo? Il watcher registra pid, intervallo e
     battito a ogni giro: un pid ancora esistente ma fermo da piu' di

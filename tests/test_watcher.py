@@ -9,13 +9,14 @@ Le proprieta' sotto test sono quelle del design:
   - raffica → la regola si pausa da sola
 """
 import base64
+import os
 import time
 
 import pytest
 
 from gigamail import agent_bridge, policy
 from gigamail import watcher as watcher_mod
-from gigamail.core import mail_router
+from gigamail.core import mail_router, telegram_channel
 from gigamail.core import rules as rules_mod
 
 DMARC_PASS = {"authentication-results": ["mx; dmarc=pass header.from=fidato.it"]}
@@ -613,3 +614,47 @@ def test_a_rule_follows_the_conversation_it_opened(fake_world):
     # someone the rule never answered is still not its business
     fake_world["unread"] = [_msg(mid="f3", sender="nobody@example.com")]
     assert watcher_mod.Watcher().tick()["processed"] == 0
+
+
+def test_a_watcher_leaves_when_another_one_runs_or_the_code_changed(monkeypatch, tmp_path):
+    """Three watchers ran side by side after two restarts (the launcher's
+    child survived the kill) and took turns on the same approvals. A
+    watcher now checks at every tick that it is still the one."""
+    import time as _t
+
+    from gigamail.core import code_stamp as cs
+    from gigamail.watcher import process_state
+    rs = rules_mod.store()
+    monkeypatch.setattr(process_state, "_MY_STAMP", "")
+    monkeypatch.setattr(cs, "code_stamp", lambda: "v1")
+    assert process_state.my_code_stamp() == "v1"
+    # alone: nothing to yield to
+    process_state.heartbeat(60)
+    assert process_state.should_yield(60) == ""
+    # another process, alive and ticking with the current code, holds the heartbeat
+    rs.kv_set("watch_pid", str(os.getpid() + 1))
+    rs.kv_set("watch_heartbeat", str(_t.time()))
+    rs.kv_set("watch_stamp", "v1")
+    monkeypatch.setattr(process_state, "pid_alive", lambda pid: True)
+    assert process_state.should_yield(60).startswith("another watcher")
+    # ...but not one running older code: the guard ends that one
+    rs.kv_set("watch_stamp", "v0")
+    assert process_state.should_yield(60) == ""
+    # a dead pid, or a stale heartbeat, is nobody
+    rs.kv_set("watch_stamp", "v1")
+    monkeypatch.setattr(process_state, "pid_alive", lambda pid: False)
+    assert process_state.should_yield(60) == ""
+    monkeypatch.setattr(process_state, "pid_alive", lambda pid: True)
+    rs.kv_set("watch_heartbeat", str(_t.time() - 1000))
+    assert process_state.should_yield(60) == ""
+    # the code on disk changed since this process started: leave for the new one
+    monkeypatch.setattr(cs, "code_stamp", lambda: "v2")
+    assert process_state.should_yield(60) == "code changed on disk"
+
+    # the loop stops instead of ticking
+    ticks = []
+    w = watcher_mod.Watcher(interval=1)
+    monkeypatch.setattr(w, "tick", lambda: ticks.append(1) or {"processed": 0, "executed": 0, "appointments": 0, "after": 0, "archived": 0, "salvate": 0, "spam": 0})
+    monkeypatch.setattr(telegram_channel, "channel", lambda: None)
+    w.run(once=True)
+    assert ticks == []

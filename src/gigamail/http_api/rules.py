@@ -248,15 +248,21 @@ def start_watch_guard(interval: int = WATCH_GUARD_SECONDS) -> None:
     threading.Thread(target=_loop, name="watch-guard", daemon=True).start()
 
 
-def _stop_watch_process(pid: int) -> None:
+def _stop_watch_process(pid: int, wait: float = 10.0) -> None:
+    """Ends the watcher and its children (on Windows the venv's python.exe
+    is a launcher: without /T its child kept running, and the restarted
+    watcher ran next to the old one), then waits for it to be gone."""
     if os.name == "nt":
         import subprocess
-        subprocess.run(["taskkill", "/PID", str(pid), "/F"],
+        subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                        timeout=15)
     else:
         import signal
         os.kill(pid, signal.SIGTERM)
+    deadline = time.time() + wait
+    while time.time() < deadline and _pid_alive(pid):
+        time.sleep(0.2)
 
 
 @router.post("/watch/stop")

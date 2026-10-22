@@ -4,6 +4,7 @@ I metodi sono deleghe sottili: la logica vive nei moduli per
 responsabilita' (ingestion, pipeline, execution, telegram, process_state).
 I nomi con underscore restano perche' test e console li chiamano.
 """
+import os
 from typing import Any, Dict, List, Optional
 
 from gigamail import policy
@@ -360,6 +361,11 @@ class Watcher:
                          "telegram_trusted_chat")
             self.check_telegram_trust(tg)
         while True:
+            reason = process_state.should_yield(self.interval)
+            if reason:
+                _log(f"mi fermo: {reason}", True)
+                policy.audit("watch", {"pid": os.getpid()}, "watch_yielded", detail=reason)
+                return
             try:
                 stats = self.tick()
                 if (stats["processed"] or stats["executed"]

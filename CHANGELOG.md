@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **One watcher, never three.** After two restarts three watchers ran
+  side by side: on Windows the venv's python.exe is a launcher, the
+  stop ended it but not its child, and the old ones kept taking turns
+  on the same approvals (a reply to a customer was consumed by one of
+  them and never reported). Stop now ends the whole process tree and
+  waits; and every watcher checks at each tick that it is still the
+  one, leaving when another runs with the current code or when the
+  code on disk changed since it started.
 - **The notification windows close by themselves.** Approved, rejected
   or edited, the request window shows the outcome for a moment and goes
   away; the reply box does the same once the instruction is queued, and
