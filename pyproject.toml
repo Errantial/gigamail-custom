@@ -74,6 +74,9 @@ packages = ["src/gigamail", "src/ade_mail_agent"]
 testpaths = ["tests"]
 timeout = 30
 timeout_method = "thread"
+markers = [
+    "sent_via: keep the \"Sent via GigaMail Desktop\" line, off in the other tests",
+]
 
 [tool.ruff]
 target-version = "py310"

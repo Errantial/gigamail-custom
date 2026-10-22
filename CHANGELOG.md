@@ -15,6 +15,35 @@
   jobs, still running, then refused to attach their DMGs to a public
   release (0.6.4 went out without the Intel DMG). It now waits for the
   Release run to end and checks both DMGs are there.
+- **"Sent via GigaMail Desktop".** Every mail now ends with one line,
+  under the account's signature and in the user's language ("Inviato da
+  GigaMail Desktop" / "Sent via GigaMail Desktop"), as mobile mail apps
+  do. It shows in the preview you
+  approve, and can be switched off per account under the signature, in
+  the account's identity settings.
+- **Search results say they are search results.** The list title stayed
+  "Inbox" while it showed hits from every folder, so the results looked
+  like an unfiltered inbox. It now reads "Results for «…»".
+- **Agent errors in your language.** Timeout, agent not found, agent
+  ended with an error and agent not signed in were shown in Italian to
+  everyone; they now follow the console's language.
+- **Search on IMAP accounts answers in seconds and no longer marks mail
+  as read.** In every folder where the server found fewer than ten hits,
+  the search also downloaded up to 3000 whole messages to scan them
+  locally: on a mailbox with many folders the search bar showed nothing
+  for minutes, and the agent's `search_mail` never came back, so the
+  agent bar stayed on "working". Those downloads also marked every message
+  they touched as read. The search now uses only the server's hits, opens
+  folders read-only, starts from the inbox and the sent folder, and stops
+  at the requested number of results or after 25 seconds
+  (`GIGAMAIL_SEARCH_BUDGET_S`). The search bar says it is searching, and
+  shows the error if the search fails.
+- **Previews of mail written in Outlook are readable.** The mail list, the
+  Telegram alerts and the text the agent reads opened with Outlook's CSS
+  (`v\:* {behavior:url(#default#VML);}`) and showed entities such as
+  `&nbsp;`: the style block hidden in Outlook's conditional comments
+  survived the tag stripping. One shared conversion now drops comments,
+  styles and scripts and decodes every entity.
 
 ## v0.6.4 — 2026-10-21
 

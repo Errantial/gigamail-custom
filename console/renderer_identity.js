@@ -101,7 +101,14 @@ async function openIdentityModal(accountId, accountName) {
   let identity = { who_am_i: '', what_i_do: '', tone: '', key_info: '', file_paths: [] };
   try { identity = await api.getIdentity(accountId); } catch(e) {}
   let signature = '';
-  try { signature = (await api.getSignature(accountId)).signature || ''; } catch(e) {}
+  let sentVia = true;
+  let sentViaText = '';
+  try {
+    const sigInfo = await api.getSignature(accountId);
+    signature = sigInfo.signature || '';
+    sentVia = sigInfo.sent_via !== false;
+    sentViaText = sigInfo.sent_via_text || '';
+  } catch(e) {}
 
   const overlay = document.createElement('div');
   overlay.id = 'identityModal';
@@ -144,6 +151,10 @@ async function openIdentityModal(accountId, accountName) {
           <label class="field-label">${T('signature','FIRMA')} <span style="font-weight:400;color:#8A8280">${T('signature_sub','(in fondo a ogni mail inviata da questo account)')}</span></label>
           <textarea id="idSignature" rows="3" maxlength="1000" placeholder="${T('signature_ph','Es: Mario Rossi · Via Roma 10, Milano')}"
             style="width:100%;margin-top:5px;resize:vertical;background:#F4F2EE;border:1px solid #E2DDD6;border-radius:2px;padding:8px 10px;font-size:13px;outline:none;box-sizing:border-box;font-family:inherit;">${esc(signature)}</textarea>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;cursor:pointer;">
+            <input type="checkbox" id="idSentVia" ${sentVia ? 'checked' : ''}/>
+            <span>${T('sent_via_toggle','Aggiungi in fondo')} «${esc(sentViaText)}»</span>
+          </label>
         </div>
         <div>
           <label class="field-label">${T('extract_url','ESTRAI DA URL')} <span style="font-weight:400;color:#8A8280">${T('extract_url_sub','(sito, LinkedIn, pagina prodotto...)')}</span></label>
@@ -400,7 +411,8 @@ async function openIdentityModal(accountId, accountName) {
         key_info:  document.getElementById('idKeyInfo')?.value?.trim() || '',
         file_paths: filePaths,
       });
-      await api.setSignature(accountId, document.getElementById('idSignature')?.value || '');
+      await api.setSignature(accountId, document.getElementById('idSignature')?.value || '',
+                             !!document.getElementById('idSentVia')?.checked);
       showToast(T('id_saved','Identità salvata!'));
       close();
     } catch(err) {

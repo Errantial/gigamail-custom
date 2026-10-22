@@ -761,12 +761,32 @@ function bindMailEvents() {
 
   on('btnSearchMail', 'click', async () => {
     const q = byId('mailSearch')?.value.trim() || '';
-    if (!q) { await refreshCurrentFolder(); return; }
+    if (!q) { setFolderTitle(currentFolder, currentFolderLabel); await refreshCurrentFolder(); return; }
+    // The list now holds search results, possibly from several folders:
+    // the title said "Inbox" and the results looked like an unfiltered inbox.
+    const title = byId('currentFolderLabel');
+    if (title) {
+      title.removeAttribute('data-i18n');
+      title.textContent = T('search_results_for', 'Risultati per') + ' «' + q + '»';
+    }
+    // The search asks the mail server and can take several seconds: say
+    // so in the list, or the old inbox stays on screen and the search
+    // looks like it did nothing.
+    const list = byId('mailList');
+    if (list) list.innerHTML = '<div class="list-empty">' + T('searching', 'Sto cercando…') + '</div>';
     try {
       const results = await api.searchMail(q, activeAccountId);
       renderMailList(results);
       setText('statMail', Array.isArray(results) ? results.length : 0);
-    } catch (e) { console.error('searchMail:', e); }
+    } catch (e) {
+      console.error('searchMail:', e);
+      if (list) {
+        const box = document.createElement('div');
+        box.className = 'list-empty';
+        box.textContent = T('error', 'Errore') + ': ' + String((e && e.message) || e);
+        list.replaceChildren(box);
+      }
+    }
   });
   on('mailSearch', 'keydown', (e) => { if (e.key === 'Enter') byId('btnSearchMail')?.click(); });
 

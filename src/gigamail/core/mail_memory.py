@@ -26,6 +26,7 @@ from typing import Dict, List, Optional, Tuple
 
 # Path del DB in una cartella scrivibile utente, non nella directory app.
 from .data_paths import db_path as _db_path
+from .html_text import html_to_text
 
 _DB_PATH = str(_db_path('.mail_memory.db'))
 _LOCK = threading.Lock()
@@ -469,12 +470,7 @@ def _extract_tokens(text: str, min_len: int = 4, max_tokens: int = 30) -> List[s
     return out
 
 def _clean_html(html: str) -> str:
-    text = re.sub(r'<br\s*/?>', '\n', html, flags=re.I)
-    text = re.sub(r'</p>', '\n', text, flags=re.I)
-    text = re.sub(r'<[^>]+>', ' ', text)
-    text = re.sub(r'&nbsp;', ' ', text)
-    text = re.sub(r'\s+', ' ', text)
-    return text.strip()
+    return html_to_text(html)
 
 def _extract_domain(email: str) -> str:
     email = (email or "").strip().lower()

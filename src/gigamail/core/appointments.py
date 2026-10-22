@@ -47,6 +47,7 @@ from gigamail import agent_bridge, policy
 
 from . import availability, calendar_router, injection_guard
 from .addresses import split_addresses
+from .html_text import html_to_text
 
 logger = logging.getLogger("gigamail.appointments")
 
@@ -1456,6 +1457,9 @@ def _corpo(m: Dict[str, Any]) -> str:
     if not corpo:
         corpo = m.get("body")
         if isinstance(corpo, dict):
+            # Graph gives HTML here: the alert quotes text, not markup.
+            if str(corpo.get("contentType") or "").lower() == "html":
+                return html_to_text(corpo.get("content") or "", keep_lines=True)
             corpo = corpo.get("content") or ""
     return str(corpo or "")
 

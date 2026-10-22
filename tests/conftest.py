@@ -90,3 +90,16 @@ def account_signature(monkeypatch):
         return signature.save(account_id, text)
     put.settings = settings
     return put
+
+
+@pytest.fixture(autouse=True)
+def _no_sent_via_line(request, monkeypatch):
+    """Most tests check the exact body that is sent: the "Sent via GigaMail
+    Desktop" line, on by default for users, is off here. Tests marked
+    `sent_via` keep it, to test the line itself."""
+    if request.node.get_closest_marker("sent_via"):
+        yield
+        return
+    from gigamail.core import signature
+    monkeypatch.setattr(signature, "sent_via_enabled", lambda account_id: False)
+    yield

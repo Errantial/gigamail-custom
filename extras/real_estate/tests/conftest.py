@@ -27,3 +27,12 @@ def _real_estate_acceso(monkeypatch):
     extensions.reset()
     yield
     extensions.reset()
+
+
+@pytest.fixture(autouse=True)
+def _no_sent_via_line(monkeypatch):
+    """These tests check the exact draft body: the "Sent via GigaMail
+    Desktop" line the core adds to every outgoing mail is off here, as in
+    the core's own tests."""
+    from gigamail.core import signature
+    monkeypatch.setattr(signature, "sent_via_enabled", lambda account_id: False)
