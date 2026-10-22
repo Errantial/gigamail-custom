@@ -1,5 +1,6 @@
 """Automazioni (0.2.1): regole di risposta e watcher (processo separato)."""
 import os
+import time
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -193,21 +194,69 @@ def watch_start(interval: int = 60):
 
 
 def watch_autostart() -> Optional[int]:
-    """At backend start: a watcher that should be running, and is not,
-    is started again. The watcher is its own process and dies with an
-    update (the installer ends every python from the install folder) or
-    a crash; before, only the button in Automations brought it back, and
-    a mail that a rule should have answered waited until someone noticed.
+    """A watcher that should be running, and is not, is started; one that
+    runs OLD code (its code stamp differs from the sources on disk: an
+    update, a git pull) is stopped and started again, so the new code
+    runs without anyone pressing Stop and Start. The watcher is its own
+    process: before, only the button in Automations brought it back, and
+    a mail a rule should have answered waited until someone noticed.
     Returns the new pid, or None when nothing was started."""
     from gigamail.core import rules as rules_mod
+    from gigamail.core.code_stamp import code_stamp
     st = _watch_state()
-    if st["running"] or not st["active_rules"]:
+    if not st["active_rules"]:
         return None
+    reason = "backend start"
+    if st["running"]:
+        stamp = st.get("code_stamp") or ""
+        if not stamp or stamp == code_stamp():
+            return None
+        try:
+            _stop_watch_process(int(st["pid"]))
+        except Exception as e:
+            policy.audit("watch", {"pid": st["pid"]}, "watch_restart_failed", detail=str(e)[:200])
+            return None
+        rules_mod.store().kv_set("watch_heartbeat", "0")
+        reason = "code changed"
     interval = int(rules_mod.store().kv_get("watch_interval", "60") or 60)
     pid = _spawn_watch(interval)
-    policy.audit("watch", {"pid": pid, "interval": interval}, "watch_autostarted",
-                 detail="backend start")
+    policy.audit("watch", {"pid": pid, "interval": interval},
+                 "watch_restarted" if reason == "code changed" else "watch_autostarted",
+                 detail=reason)
     return pid
+
+
+WATCH_GUARD_SECONDS = 60
+
+
+def start_watch_guard(interval: int = WATCH_GUARD_SECONDS) -> None:
+    """A daemon thread of the backend: watch_autostart now and every
+    minute. Covers the watcher dying at any time, and an update landing
+    while the backend keeps running (the console reuses a live backend)."""
+    import threading
+
+    def _loop():
+        while True:
+            try:
+                pid = watch_autostart()
+                if pid:
+                    print(f"[console] watcher started (pid {pid})", flush=True)
+            except Exception as e:
+                print(f"[console] watcher guard: {e}", flush=True)
+            time.sleep(interval)
+
+    threading.Thread(target=_loop, name="watch-guard", daemon=True).start()
+
+
+def _stop_watch_process(pid: int) -> None:
+    if os.name == "nt":
+        import subprocess
+        subprocess.run(["taskkill", "/PID", str(pid), "/F"],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                       timeout=15)
+    else:
+        import signal
+        os.kill(pid, signal.SIGTERM)
 
 
 @router.post("/watch/stop")
@@ -217,14 +266,7 @@ def watch_stop():
     pid = int(rs.kv_get("watch_pid", "0") or 0)
     if pid and _pid_alive(pid):
         try:
-            if os.name == "nt":
-                import subprocess
-                subprocess.run(["taskkill", "/PID", str(pid), "/F"],
-                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                               timeout=15)
-            else:
-                import signal
-                os.kill(pid, signal.SIGTERM)
+            _stop_watch_process(pid)
         except Exception as e:
             raise HTTPException(500, f"stop fallito: {e}") from e
     rs.kv_set("watch_pid", "0")

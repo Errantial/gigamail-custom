@@ -58,12 +58,15 @@
   (no window of its own) it sat behind the other windows: "Resume
   (Hello)" seemed to do nothing. The prompt is now brought to the
   foreground when it appears.
-- **The watcher comes back by itself.** It is its own process and dies
-  with every update (the installer ends the python processes of the
-  install folder) or a crash; only the button in Automations started it
-  again, so a mail a rule should have answered waited until someone
-  noticed. The backend now starts it at every launch when rules are
-  active and no watcher is running.
+- **The watcher comes back by itself, with the current code.** It is
+  its own process and dies with every update (the installer ends the
+  python processes of the install folder) or a crash; only the button
+  in Automations started it again, so a mail a rule should have answered
+  waited until someone noticed. A guard in the backend now checks every
+  minute: no watcher while rules are active, it starts one; a watcher
+  running older code than the sources on disk (an update landed while it
+  ran), it restarts it. Telegram approvals and the rules then follow the
+  new code without a Stop and Start by hand.
 - **CI: the Graph archive test no longer times out on a slow Windows
   runner** (30 archived ids instead of 250, same check).
 - **The release script waits for the Mac builds before publishing.**

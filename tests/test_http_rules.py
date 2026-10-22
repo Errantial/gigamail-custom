@@ -108,7 +108,21 @@ def test_backend_start_brings_back_a_watcher_with_active_rules(client, monkeypat
     assert spawned[0][-4:] == ["watch", "--verbose", "--interval", "45"]
     assert rules_mod.store().kv_get("watch_pid", "0") == "4242"
 
-    # a watcher that is alive and ticking is left alone
+    # a watcher that is alive, ticking and on the current code is left alone
+    from gigamail.core.code_stamp import code_stamp
     monkeypatch.setattr(rules_api, "_watch_state",
-                        lambda: {"running": True, "pid": 4242, "active_rules": 1})
+                        lambda: {"running": True, "pid": 4242, "active_rules": 1,
+                                 "code_stamp": code_stamp()})
     assert rules_api.watch_autostart() is None and len(spawned) == 1
+    # one running old code (an update, a git pull) is stopped and started again
+    stopped = []
+    monkeypatch.setattr(rules_api, "_stop_watch_process", lambda pid: stopped.append(pid))
+    monkeypatch.setattr(rules_api, "_watch_state",
+                        lambda: {"running": True, "pid": 4242, "active_rules": 1,
+                                 "code_stamp": "old-1"})
+    assert rules_api.watch_autostart() == 4242
+    assert stopped == [4242] and len(spawned) == 2
+    # a watcher from before the stamp existed is not restarted on a guess
+    monkeypatch.setattr(rules_api, "_watch_state",
+                        lambda: {"running": True, "pid": 4242, "active_rules": 1, "code_stamp": ""})
+    assert rules_api.watch_autostart() is None and len(spawned) == 2

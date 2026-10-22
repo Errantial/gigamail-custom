@@ -45,21 +45,9 @@ async def _require_token(request: Request, call_next):
     return await call_next(request)
 
 
-def code_stamp() -> str:
-    """Fingerprint of the package's sources on disk: how many .py files and
-    the newest modification time. It changes when an update, or an edit,
-    replaces the code this process loaded."""
-    import gigamail
-    newest, count = 0, 0
-    for path in Path(gigamail.__file__).parent.rglob("*.py"):
-        try:
-            modified = path.stat().st_mtime_ns
-        except OSError:
-            continue
-        count += 1
-        newest = max(newest, modified)
-    return f"{count}-{newest}"
-
+from gigamail.core.code_stamp import (
+    code_stamp,  # noqa: E402  (kept here for the health route and the tests)
+)
 
 # What this process loaded. The console leaves the backend running when
 # its window closes; without this, a backend started before an update
@@ -143,13 +131,9 @@ def main() -> None:
           f" (env={'yes' if da_env else 'no'}, stdin={'yes' if da_stdin else 'no'});"
           f" Hello also for console clicks: {'on' if hello else 'off'}", flush=True)
     # The watcher is a separate process: after an update or a crash it is
-    # gone while its rules are still active. Bring it back here, not from
-    # a button someone has to remember.
-    try:
-        from .rules import watch_autostart
-        pid = watch_autostart()
-        if pid:
-            print(f"[console] watcher restarted (pid {pid}): active rules, none running", flush=True)
-    except Exception as e:
-        print(f"[console] watcher autostart failed: {e}", flush=True)
+    # gone, or running old code, while its rules are still active. A guard
+    # brings it back, now and every minute, not a button someone has to
+    # remember.
+    from .rules import start_watch_guard
+    start_watch_guard()
     uvicorn.run(app, host="127.0.0.1", port=PORT, log_level="warning")

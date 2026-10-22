@@ -30,6 +30,23 @@ def pid_alive(pid: int) -> bool:
         return False
 
 
+_MY_STAMP = ""
+
+
+def my_code_stamp() -> str:
+    """The sources this watcher process loaded, computed once: after an
+    update the files on disk differ, and the backend's guard restarts
+    the watcher so the new code runs."""
+    global _MY_STAMP
+    if not _MY_STAMP:
+        try:
+            from gigamail.core.code_stamp import code_stamp
+            _MY_STAMP = code_stamp()
+        except Exception:
+            _MY_STAMP = "?"
+    return _MY_STAMP
+
+
 def heartbeat(interval: int) -> None:
     """Stato del processo per la console: pid, intervallo e ultimo
     giro, in rules.db (kv). 'attivo' = heartbeat recente."""
@@ -38,6 +55,7 @@ def heartbeat(interval: int) -> None:
         rs.kv_set("watch_pid", str(os.getpid()))
         rs.kv_set("watch_interval", str(interval))
         rs.kv_set("watch_heartbeat", str(time.time()))
+        rs.kv_set("watch_stamp", my_code_stamp())
     except Exception as e:
         # Senza heartbeat la console dira' "fermo" mentre il watcher gira,
         # e chi lancia il task ne avviera' un secondo: va detto.
@@ -57,5 +75,6 @@ def running_state() -> Dict[str, Any]:
     running = alive and age is not None and age < max(interval * 3, 90)
     return {"running": running, "pid": pid if alive else None,
             "interval": interval,
+            "code_stamp": rs.kv_get("watch_stamp", "") or "",
             "last_tick_age_seconds": int(age) if age is not None else None,
             "active_rules": len(rs.active())}
