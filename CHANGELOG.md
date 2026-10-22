@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.6.5 — 2026-10-22
 
 - **Notification buttons registered on the old "ADE Mail" are replaced.**
   A machine that had the old project kept its `gigamail://` registration
