@@ -693,10 +693,106 @@ def telegram_buttons(request_id: str):
         return None
 
 
+# One tick of the watcher can open many requests at once (a night's mail
+# read after a restart): 17 toasts and 17 Telegram messages for 17 drafts.
+# Inside a batch the notifications are held and, past a threshold, sent
+# as one summary; a few still go out one by one, with their buttons.
+_NOTIFY_BATCH: Optional[List[Dict[str, Any]]] = None
+NOTIFY_BATCH_THRESHOLD = 3
+
+
+def begin_notify_batch() -> None:
+    global _NOTIFY_BATCH
+    _NOTIFY_BATCH = []
+
+
+def end_notify_batch(threshold: int = NOTIFY_BATCH_THRESHOLD) -> int:
+    """Sends what the batch held: each on its own up to `threshold`, one
+    summary beyond. Returns how many requests were notified."""
+    global _NOTIFY_BATCH
+    items, _NOTIFY_BATCH = _NOTIFY_BATCH, None
+    if not items:
+        return 0
+    if len(items) <= threshold:
+        for it in items:
+            _notify_now(**it)
+        return len(items)
+    _notify_summary(items)
+    return len(items)
+
+
+def _notify_summary(items: List[Dict[str, Any]]) -> None:
+    n = len(items)
+    subjects = []
+    for it in items:
+        subj = subject_of(it["preview"] or {})
+        if subj and subj not in subjects:
+            subjects.append(subj)
+    shown = subjects[:5]
+    more = len(subjects) - len(shown)
+    if user_lang() == "it":
+        head = f"GigaMail: {n} nuove richieste in attesa della tua approvazione"
+        tail = "Aprile da Richieste in attesa nella console."
+        extra = f"\n… e altre {more}" if more > 0 else ""
+    else:
+        head = f"GigaMail: {n} new requests waiting for your approval"
+        tail = "Open them from Waiting for you in the console."
+        extra = f"\n… and {more} more" if more > 0 else ""
+    text = head + "".join(f"\n📧 «{s_}»" for s_ in shown) + extra + "\n" + tail
+    ids = [it["request_id"] for it in items]
+    try:
+        from gigamail.core import desktop_notify
+        if desktop_notify.notify("GigaMail", text, expires_in=_APPROVAL_TTL_SECONDS):
+            for rid in ids:
+                audit("watch", {"request_id": rid}, "approval_notified", detail="desktop (summary)")
+    except Exception:
+        pass
+    try:
+        from gigamail.core import telegram_channel
+        tg = telegram_channel.channel()
+        if tg:
+            import threading
+            testo = telegram_channel.Telegram.safe_html(
+                text + "\n" + ("Approva dalla console, o qui con: " if user_lang() == "it"
+                                else "Approve from the console, or here with: ")
+                + ", ".join(f"approve {rid}" for rid in ids[:10]))
+
+            def _send_tg():
+                try:
+                    ok = tg.send(testo, html=True)
+                except Exception as e:  # pragma: no cover - requests only
+                    ok, tg.last_error = False, f"{type(e).__name__}: {str(e)[:160]}"
+                for rid in ids:
+                    audit("watch", {"request_id": rid},
+                          "approval_notified" if ok else "approval_notify_failed",
+                          detail="telegram (summary)" if ok
+                          else f"telegram: {tg.last_error or 'send failed'}")
+
+            threading.Thread(target=_send_tg, daemon=False).start()
+    except Exception:
+        pass
+
+
 def notify_approval_requested(request_id: str, tool: str, preview: Dict[str, Any],
                               message: Optional[str] = None,
                               buttons: Optional[List[List[Dict[str, str]]]] = None,
-                              actions: Optional[List[tuple]] = None) -> bool:
+                              actions: Optional[List[tuple]] = None,
+                              immediate: bool = False) -> bool:
+    """See _notify_now. Inside a batch (the watcher's tick) the call is
+    held for end_notify_batch, unless `immediate` (a rule that paused
+    itself is told at once, not folded into "17 new requests")."""
+    if _NOTIFY_BATCH is not None and not immediate:
+        _NOTIFY_BATCH.append({"request_id": request_id, "tool": tool, "preview": preview,
+                              "message": message, "buttons": buttons, "actions": actions})
+        return True
+    return _notify_now(request_id, tool, preview, message=message,
+                       buttons=buttons, actions=actions)
+
+
+def _notify_now(request_id: str, tool: str, preview: Dict[str, Any],
+                message: Optional[str] = None,
+                buttons: Optional[List[List[Dict[str, str]]]] = None,
+                actions: Optional[List[tuple]] = None) -> bool:
     """Notifica l'umano su TUTTI i canali configurati: desktop (toast di
     sistema, attiva di default), Telegram nativo (blocco "telegram" in
     notify.json, con `buttons` = tastiera inline sotto il messaggio) e il

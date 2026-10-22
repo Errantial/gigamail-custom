@@ -455,3 +455,19 @@ def test_the_recent_list_carries_the_notifications(monkeypatch, tmp_path):
                 {"channel": "telegram", "ok": False, "error": "sendMessage: 401 Unauthorized"}]
     finally:
         policy.set_store(None)
+
+
+def test_a_rule_that_paused_itself_is_told_at_once_even_inside_a_batch(monkeypatch):
+    from gigamail.core import desktop_notify
+    seen = []
+    monkeypatch.setattr(desktop_notify, "notify", lambda title, body, **k: seen.append(body) or True)
+    monkeypatch.setattr(policy, "audit", lambda *a, **k: None)
+    monkeypatch.delenv("GIGAMAIL_APPROVAL_NOTIFY_CMD", raising=False)
+    policy.begin_notify_batch()
+    policy.notify_approval_requested("req_a", "reply_mail", {"subject": "a"})
+    policy.notify_approval_requested("-", "rule_paused:r1", {"action": "rule autopaused"},
+                                     message="Rule r1 PAUSED itself", immediate=True)
+    assert seen == ["Rule r1 PAUSED itself"]
+    assert policy.end_notify_batch() == 1
+    assert len(seen) == 2 and "a" in seen[1]
+    assert policy.end_notify_batch() == 0

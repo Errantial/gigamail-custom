@@ -527,3 +527,59 @@ def test_esecuzione_altrove_attende_esito_senza_reinviare(fake_world):
     w.execute_approved()
     assert rules_mod.store().get_handled(rid, "101")["status"] == "sent"
     assert fake_world["replies"] == []
+
+
+def test_a_nights_backlog_read_in_one_tick_is_not_a_burst(fake_world):
+    """Six form mails arrived one an hour overnight; the watcher, back
+    after an update, read them in one tick and counted a burst: the rule
+    paused itself again at once. The window is by arrival time."""
+    from datetime import datetime, timedelta, timezone
+    rid = _rule(trigger_kind="folder", trigger_values=["INBOX.Leads"], mode="semi")
+    now = datetime.now(timezone.utc)
+    msgs = []
+    for i in range(rules_mod.BURST_MAX + 1):
+        m = _msg(mid=str(i), sender=f"chi{i}@x{i}.it")
+        # one every twenty minutes, after the rule was born
+        m["receivedDateTime"] = (now + timedelta(minutes=20 * (i + 1))).strftime("%Y-%m-%dT%H:%M:%SZ")
+        msgs.append(m)
+    fake_world["unread"] = msgs
+    watcher_mod.Watcher().tick()
+    rule = rules_mod.store().get(rid)
+    assert not rule["paused"]
+    assert len(policy.store().list_pending()) == rules_mod.BURST_MAX + 1
+    # the same number within ten minutes is a burst, read in one tick or not
+    rid2 = _rule(trigger_kind="folder", trigger_values=["INBOX.Other"], mode="semi")
+    burst = []
+    for i in range(rules_mod.BURST_MAX + 1):
+        m = _msg(mid=f"b{i}", sender=f"bot{i}@x.it")
+        m["receivedDateTime"] = (now + timedelta(minutes=i + 1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        burst.append(m)
+    fake_world["unread"] = burst
+    watcher_mod.Watcher().tick()
+    assert "raffica" in (rules_mod.store().get(rid2)["pause_reason"] or "")
+
+
+def test_many_drafts_in_one_tick_give_one_notification(fake_world, monkeypatch):
+    """17 drafts after a night's mail meant 17 toasts and 17 Telegram
+    messages. Past three in one tick, one summary says how many wait."""
+    from datetime import datetime, timedelta, timezone
+
+    from gigamail.core import desktop_notify
+    toasts = []
+    monkeypatch.setattr(desktop_notify, "notify", lambda title, body, **k: toasts.append(body) or True)
+    _rule(trigger_kind="folder", trigger_values=["INBOX.Leads"], mode="semi")
+    now = datetime.now(timezone.utc)
+    msgs = []
+    for i in range(5):
+        m = _msg(mid=str(i), sender=f"chi{i}@x{i}.it", subject=f"Richiesta {i}")
+        m["receivedDateTime"] = (now + timedelta(minutes=20 * (i + 1))).strftime("%Y-%m-%dT%H:%M:%SZ")
+        msgs.append(m)
+    fake_world["unread"] = msgs
+    watcher_mod.Watcher().tick()
+    assert len(policy.store().list_pending()) == 5
+    assert len(toasts) == 1 and "5" in toasts[0] and "Richiesta 0" in toasts[0]
+    # two drafts: each its own toast, with its buttons
+    toasts.clear()
+    fake_world["unread"] = [_msg(mid="x1", sender="a@x.it"), _msg(mid="x2", sender="b@x.it")]
+    watcher_mod.Watcher().tick()
+    assert len(toasts) == 2

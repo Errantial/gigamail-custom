@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **A night's mail is not a burst.** The guard that pauses a rule after
+  too many matching mails in ten minutes counted by when the watcher
+  read them: back after an update, it read the night's form mails in
+  one tick and paused the rule again at once. It now counts by when the
+  mails arrived.
+- **One notification per tick, not one per draft.** Seventeen drafts
+  born together meant seventeen toasts and seventeen Telegram messages.
+  Past three in one tick, a single summary says how many wait and for
+  what; a rule that paused itself is still told on its own.
 - **Counters on the "Waiting for you" icon.** Besides the requests still
   to decide, the icon shows what was decided since you last opened the
   page, by colour: green sent, amber approved and executing, red failed,

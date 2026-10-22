@@ -132,6 +132,11 @@ class RuleStore:
             cols = {r[1] for r in conn.execute("PRAGMA table_info(handled)")}
             if "feedback" not in cols:
                 conn.execute("ALTER TABLE handled ADD COLUMN feedback TEXT")
+            # When the mail ARRIVED: the burst guard counts by this, not by
+            # when the watcher got to it (a night's backlog read in one
+            # tick is not a burst).
+            if "received_ts" not in cols:
+                conn.execute("ALTER TABLE handled ADD COLUMN received_ts REAL")
             cols = {r[1] for r in conn.execute("PRAGMA table_info(rules)")}
             if "reply_to_body_address" not in cols:
                 conn.execute("ALTER TABLE rules ADD COLUMN"
@@ -286,15 +291,20 @@ class RuleStore:
 
     def record(self, rule_id: str, account_id: int, message_id: str,
                sender: str, status: str, reason: str = "",
-               request_id: str = "") -> None:
+               request_id: str = "", received_ts: Optional[float] = None) -> None:
         with self._conn() as conn:
+            if received_ts is None:
+                row = conn.execute(
+                    "SELECT received_ts FROM handled WHERE rule_id=? AND message_id=?",
+                    (rule_id, str(message_id))).fetchone()
+                received_ts = row["received_ts"] if row else None
             conn.execute(
                 "INSERT OR REPLACE INTO handled (rule_id, account_id,"
-                " message_id, sender, status, reason, request_id, ts)"
-                " VALUES (?,?,?,?,?,?,?,?)",
+                " message_id, sender, status, reason, request_id, ts, received_ts)"
+                " VALUES (?,?,?,?,?,?,?,?,?)",
                 (rule_id, int(account_id), str(message_id),
                  (sender or "").lower(), status, reason or None,
-                 request_id or None, time.time()))
+                 request_id or None, time.time(), received_ts))
 
     def set_status(self, rule_id: str, message_id: str, status: str,
                    reason: str = "") -> None:
@@ -411,6 +421,17 @@ class RuleStore:
             row = conn.execute(
                 "SELECT COUNT(*) AS n FROM handled WHERE rule_id=? AND ts > ?",
                 (rule_id, since_ts)).fetchone()
+        return int(row["n"]) if row else 0
+
+    def matches_received_between(self, rule_id: str, lo: float, hi: float) -> int:
+        """Mails of this rule that ARRIVED in [lo, hi]: the burst window
+        by arrival, so six mails spread over a night are six mails, not
+        a burst, however many the watcher reads in one tick."""
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT COUNT(*) AS n FROM handled WHERE rule_id=?"
+                " AND received_ts IS NOT NULL AND received_ts >= ? AND received_ts <= ?",
+                (rule_id, lo, hi)).fetchone()
         return int(row["n"]) if row else 0
 
     def ever_replied_to(self, sender: str, account_id: int) -> bool:
