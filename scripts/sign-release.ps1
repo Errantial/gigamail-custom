@@ -229,8 +229,14 @@ if ($NoPublish) {
 # without them. Wait for the run to end first.
 $deadline = (Get-Date).AddMinutes(45)
 while ($true) {
-  $runs = gh run list --repo $Repo --workflow Release --branch $Tag --json status --jq '[.[] | select(.status != "completed")] | length' 2>$null
-  if ($LASTEXITCODE -ne 0 -or -not $runs -or [int]$runs -eq 0) { break }
+  # No double quotes inside the jq program: Windows PowerShell strips them
+  # from a native command's arguments, and jq then read `completed` as a
+  # function (0.6.5: "function not defined: completed/0"). The count is
+  # done here instead.
+  $statuses = @(gh run list --repo $Repo --workflow Release --branch $Tag --json status --jq '.[].status' 2>$null)
+  if ($LASTEXITCODE -ne 0) { break }
+  $running = @($statuses | Where-Object { $_ -and $_ -ne 'completed' }).Count
+  if ($running -eq 0) { break }
   if ((Get-Date) -gt $deadline) {
     Write-Host (Say "I job Mac non hanno finito in 45 minuti: la Release resta in bozza. Pubblica con: " "The Mac jobs did not finish within 45 minutes: the Release stays a draft. Publish with: ") "gh release edit $Tag --repo $Repo --draft=false --latest"
     exit 0

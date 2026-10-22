@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Release script: the wait for the Mac builds works on Windows
+  PowerShell.** The jq filter carried double quotes, which Windows
+  PowerShell strips from a native command's arguments; the wait failed
+  at once and the release had to be published by hand.
+
 ## v0.6.5 — 2026-10-22
 
 - **A lighter watcher heartbeat.** It wrote four rows in four commits a
