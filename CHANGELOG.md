@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **The notification windows close by themselves.** Approved, rejected
+  or edited, the request window shows the outcome for a moment and goes
+  away; the reply box does the same once the instruction is queued, and
+  says the draft comes within a couple of minutes. A reply asked from the
+  PC now reports on the PC too (writing it, or why the agent could not),
+  not only on Telegram.
 - **"Move to spam?", "Delete?" and the other questions look like the
   console.** They were the browser's grey boxes with OK and Annulla, in
   every window. They are now the console's own dialog, in its colours

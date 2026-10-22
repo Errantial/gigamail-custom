@@ -29,6 +29,7 @@ function open(responses) {
     const r = responses(p, opts);
     return { ok: r.status === 200, status: r.status, json: async () => r.body };
   };
+  w.GM_CLOSE_DELAY = 0;   // the window closes itself after a decision: at once here
   w.approvalWindowAPI = { onLoad: (cb) => { loaded = cb; }, close() { calls.push('close'); }, minimize() {} };
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'approval_window_page.js'), 'utf-8'), dom.getInternalVMContext());
   const tick = () => new Promise((r) => setTimeout(r, 20));
@@ -55,6 +56,8 @@ test('shows who, what and the text, and approves through the backend as executed
   assert.match(d.getElementById('status').textContent, /eseguita/);
   assert.match(d.getElementById('state').textContent, /inviata/);
   assert.equal(d.getElementById('btnApprove').disabled, true);
+  await tick();
+  assert.ok(calls.includes('close'), 'the window closes by itself once decided');
 });
 
 test('Edit closes the request with a note; Reject from the toast rejects at once', async () => {
@@ -83,6 +86,16 @@ test('Edit closes the request with a note; Reject from the toast rejects at once
   await second.load({ request_id: 'req_1', action: 'reject' });
   assert.ok(second.calls.includes('POST /approvals/req_1/reject'));
   assert.match(second.w.document.getElementById('state').textContent, /rifiutata/);
+  await second.tick();
+  assert.ok(second.calls.includes('close'));
+});
+
+test('a request that is gone stays on screen: nothing was decided', async () => {
+  const { w, calls, load, tick } = open(() => ({ status: 404, body: { detail: 'Richiesta inesistente' } }));
+  await load({ request_id: 'req_9', action: 'approve' });
+  await tick();
+  assert.ok(!calls.includes('close'));
+  assert.match(w.document.getElementById('state').textContent, /non trovata/);
 });
 
 test('an old notification: the request is gone and the buttons are off', async () => {

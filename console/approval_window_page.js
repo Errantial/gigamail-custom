@@ -84,6 +84,13 @@ function say(text, cls = '') {
   $('status').className = `status ${cls}`;
 }
 
+// The window exists for one decision: once it is taken and shown, it goes
+// away by itself (a second and a half to read the outcome).
+const CLOSE_DELAY = (typeof window !== 'undefined' && window.GM_CLOSE_DELAY != null) ? window.GM_CLOSE_DELAY : 1500;
+function closeSoon() {
+  setTimeout(() => { try { window.approvalWindowAPI.close(); } catch (_) { /* no bridge */ } }, CLOSE_DELAY);
+}
+
 async function reload() {
   if (!current) return;
   try { render(await api(`/approvals/${encodeURIComponent(current.request_id)}`)); } catch (_) { /* keep what we have */ }
@@ -93,12 +100,15 @@ async function doApprove() {
   if (!current) return;
   $('btnApprove').disabled = true;
   say(T('aw_approving', 'Approvo…'));
-  const hint = setTimeout(() => say(T('agent_hello_wait', 'In attesa della verifica di Windows Hello: se non la vedi, è dietro le finestre (Alt+Tab).')), 3000);
+  const hint = setTimeout(() => say(T('aw_slow', 'Ancora un attimo: se Windows Hello è richiesto, il prompt può essere dietro le finestre (Alt+Tab).')), 4000);
+  let decided = false;
   try {
     const r = await api(`/approvals/${encodeURIComponent(current.request_id)}/approve`, { method: 'POST' });
     clearTimeout(hint);
+    decided = true;
     if (r.status === 'executed') {
       say(r.outcome === 'failed' ? `${T('st_send_failed', 'invio fallito')}: ${r.error || ''}` : T('aw_done', 'Fatto: eseguita.'), r.outcome === 'failed' ? 'err' : 'ok');
+      if (r.outcome === 'failed') decided = false;   // leave the reason on screen
     } else {
       say(T('aw_approved_watcher', 'Approvata: la invia il watcher al prossimo giro.'), 'ok');
     }
@@ -107,6 +117,7 @@ async function doApprove() {
     say(`${T('agent_not_approved', 'Non approvata')}: ${e.message || e}`, 'err');
   }
   await reload();
+  if (decided) closeSoon();
 }
 
 async function doReject() {
@@ -115,6 +126,9 @@ async function doReject() {
   try {
     await api(`/approvals/${encodeURIComponent(current.request_id)}/reject`, { method: 'POST' });
     say(T('aw_rejected', 'Rifiutata: non verrà eseguita.'), 'ok');
+    await reload();
+    closeSoon();
+    return;
   } catch (e) {
     say(e.message || String(e), 'err');
   }
@@ -136,6 +150,9 @@ async function doEdit() {
     say(r.requeued ? T('aw_requeued', 'Chiusa e rimessa in coda con la tua nota: il watcher la riscrive e te la ripropone.')
       : T('aw_note_for_agent', "Chiusa. Riporta la nota all'agente dalla barra agente."), 'ok');
     box.classList.remove('visible');
+    await reload();
+    closeSoon();
+    return;
   } catch (e) {
     say(e.message || String(e), 'err');
     $('btnEdit').disabled = false;

@@ -39,8 +39,10 @@ async function queue() {
   $('btnQueue').disabled = true;
   try {
     await api(`/alerts/${encodeURIComponent(key)}/reply`, { method: 'POST', body: JSON.stringify({ instruction }) });
-    say(T('ra_queued', 'Ok: il watcher scrive la bozza al prossimo giro e te la propone da approvare.'), 'ok');
+    say(T('ra_queued', 'Ok: entro un paio di minuti l\'agente scrive la bozza e te la propone da approvare.'), 'ok');
     $('instruction').disabled = true;
+    const delay = (window.GM_CLOSE_DELAY != null) ? window.GM_CLOSE_DELAY : 2000;
+    setTimeout(() => { try { window.replyAlertWindowAPI.close(); } catch (_) { /* no bridge */ } }, delay);
   } catch (e) {
     say(e.message || String(e), 'err');
     $('btnQueue').disabled = false;
