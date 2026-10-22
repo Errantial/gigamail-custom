@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **"Move to spam?", "Delete?" and the other questions look like the
+  console.** They were the browser's grey boxes with OK and Annulla, in
+  every window. They are now the console's own dialog, in its colours
+  and in the dark theme too, with the destructive choice in red; Enter
+  confirms, Escape cancels. Error messages that used the same box follow.
 - **The "Ask your mail" icon is gone from the sidebar.** The agent bar
   at the bottom answers the same questions, with the open mail as
   context; the icon only opened an older window by mistake.

@@ -529,7 +529,7 @@ function unmaskPlaceholder(ph) {
 // Elimina la regola salvata dal DB (cerca per valore) + smaschera nel testo
 async function deleteRuleByValue(value, ph) {
   if (!value) return;
-  if (!confirm(T('cmp_delete_rule_confirm', 'Eliminare questa regola salvata? Non verrà più mascherata in automatico.'))) return;
+  if (!(await GMDialog.confirm(T('cmp_delete_rule_confirm', 'Eliminare questa regola salvata? Non verrà più mascherata in automatico.'), { danger: true }))) return;
   try {
     const aid = accountId;
     const r = await fetch(`${API}/masks` + (aid ? `?account_id=${aid}` : ''));

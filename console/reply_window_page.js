@@ -585,7 +585,7 @@ function renderMaskPanel() {
     list.querySelectorAll('button[data-del-mask]').forEach(btn => {
       btn.addEventListener('click', async () => {
         const mid = btn.dataset.delMask;
-        if (!confirm(T('cmp_delete_rule_confirm', 'Eliminare questa regola salvata? Non verrà più mascherata in automatico.'))) return;
+        if (!(await GMDialog.confirm(T('cmp_delete_rule_confirm', 'Eliminare questa regola salvata? Non verrà più mascherata in automatico.'), { danger: true }))) return;
         try {
           const aid = _maskAccountId();
           await fetch(`${API}/masks/${mid}` + (aid ? `?account_id=${aid}` : ''), { method: 'DELETE' });

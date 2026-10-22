@@ -279,7 +279,7 @@ async function loadMail(id, folder, accountId, preloadedMsg = null) {
     });
 
     document.getElementById('btnSpam')?.addEventListener('click', async () => {
-      if (!confirm(window.i18n?window.i18n.t('move_to_spam'):'Spostare in spam?')) return;
+      if (!(await GMDialog.confirm(window.i18n?window.i18n.t('move_to_spam'):'Spostare in spam?'))) return;
       try {
         await fetch(`${API}/mail/${encodeURIComponent(id)}/spam?account_id=${accountId}`, {method:'POST'});
         window.mailWindowAPI?.close();
@@ -287,7 +287,7 @@ async function loadMail(id, folder, accountId, preloadedMsg = null) {
     });
 
     document.getElementById('btnDelete')?.addEventListener('click', async () => {
-      if (!confirm(window.i18n?window.i18n.t('delete_this_mail'):'Eliminare questa mail?')) return;
+      if (!(await GMDialog.confirm(window.i18n?window.i18n.t('delete_this_mail'):'Eliminare questa mail?', { danger: true }))) return;
       try {
         await fetch(`${API}/mail/${encodeURIComponent(id)}?account_id=${accountId}`, {method:'DELETE'});
         window.mailWindowAPI?.close();

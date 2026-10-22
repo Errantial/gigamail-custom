@@ -181,7 +181,7 @@ async function deleteMail(id, folder, accountId) {
   if (!id) return;
   // The backend no longer asks Windows Hello for a click: this is the
   // only "are you sure?" a deletion gets.
-  if (!confirm(T('confirm_delete', 'Eliminare questa mail?'))) return;
+  if (!(await GMDialog.confirm(T('confirm_delete', 'Eliminare questa mail?'), { danger: true }))) return;
   // The mail's own account: in a merged view it may not be the active one.
   const account = parseInt(accountId, 10) || activeAccountId;
   try {
@@ -536,7 +536,7 @@ async function openMail(id, overrideFolder = null) {
 
     // SPAM
     byId('btnSpam')?.addEventListener('click', async () => {
-      if (!confirm(T('move_to_spam','Spostare in spam?'))) return;
+      if (!(await GMDialog.confirm(T('move_to_spam','Spostare in spam?')))) return;
       try {
         await api.spamMail(id, activeAccountId, currentFolder);
         document.querySelector(`[data-id="${id}"]`)?.remove();
@@ -567,7 +567,7 @@ async function openMail(id, overrideFolder = null) {
 
     // ELIMINA
     byId('btnDelete')?.addEventListener('click', async () => {
-      if (!confirm(T('confirm_delete', 'Eliminare questa mail?'))) return;
+      if (!(await GMDialog.confirm(T('confirm_delete', 'Eliminare questa mail?'), { danger: true }))) return;
       try {
         await api.deleteMail(id, activeAccountId);
         document.querySelector(`[data-id="${id}"]`)?.remove();

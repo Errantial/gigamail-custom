@@ -427,7 +427,7 @@ document.getElementById('btnSaveEvent')?.addEventListener('click', async () => {
 
 document.getElementById('btnDeleteEvent')?.addEventListener('click', async () => {
   const id = document.getElementById('eventId').value;
-  if (!id || !confirm(T('win_event_delete_confirm', 'Eliminare questo evento?'))) return;
+  if (!id || !(await GMDialog.confirm(T('win_event_delete_confirm', 'Eliminare questo evento?'), { danger: true }))) return;
   try {
     const urlDel = `${API}/calendar/${encodeURIComponent(id)}` + (_activeAccountId ? `?account_id=${_activeAccountId}` : '');
     await fetch(urlDel, { method:'DELETE' });
@@ -506,7 +506,7 @@ function hideCtxMenu() {
 
 async function deleteEventById(id) {
   if (!id) return;
-  if (!confirm(T('win_event_delete_confirm', 'Eliminare questo evento?'))) return;
+  if (!(await GMDialog.confirm(T('win_event_delete_confirm', 'Eliminare questo evento?'), { danger: true }))) return;
   try {
     const urlDel = `${API}/calendar/${encodeURIComponent(id)}` + (_activeAccountId ? `?account_id=${_activeAccountId}` : '');
     await fetch(urlDel, { method:'DELETE' });

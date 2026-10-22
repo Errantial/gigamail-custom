@@ -350,7 +350,7 @@ function renderCustomFolders() {
       const folderId = btn.getAttribute('data-folder-delete-id') || '';
       const label = btn.getAttribute('data-folder-delete-label') || folderId;
       if (!folderId) return;
-      if (!confirm(T('app_confirm_delete_folder', 'Eliminare la cartella "{name}"?').replace('{name}', () => label))) return;
+      if (!(await GMDialog.confirm(T('app_confirm_delete_folder', 'Eliminare la cartella "{name}"?').replace('{name}', () => label), { danger: true }))) return;
       try {
         await api.deleteMailFolder(folderId, activeAccountId);
         if (currentFolder === `custom:${folderId}`) {

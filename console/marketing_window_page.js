@@ -64,7 +64,7 @@ document.getElementById('btnBulkGenerate')?.addEventListener('click', async () =
     const result = await r.json();
     if (result.subject) {
       const curr = document.getElementById('bulkSubject')?.value?.trim();
-      if (!curr || confirm(`${T('win_replace_subject_confirm', 'Sostituire oggetto con:')}\n"${result.subject}"?`)) {
+      if (!curr || await GMDialog.confirm(`${T('win_replace_subject_confirm', 'Sostituire oggetto con:')}\n"${result.subject}"?`)) {
         document.getElementById('bulkSubject').value = result.subject;
       }
     }
@@ -107,7 +107,7 @@ document.getElementById('btnBulkStart')?.addEventListener('click', async () => {
   const bodyHtml = document.getElementById('bulkBodyHtml')?.value?.trim() || '';
   const bodyPlain = document.getElementById('bulkBodyPlain')?.value?.trim() || '';
   if (!bodyHtml && !bodyPlain) { alert(T('write_body', 'Scrivi il corpo della mail')); return; }
-  if (!confirm(`${T('win_start_send_confirm', 'Avviare invio a {n} destinatari?').replace('{n}', _bulkRecipients.length)}\n\n${T('subject_label', 'Oggetto:')} ${subject}`)) return;
+  if (!(await GMDialog.confirm(`${T('win_start_send_confirm', 'Avviare invio a {n} destinatari?').replace('{n}', _bulkRecipients.length)}\n\n${T('subject_label', 'Oggetto:')} ${subject}`))) return;
   try {
     const r = await fetch(`${API}/mail/bulk/start`, {
       method:'POST',

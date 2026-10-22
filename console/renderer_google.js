@@ -122,7 +122,7 @@ const GoogleView = (() => {
   }
 
   async function scollega(email) {
-    if (!confirm(T('app_google_confirm_disconnect', 'Scollegare {email}? Il token viene revocato presso Google.').replace('{email}', () => email))) return;
+    if (!(await GMDialog.confirm(T('app_google_confirm_disconnect', 'Scollegare {email}? Il token viene revocato presso Google.').replace('{email}', () => email)))) return;
     try {
       await api().googleLogout(email);
       await render();

@@ -170,7 +170,7 @@
         toast(T('Conferma con Windows Hello…', 'Confirm with Windows Hello…', '请用 Windows Hello 确认…'));
         await api(`/rules/${id}/resume`, { method: 'POST' });
       } else if (act === 'delete') {
-        if (!confirm(T('Eliminare la regola?', 'Delete the rule?', '删除此规则？'))) return;
+        if (!(await GMDialog.confirm(T('Eliminare la regola?', 'Delete the rule?', '删除此规则？'), { danger: true }))) return;
         await api(`/rules/${id}`, { method: 'DELETE' });
       } else if (act === 'activity') {
         const el = $(`act-${id}`);
