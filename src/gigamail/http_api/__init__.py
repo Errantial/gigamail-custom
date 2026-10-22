@@ -45,9 +45,12 @@ async def _require_token(request: Request, call_next):
     return await call_next(request)
 
 
-from gigamail.core.code_stamp import (
-    code_stamp,  # noqa: E402  (kept here for the health route and the tests)
-)
+def code_stamp() -> str:
+    """The sources' fingerprint (core.code_stamp), kept as a name on this
+    module for the health route and for tests that replace it here."""
+    from gigamail.core import code_stamp as _mod
+    return _mod.code_stamp()
+
 
 # What this process loaded. The console leaves the backend running when
 # its window closes; without this, a backend started before an update
