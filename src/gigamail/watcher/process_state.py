@@ -56,8 +56,6 @@ def heartbeat(interval: int) -> None:
         rs.kv_set("watch_interval", str(interval))
         rs.kv_set("watch_heartbeat", str(time.time()))
         rs.kv_set("watch_stamp", my_code_stamp())
-        # a watcher that runs is wanted: an earlier Stop no longer holds
-        rs.kv_set("watch_user_stopped", "0")
     except Exception as e:
         # Senza heartbeat la console dira' "fermo" mentre il watcher gira,
         # e chi lancia il task ne avviera' un secondo: va detto.

@@ -1337,6 +1337,13 @@ def cmd_watch_running(_args) -> int:
 
 def cmd_watch(args) -> int:
     from gigamail.watcher import Watcher
+    # Started by hand: an earlier Stop in the console no longer holds
+    # (only an explicit start clears it, never a heartbeat).
+    try:
+        from gigamail.core import rules as rules_mod
+        rules_mod.store().kv_set("watch_user_stopped", "0")
+    except Exception:
+        pass
     try:
         Watcher(interval=args.interval, verbose=args.verbose).run(once=args.once)
     except KeyboardInterrupt:

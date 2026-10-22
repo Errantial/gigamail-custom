@@ -153,8 +153,54 @@ def test_stop_holds_until_start_even_with_the_guard(client, monkeypatch):
     assert len(spawned) == 1
     rules_mod.store().kv_set("watch_pid", "0")
     assert rules_api.watch_autostart() == 777 and len(spawned) == 2
-    # a watcher started by hand also lifts the stop with its heartbeat
+    # a heartbeat never lifts a stop (a watcher the guard started would
+    # undo the user's choice); `gigamail watch` by hand does
     client.post("/watch/stop", headers=H)
     assert rules_mod.store().kv_get(rules_api.USER_STOPPED_KEY, "0") == "1"
     process_state.heartbeat(60)
+    assert rules_mod.store().kv_get(rules_api.USER_STOPPED_KEY, "0") == "1"
+    from gigamail import cli
+    from gigamail import watcher as watcher_mod
+    monkeypatch.setattr(watcher_mod.Watcher, "run", lambda self, once=False: None)
+
+    class A:
+        interval, verbose, once = 60, False, True
+    cli.cmd_watch(A)
     assert rules_mod.store().kv_get(rules_api.USER_STOPPED_KEY, "0") == "0"
+
+
+def test_stop_and_the_guard_cannot_overlap(client, monkeypatch):
+    """The flag was written after the kill: a guard that woke up in
+    between saw a dead watcher and started one. The flag now goes first,
+    under the lock the guard takes: a guard racing the stop waits, then
+    reads the flag and starts nothing."""
+    import subprocess
+    import threading
+
+    from gigamail.http_api import rules as rules_api
+    spawned = []
+
+    class P:
+        pid = 778
+
+    monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: spawned.append(a[0]) or P())
+    monkeypatch.setenv("ADE_MAIL_DRYRUN", "1")
+    monkeypatch.setenv("GIGAMAIL_CONSENT_BACKEND", "allow")
+    assert client.post("/rules", json=BODY, headers=H).status_code == 200
+    rules_mod.store().kv_set("watch_pid", "4242")
+    monkeypatch.setattr(rules_api, "_pid_alive", lambda pid: pid == 4242)
+    guard_result = []
+
+    def slow_kill(pid, wait=10.0):
+        # the guard fires while the stop is still killing: it must block
+        t = threading.Thread(target=lambda: guard_result.append(rules_api.watch_autostart()))
+        t.start()
+        t.join(0.3)
+        assert t.is_alive(), "the guard must wait for the stop"
+        monkeypatch.setattr(rules_api, "_pid_alive", lambda p: False)
+        slow_kill.thread = t
+
+    monkeypatch.setattr(rules_api, "_stop_watch_process", slow_kill)
+    assert client.post("/watch/stop", headers=H).status_code == 200
+    slow_kill.thread.join(2)
+    assert guard_result == [None] and spawned == []
