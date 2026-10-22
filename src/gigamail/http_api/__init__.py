@@ -142,4 +142,14 @@ def main() -> None:
     print(f"[console] click secret: {'received' if console_click.has_secret() else 'NOT received'}"
           f" (env={'yes' if da_env else 'no'}, stdin={'yes' if da_stdin else 'no'});"
           f" Hello also for console clicks: {'on' if hello else 'off'}", flush=True)
+    # The watcher is a separate process: after an update or a crash it is
+    # gone while its rules are still active. Bring it back here, not from
+    # a button someone has to remember.
+    try:
+        from .rules import watch_autostart
+        pid = watch_autostart()
+        if pid:
+            print(f"[console] watcher restarted (pid {pid}): active rules, none running", flush=True)
+    except Exception as e:
+        print(f"[console] watcher autostart failed: {e}", flush=True)
     uvicorn.run(app, host="127.0.0.1", port=PORT, log_level="warning")

@@ -156,17 +156,14 @@ def watch_status():
     return _watch_state()
 
 
-@router.post("/watch/start")
-def watch_start(interval: int = 60):
-    """Avvia `gigamail watch` come processo staccato (sopravvive alla
-    console), log in app_root()/watch.log."""
+def _spawn_watch(interval: int) -> int:
+    """`gigamail watch` come processo staccato (sopravvive alla console),
+    log in app_root()/watch.log. Ritorna il pid."""
     import subprocess
     import sys as _sys
 
+    from gigamail.core import rules as rules_mod
     from gigamail.core.data_paths import app_root
-    st = _watch_state()
-    if st["running"]:
-        return st
     log_path = os.path.join(str(app_root()), "watch.log")
     log = open(log_path, "a", encoding="utf-8")
     kwargs = {}
@@ -179,12 +176,38 @@ def watch_start(interval: int = 60):
          "--verbose", "--interval", str(max(int(interval), 10))],
         stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,
         env=dict(os.environ), **kwargs)
-    from gigamail.core import rules as rules_mod
     rules_mod.store().kv_set("watch_pid", str(proc.pid))
-    policy.audit("watch", {"pid": proc.pid, "interval": interval}, "watch_started",
+    return proc.pid
+
+
+@router.post("/watch/start")
+def watch_start(interval: int = 60):
+    st = _watch_state()
+    if st["running"]:
+        return st
+    pid = _spawn_watch(interval)
+    policy.audit("watch", {"pid": pid, "interval": interval}, "watch_started",
                  detail=_who())
-    return {"running": True, "pid": proc.pid, "interval": interval,
+    return {"running": True, "pid": pid, "interval": interval,
             "last_tick_age_seconds": None, "active_rules": st["active_rules"]}
+
+
+def watch_autostart() -> Optional[int]:
+    """At backend start: a watcher that should be running, and is not,
+    is started again. The watcher is its own process and dies with an
+    update (the installer ends every python from the install folder) or
+    a crash; before, only the button in Automations brought it back, and
+    a mail that a rule should have answered waited until someone noticed.
+    Returns the new pid, or None when nothing was started."""
+    from gigamail.core import rules as rules_mod
+    st = _watch_state()
+    if st["running"] or not st["active_rules"]:
+        return None
+    interval = int(rules_mod.store().kv_get("watch_interval", "60") or 60)
+    pid = _spawn_watch(interval)
+    policy.audit("watch", {"pid": pid, "interval": interval}, "watch_autostarted",
+                 detail="backend start")
+    return pid
 
 
 @router.post("/watch/stop")

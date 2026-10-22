@@ -82,3 +82,33 @@ def test_notify_status_forma(client):
     st = client.get("/notify/status", headers=H).json()
     assert set(st) >= {"agent", "consent_backend", "desktop", "telegram", "lang"}
     assert st["telegram"]["configured"] is False
+
+
+def test_backend_start_brings_back_a_watcher_with_active_rules(client, monkeypatch):
+    """The watcher dies with every update (the installer ends the python
+    processes of the install folder); only the Automations button started
+    it again, so a rule's mail went unanswered until someone noticed."""
+    import subprocess
+
+    from gigamail.http_api import rules as rules_api
+    spawned = []
+
+    class FakeProc:
+        pid = 4242
+
+    monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: spawned.append(a[0]) or FakeProc())
+    # no active rule: nothing to run
+    assert rules_api.watch_autostart() is None and spawned == []
+
+    monkeypatch.setenv("ADE_MAIL_DRYRUN", "1")
+    monkeypatch.setenv("GIGAMAIL_CONSENT_BACKEND", "allow")
+    assert client.post("/rules", json=BODY, headers=H).status_code == 200
+    rules_mod.store().kv_set("watch_interval", "45")
+    assert rules_api.watch_autostart() == 4242
+    assert spawned[0][-4:] == ["watch", "--verbose", "--interval", "45"]
+    assert rules_mod.store().kv_get("watch_pid", "0") == "4242"
+
+    # a watcher that is alive and ticking is left alone
+    monkeypatch.setattr(rules_api, "_watch_state",
+                        lambda: {"running": True, "pid": 4242, "active_rules": 1})
+    assert rules_api.watch_autostart() is None and len(spawned) == 1

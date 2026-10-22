@@ -69,14 +69,17 @@ def st(tmp_path):
 
 
 def test_archived_ids_do_not_spend_the_limit_of_the_last_folders(st):
-    graph = FakeGraph({f"folder{n}": [f"f{n}m{i}" for i in range(50)]
+    # 30 archived ids against a limit of 20: enough to spend the limit on
+    # skips alone, and small enough for a slow Windows runner (250 ids
+    # took over the 30 s test timeout there).
+    graph = FakeGraph({f"folder{n}": [f"f{n}m{i}" for i in range(6)]
                        for n in range(5)})
     graph.sync(limite=1000)
     assert all(st.stato(5, f)["complete"] == 1 for f in graph.folders)
 
     graph.add("folder4", "fresh")
     graph.downloaded.clear()
-    out = graph.sync()
+    out = graph.sync(limite=20)
 
     assert graph.downloaded == ["fresh"]
     assert out["nuovi"] == 1 and out["restano"] == 0

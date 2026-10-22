@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **The watcher comes back by itself.** It is its own process and dies
+  with every update (the installer ends the python processes of the
+  install folder) or a crash; only the button in Automations started it
+  again, so a mail a rule should have answered waited until someone
+  noticed. The backend now starts it at every launch when rules are
+  active and no watcher is running.
+- **CI: the Graph archive test no longer times out on a slow Windows
+  runner** (30 archived ids instead of 250, same check).
 - **The release script waits for the Mac builds before publishing.**
   It published as soon as the Windows installer was signed; the Mac
   jobs, still running, then refused to attach their DMGs to a public
