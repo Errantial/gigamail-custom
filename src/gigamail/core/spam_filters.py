@@ -141,19 +141,65 @@ def _record_hits(counts: Dict[str, int]) -> None:
         _save(filters)
 
 
-def run(account_id: int, mover=None, top: int = SCAN_TOP) -> int:
+# Mails already read in full for a text filter, per account: the listing
+# of an IMAP account carries no body at all (and Graph's bodyPreview is
+# the first lines), so a "text contains" filter never saw the text it
+# was written for. A mail is fetched once per process and remembered.
+_CHECKED: Dict[int, Dict[str, bool]] = {}
+_CHECKED_MAX = 500
+
+
+def _has_text(message: Dict[str, Any]) -> bool:
+    return bool(message.get("body_text")
+                or (isinstance(message.get("body"), dict) and message["body"].get("content")))
+
+
+def _with_text(account_id: int, message: Dict[str, Any], fetcher=None) -> Dict[str, Any]:
+    """The message with its whole text, read from the server once."""
+    if _has_text(message):
+        return message
+    seen = _CHECKED.setdefault(int(account_id), {})
+    mid = str(message.get("id"))
+    if mid in seen:
+        return message
+    if len(seen) >= _CHECKED_MAX:
+        for k in list(seen)[: _CHECKED_MAX // 2]:
+            seen.pop(k, None)
+    seen[mid] = True
+    try:
+        if fetcher is None:
+            from gigamail.core import mail_router
+            fetcher = lambda aid, m: mail_router.get_message(  # noqa: E731
+                account_id=aid, message_id=str(m.get("id")), folder="inbox")
+        full = fetcher(account_id, message) or {}
+    except Exception:
+        return message
+    if not isinstance(full, dict) or not full:
+        return message
+    merged = dict(message)
+    merged.update({k: v for k, v in full.items() if k in ("body", "body_text", "bodyPreview")})
+    return merged
+
+
+def run(account_id: int, mover=None, top: int = SCAN_TOP, fetcher=None) -> int:
     """Apply the filters to the newest inbox mails of one account. Returns
     how many were moved. `mover(account_id, message, action)` does the
-    move; by default mail_router moves to the spam folder or the bin."""
+    move; by default mail_router moves to the spam folder or the bin.
+    When a filter is on the text, a mail listed without its body is read
+    in full once (`fetcher(account_id, message)`), so the filter sees
+    what the user saw."""
     filters = list_all(account_id)
     if not filters:
         return 0
     from gigamail.core import mail_router
     messages = mail_router.get_messages(account_id, folder="inbox", top=top)
     mover = mover or _move
+    on_text = any(f.get("field") == "body" for f in filters)
     moved, counts = 0, {}
     for m in messages or []:
         f = matching(m, filters)
+        if not f and on_text:
+            f = matching(_with_text(account_id, m, fetcher), filters)
         if not f:
             continue
         try:
@@ -164,6 +210,21 @@ def run(account_id: int, mover=None, top: int = SCAN_TOP) -> int:
             continue
     _record_hits(counts)
     return moved
+
+
+def hide_if_filtered(account_id: int, message: Dict[str, Any], mover=None) -> Optional[Dict[str, Any]]:
+    """For whoever holds a message in full (the rules, before drafting):
+    the filter it matches, after moving it where the filter says, or
+    None. A rule must never answer a mail a filter was written for."""
+    f = matching(message, list_all(account_id))
+    if not f:
+        return None
+    try:
+        if (mover or _move)(account_id, message, f["action"]):
+            _record_hits({f["id"]: 1})
+    except Exception:
+        pass
+    return f
 
 
 def _move(account_id: int, message: Dict[str, Any], action: str) -> bool:

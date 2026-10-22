@@ -94,6 +94,29 @@ def test_semi_crea_pending_e_non_invia(fake_world):
     assert "to" not in pending[0]["args"]
 
 
+def test_a_rule_never_answers_a_mail_a_spam_filter_hides(fake_world, monkeypatch, tmp_path):
+    """The listing of an IMAP account has no body: a filter on the text
+    ("Media: Google,Immobiliare.it") never fired on the tick's scan, and
+    the rule answered the web form it was written to hide."""
+    from gigamail.core import spam_filters
+    monkeypatch.setenv("GIGAMAIL_ROOT", str(tmp_path / "ade"))
+    spam_filters.add("body", "Media: Google,Immobiliare.it", "spam", 1)
+    moved = []
+    monkeypatch.setattr(mail_router, "move_to_folder",
+                        lambda aid, message_id="", folder_id="", source_folder=None:
+                        moved.append((message_id, folder_id)) or True)
+    _rule(mode="semi")
+    m = _msg(body="Dati di contatto\nMedia: Google,Immobiliare.it,Idealista.it")
+    listed = dict(m, body={"content": ""}, bodyPreview="")
+    fake_world["unread"] = [listed]
+    monkeypatch.setattr(mail_router, "get_message", lambda **kw: m)
+    watcher_mod.Watcher().tick()
+    assert policy.store().list_pending() == []
+    assert moved == [(str(m["id"]), "junkemail")]
+    h = rules_mod.store().get_handled(rules_mod.store().list_all()[0]["rule_id"], str(m["id"]))
+    assert h["status"] == "skipped" and h["reason"].startswith("spam-filter:")
+
+
 def test_semi_draft_carries_the_account_signature(fake_world, account_signature):
     account_signature(1, "Sales office")
     _rule(mode="semi")

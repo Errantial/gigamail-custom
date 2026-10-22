@@ -13,6 +13,17 @@
   card on "approved, executing" for good. The backend now sweeps, at
   start and every minute, every request that is approved, still valid
   and not consumed, sends it, and writes `approval_resumed` in the audit.
+- **A filter on the text blocks what it was written for.** The listing
+  of an IMAP account carries no body (and Outlook's preview is the first
+  lines), so "subject or text contains …" only ever saw the subject: the
+  filter showed "0 blocked" while the web form kept arriving, and the
+  rule answered it. The filters now read a mail in full once, and a rule
+  checks them on the whole mail before drafting: a filtered mail is moved
+  and never answered.
+- **SPAM blocks the sender.** The button moves the mail and adds a filter
+  on the sender's address, applied at once and on every tick; moving one
+  mail alone changed nothing for the next one from the same sender. The
+  dialog says so before you confirm.
 - **An update installs even while ChatGPT, Codex or Claude Desktop run
   GigaMail's MCP server.** Those apps start the server from the install
   folder and restart it the instant it is killed; electron-builder's

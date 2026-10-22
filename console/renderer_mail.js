@@ -535,12 +535,29 @@ async function openMail(id, overrideFolder = null) {
     });
 
     // SPAM
+    // Spam means "and not again": the mail goes to the spam folder and a
+    // filter on the sender's address keeps the next ones out, on every
+    // tick. Moving one mail alone changed nothing for the following week.
     byId('btnSpam')?.addEventListener('click', async () => {
-      if (!(await GMDialog.confirm(T('move_to_spam','Spostare in spam?')))) return;
+      const blockable = sender && sender.includes('@');
+      const question = blockable
+        ? T('move_to_spam_block', 'Spostare in spam e bloccare le prossime mail di {s}?').replace('{s}', sender)
+        : T('move_to_spam', 'Spostare in spam?');
+      if (!(await GMDialog.confirm(question))) return;
       try {
         await api.spamMail(id, activeAccountId, currentFolder);
         document.querySelector(`[data-id="${id}"]`)?.remove();
         resetMailDetail();
+        if (blockable) {
+          try {
+            const r = await api.createSpamFilter({ field: 'from', contains: sender, action: 'spam',
+              all_accounts: false, account_id: activeAccountId || null, apply_now: true });
+            const moved = Number(r?.moved || 0);
+            showToast(T('sender_blocked', 'Mittente bloccato: {s}').replace('{s}', sender)
+              + (moved ? ' · ' + T('sf_moved', '{n} mail spostate').replace('{n}', moved) : ''), 'success');
+            window.SpamFilterUI?.refreshList?.();
+          } catch (e) { showToast(T('sf_block_failed', 'Mail in spam, ma il mittente non è stato bloccato') + `: ${e.message || e}`); }
+        }
         await refreshCurrentFolder();
       } catch (e) { showToast(T('mv_spam_error','Errore spam') + `: ${e}`); }
     });

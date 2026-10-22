@@ -102,3 +102,37 @@ def test_routes_need_the_console_click(monkeypatch, tmp_path):
     finally:
         console_click.set_secret("")
         policy.set_store(None)
+
+
+def test_text_filter_reads_the_whole_mail_once(monkeypatch):
+    """An IMAP listing carries no body (Graph's bodyPreview is a few
+    lines): a filter on the text matched nothing, ever, while the user
+    read the words on screen. The run fetches the mail in full, once."""
+    from gigamail.core import mail_router
+    inbox = [_msg("m1", "Messaggio inviato dal sito"), _msg("m2", "Invoice")]
+    monkeypatch.setattr(mail_router, "get_messages", lambda aid, folder="inbox", top=50: inbox)
+    spam_filters.add("body", "Media: Google,Immobiliare.it", "spam", 7)
+    fetched = []
+
+    def fetch(aid, m):
+        fetched.append(m["id"])
+        return {"id": m["id"], "body": {"content": "<p>Media: Google,Immobiliare.it,Idealista</p>"}} \
+            if m["id"] == "m1" else {"id": m["id"], "body_text": "please pay"}
+    moved = []
+    n = spam_filters.run(7, mover=lambda aid, m, a: moved.append(m["id"]) or True, fetcher=fetch)
+    assert n == 1 and moved == ["m1"]
+    assert sorted(fetched) == ["m1", "m2"]
+    # the next run does not read them again
+    spam_filters.run(7, mover=lambda aid, m, a: True, fetcher=fetch)
+    assert sorted(fetched) == ["m1", "m2"]
+    assert spam_filters.list_all()[0]["hits"] == 1
+
+
+def test_a_rule_hides_a_filtered_mail_instead_of_answering(monkeypatch):
+    spam_filters.add("body", "unsubscribe", "trash", 3)
+    moved = []
+    full = {"id": "x", "subject": "Hi", "body_text": "click to UNSUBSCRIBE"}
+    f = spam_filters.hide_if_filtered(3, full, mover=lambda aid, m, a: moved.append((m["id"], a)) or True)
+    assert f["field"] == "body" and moved == [("x", "trash")]
+    assert spam_filters.hide_if_filtered(3, {"id": "y", "subject": "Hi", "body_text": "hello"}) is None
+    assert spam_filters.list_all()[0]["hits"] == 1

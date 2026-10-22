@@ -24,6 +24,7 @@ from gigamail.core import (
     mail_router,
     reply_guard,
     signature,
+    spam_filters,
     telegram_channel,
 )
 from gigamail.core import rules as rules_mod
@@ -135,6 +136,14 @@ def process_message(w, rule: Dict[str, Any], message: Dict[str, Any],
         # comunque sugli header, gia' letti sopra.
         logger.debug("messaggio intero %s non letto, uso la lista: %s", message_id, e)
         full = message
+    # A spam filter on the text sees the whole mail only here: the rule
+    # moves it where the filter says and writes nothing.
+    try:
+        hidden = spam_filters.hide_if_filtered(account_id, full)
+    except Exception:
+        hidden = None
+    if hidden:
+        return _skip(f"spam-filter:{hidden.get('id')}")
     verdict = mail_guard.check(headers, full,
                                relay=bool(rule.get("reply_to_body_address")))
     if not verdict.reply:
