@@ -181,8 +181,16 @@ def _spawn_watch(interval: int) -> int:
     return proc.pid
 
 
+# kv flag: the user pressed Stop. The guard that restarts a dead watcher
+# must not undo a stop someone chose; Start (or a watcher started by hand)
+# clears it.
+USER_STOPPED_KEY = "watch_user_stopped"
+
+
 @router.post("/watch/start")
 def watch_start(interval: int = 60):
+    from gigamail.core import rules as rules_mod
+    rules_mod.store().kv_set(USER_STOPPED_KEY, "0")
     st = _watch_state()
     if st["running"]:
         return st
@@ -206,6 +214,8 @@ def watch_autostart() -> Optional[int]:
     st = _watch_state()
     if not st["active_rules"]:
         return None
+    if rules_mod.store().kv_get(USER_STOPPED_KEY, "0") == "1":
+        return None    # stopped on purpose: Start is the user's to press
     reason = "backend start"
     if st["running"]:
         stamp = st.get("code_stamp") or ""
@@ -277,6 +287,7 @@ def watch_stop():
             raise HTTPException(500, f"stop fallito: {e}") from e
     rs.kv_set("watch_pid", "0")
     rs.kv_set("watch_heartbeat", "0")
+    rs.kv_set(USER_STOPPED_KEY, "1")
     policy.audit("watch", {"pid": pid}, "watch_stopped", detail=_who())
     return _watch_state()
 

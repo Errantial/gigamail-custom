@@ -52,3 +52,17 @@ test('alert has one button and replaces window.alert', async () => {
   box.querySelector('.gm-dialog-btn').click();
   assert.equal(w.document.querySelector('.gm-dialog-overlay'), null);
 });
+
+test('Enter follows the focused button: on a destructive box it starts on Cancel', async () => {
+  const w = load();
+  const p = w.GMDialog.confirm('Eliminare questa mail?', { danger: true });
+  const cancel = w.document.querySelector('.gm-dialog-btn:not(.danger)');
+  assert.equal(w.document.activeElement, cancel);
+  w.document.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  assert.equal(await p, false);
+  // Tab to the red button, then Enter confirms
+  const p2 = w.GMDialog.confirm('Eliminare?', { danger: true });
+  w.document.querySelector('.gm-dialog-btn.danger').focus();
+  w.document.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  assert.equal(await p2, true);
+});

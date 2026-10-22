@@ -126,3 +126,35 @@ def test_backend_start_brings_back_a_watcher_with_active_rules(client, monkeypat
     monkeypatch.setattr(rules_api, "_watch_state",
                         lambda: {"running": True, "pid": 4242, "active_rules": 1, "code_stamp": ""})
     assert rules_api.watch_autostart() is None and len(spawned) == 2
+
+
+def test_stop_holds_until_start_even_with_the_guard(client, monkeypatch):
+    """Stop in Automations zeroed pid and heartbeat; the guard, a minute
+    later, saw active rules and no watcher and started one again. An
+    explicit stop is a choice: it holds until Start, or until a watcher
+    is started by hand."""
+    import subprocess
+
+    from gigamail.http_api import rules as rules_api
+    from gigamail.watcher import process_state
+    spawned = []
+
+    class P:
+        pid = 777
+
+    monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: spawned.append(a[0]) or P())
+    monkeypatch.setenv("ADE_MAIL_DRYRUN", "1")
+    monkeypatch.setenv("GIGAMAIL_CONSENT_BACKEND", "allow")
+    assert client.post("/rules", json=BODY, headers=H).status_code == 200
+    assert client.post("/watch/stop", headers=H).status_code == 200
+    assert rules_api.watch_autostart() is None and spawned == []
+    # Start clears it: the guard may act again afterwards
+    assert client.post("/watch/start", headers=H).status_code == 200
+    assert len(spawned) == 1
+    rules_mod.store().kv_set("watch_pid", "0")
+    assert rules_api.watch_autostart() == 777 and len(spawned) == 2
+    # a watcher started by hand also lifts the stop with its heartbeat
+    client.post("/watch/stop", headers=H)
+    assert rules_mod.store().kv_get(rules_api.USER_STOPPED_KEY, "0") == "1"
+    process_state.heartbeat(60)
+    assert rules_mod.store().kv_get(rules_api.USER_STOPPED_KEY, "0") == "0"

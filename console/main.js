@@ -652,7 +652,13 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
   stopPolling();
-  try { bridgeServer?.close(); fs.unlinkSync(path.join(appPaths.dataRoot(), 'console.json')); } catch (_) { /* gone */ }
+  // The bridge goes; how to start the app stays, so a toast button pressed
+  // while the console is closed (the CLI reads this file) can open it.
+  try {
+    bridgeServer?.close();
+    const info = { exe: process.execPath, args: app.isPackaged ? [] : [path.resolve(process.argv[1] || '.')] };
+    fs.writeFileSync(path.join(appPaths.dataRoot(), 'console.json'), JSON.stringify(info), { mode: 0o600 });
+  } catch (_) { /* best effort */ }
   // Il backend NON viene killato: resta in background cosi' il prossimo
   // avvio dell'app e' istantaneo (il check /health pre-spawn lo riusa).
   if (process.platform !== 'darwin') app.quit();

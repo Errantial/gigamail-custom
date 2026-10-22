@@ -71,7 +71,14 @@
       overlay.addEventListener('mousedown', (e) => { if (e.target === overlay && !alertOnly) done(false); });
       const onKey = (e) => {
         if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(!alertOnly ? false : true); }
-        else if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); done(true); }
+        else if (e.key === 'Enter') {
+          e.preventDefault(); e.stopPropagation();
+          // the button that has the focus decides: a destructive box
+          // starts on Cancel, so Enter there must not delete
+          const focused = document.activeElement;
+          if (focused === cancel) done(false);
+          else done(true);
+        }
       };
       document.addEventListener('keydown', onKey, true);
       document.body.appendChild(overlay);
