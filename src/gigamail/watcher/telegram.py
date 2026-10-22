@@ -34,9 +34,10 @@ def _complete_agent_request(tg, rid: str) -> None:
             f"⚠ Approved but not executed ({rid}): {err}")
         return
     ok = rep.get("outcome") in ("ok", "dryrun")
+    err = f": {rep['error']}" if rep.get("error") else ""
     say(tg,
-        f"✅ Eseguita ({rid})." if ok else f"⚠ Approvata ma esecuzione fallita ({rid}).",
-        f"✅ Done ({rid})." if ok else f"⚠ Approved but execution failed ({rid}).")
+        f"✅ Eseguita ({rid})." if ok else f"⚠ Approvata ma esecuzione fallita ({rid}){err}",
+        f"✅ Done ({rid})." if ok else f"⚠ Approved but execution failed ({rid}){err}")
 
 
 def approve_allowed(tg) -> bool:
