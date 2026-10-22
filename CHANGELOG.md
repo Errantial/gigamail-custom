@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Notification buttons registered on the old "ADE Mail" are replaced.**
+  A machine that had the old project kept its `gigamail://` registration
+  pointing at that project's Python: every toast button opened the old
+  CLI in a terminal, and the console called that registration valid. It
+  no longer does: "enable the buttons" appears again and one UAC prompt
+  moves the registration to this installation.
 - **One watcher, never three.** After two restarts three watchers ran
   side by side: on Windows the venv's python.exe is a launcher, the
   stop ended it but not its child, and the old ones kept taking turns

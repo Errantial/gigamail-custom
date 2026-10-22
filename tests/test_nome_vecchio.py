@@ -38,10 +38,13 @@ def test_package_con_main_col_nome_vecchio():
     assert codice.co_filename.replace("\\", "/").endswith("gigamail/http_api/__main__.py")
 
 
-def test_protocollo_registrato_col_nome_vecchio_vale_ancora(tmp_path):
-    """Senza, le toast perdevano i bottoni fino a un nuovo desktop-setup."""
+def test_protocollo_registrato_col_nome_vecchio_non_vale_piu(tmp_path):
+    """It pointed at the old project's Python: the toast buttons opened
+    that CLI in a terminal. The console must offer the setup again."""
     from gigamail.core import desktop_notify as d
     exe = tmp_path / "python.exe"
     exe.write_bytes(b"")
-    assert d.registered_command_ok(f'"{exe}" -m ade_mail_agent.cli open-url "%1"')
+    # the old module's registration is no longer ours: it opened the old
+    # project's CLI in a terminal instead of the console
+    assert not d.registered_command_ok(f'"{exe}" -m ade_mail_agent.cli open-url "%1"')
     assert d.registered_command_ok(f'"{exe}" -m gigamail.cli open-url "%1"')
