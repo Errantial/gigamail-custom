@@ -35,6 +35,16 @@ import threading
 DEFAULT_TIMEOUT = 180
 
 
+def _say(it: str, en: str) -> str:
+    """An error for the console bar, in the user's language: these strings
+    reach the person, who may not read Italian."""
+    try:
+        from gigamail import policy
+        return it if policy.user_lang() == "it" else en
+    except Exception:
+        return en
+
+
 class AgentUnavailable(Exception):
     pass
 
@@ -642,12 +652,14 @@ def run(prompt: str, timeout: int | None = None, run_id: str | None = None,
         else:
             if out_file:
                 _unlink(out_file)
-            raise AgentUnavailable(
+            example = '{"command": ["claude", "-p", "{prompt}"]}'
+            raise AgentUnavailable(_say(
                 f"Agente non trovato ('{exe}'). Installa Claude Code, l'app Codex / ChatGPT o Antigravity, "
                 f"scegli l'agente dalla console (Automazioni), oppure configura il "
-                f"comando in {_config_path()} "
-                '(es. {"command": ["claude", "-p", "{prompt}"]}).'
-            )
+                f"comando in {_config_path()} (es. {example}).",
+                f"Agent not found ('{exe}'). Install Claude Code, the Codex / ChatGPT app or Antigravity, "
+                f"pick the agent in the console (Automations), or set the "
+                f"command in {_config_path()} (e.g. {example})."))
     cwd = spec["cwd"]() if spec and spec.get("cwd") else None
     try:
         returncode, stdout, stderr = _spawn(
@@ -676,7 +688,9 @@ def run(prompt: str, timeout: int | None = None, run_id: str | None = None,
     except subprocess.TimeoutExpired as e:
         if out_file:
             _unlink(out_file)
-        raise AgentUnavailable("L'agente non ha risposto entro il timeout.") from e
+        raise AgentUnavailable(_say(
+            "L'agente non ha risposto entro il tempo massimo e si e' fermato.",
+            "The agent did not answer in time and was stopped.")) from e
     except AgentCancelled:
         if out_file:
             _unlink(out_file)
@@ -698,12 +712,14 @@ def run(prompt: str, timeout: int | None = None, run_id: str | None = None,
         # run /login" su stdout ed esce con 1. Prima quel testo tornava
         # come se fosse la bozza, e sarebbe finito in approvazione come
         # corpo della mail a un cliente.
-        raise AgentUnavailable(
-            f"Agente terminato con errore ({returncode}): {_error_excerpt(err or out)}")
+        raise AgentUnavailable(_say(
+            f"Agente terminato con errore ({returncode}): {_error_excerpt(err or out)}",
+            f"Agent ended with an error ({returncode}): {_error_excerpt(err or out)}"))
     if spec and spec.get("answer"):
         out = spec["answer"](out)
     if _non_collegato(out):
-        raise AgentUnavailable(f"Agente non collegato: {out[:200]}")
+        raise AgentUnavailable(_say(f"Agente non collegato: {out[:200]}",
+                                    f"Agent not signed in: {out[:200]}"))
     return out
 
 

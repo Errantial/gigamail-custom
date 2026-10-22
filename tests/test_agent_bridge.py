@@ -396,3 +396,18 @@ def test_refused_model_with_no_cache_reports_the_reason(tmp_path, monkeypatch, t
     with pytest.raises(agent_bridge.AgentUnavailable) as e:
         agent_bridge.run("hi")
     assert "gpt-5.5" in str(e.value)
+
+
+@pytest.mark.parametrize("lang, expected", [
+    ("en", "The agent did not answer in time"),
+    ("it", "L'agente non ha risposto entro il tempo massimo"),
+])
+def test_timeout_message_follows_the_user_language(monkeypatch, lang, expected):
+    """The console bar shows this text to the user: an English console got
+    it in Italian."""
+    monkeypatch.setenv("GIGAMAIL_LANG", lang)
+    monkeypatch.setenv("ADE_AGENT_CMD", json.dumps(
+        [PY, "-c", "import time; time.sleep(30)", "{prompt}"]))
+    with pytest.raises(agent_bridge.AgentUnavailable) as exc:
+        agent_bridge.run("x", timeout=2)
+    assert expected in str(exc.value)

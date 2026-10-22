@@ -761,7 +761,14 @@ function bindMailEvents() {
 
   on('btnSearchMail', 'click', async () => {
     const q = byId('mailSearch')?.value.trim() || '';
-    if (!q) { await refreshCurrentFolder(); return; }
+    if (!q) { setFolderTitle(currentFolder, currentFolderLabel); await refreshCurrentFolder(); return; }
+    // The list now holds search results, possibly from several folders:
+    // the title said "Inbox" and the results looked like an unfiltered inbox.
+    const title = byId('currentFolderLabel');
+    if (title) {
+      title.removeAttribute('data-i18n');
+      title.textContent = T('search_results_for', 'Risultati per') + ' «' + q + '»';
+    }
     // The search asks the mail server and can take several seconds: say
     // so in the list, or the old inbox stays on screen and the search
     // looks like it did nothing.

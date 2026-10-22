@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **"Sent via GigaMail Desktop".** Every mail now ends with one line,
+  under the account's signature and in the user's language ("Inviato da
+  GigaMail Desktop – gigamail.ai" / "Sent via GigaMail Desktop –
+  gigamail.ai"), as mobile mail apps do. It shows in the preview you
+  approve, and can be switched off per account under the signature, in
+  the account's identity settings.
+- **Search results say they are search results.** The list title stayed
+  "Inbox" while it showed hits from every folder, so the results looked
+  like an unfiltered inbox. It now reads "Results for «…»".
+- **Agent errors in your language.** Timeout, agent not found, agent
+  ended with an error and agent not signed in were shown in Italian to
+  everyone; they now follow the console's language.
 - **Search on IMAP accounts answers in seconds and no longer marks mail
   as read.** In every folder where the server found fewer than ten hits,
   the search also downloaded up to 3000 whole messages to scan them

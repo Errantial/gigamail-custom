@@ -184,11 +184,15 @@ def set_identity(account_id: int, req: IdentityRequest):
 
 class SignatureRequest(BaseModel):
     signature: str = ""
+    # The "Sent via GigaMail Desktop" line; None leaves it as it is.
+    sent_via: Optional[bool] = None
 
 
 @router.get("/accounts/{account_id}/signature")
 def get_signature(account_id: int):
-    return {"signature": signature.get(account_id)}
+    return {"signature": signature.get(account_id),
+            "sent_via": signature.sent_via_enabled(account_id),
+            "sent_via_text": signature.sent_via_line()}
 
 
 @router.post("/accounts/{account_id}/signature")
@@ -196,9 +200,12 @@ def set_signature(account_id: int, req: SignatureRequest):
     if not core_accounts.get_account_by_id(account_id):
         raise HTTPException(404, "Account not found")
     try:
-        return {"signature": signature.save(account_id, req.signature)}
+        saved = signature.save(account_id, req.signature)
     except ValueError as e:
         raise HTTPException(400, str(e)) from e
+    if req.sent_via is not None:
+        signature.set_sent_via(account_id, req.sent_via)
+    return {"signature": saved, "sent_via": signature.sent_via_enabled(account_id)}
 
 
 @router.get("/accounts/{account_id}/identity/files")

@@ -129,10 +129,10 @@ def test_console_reads_and_saves_the_signature(client, monkeypatch):
     from gigamail.http_api import accounts
     monkeypatch.setattr(accounts.core_accounts, "get_account_by_id",
                         lambda aid: {"id": aid} if aid == 1 else None)
-    assert client.get("/accounts/1/signature").json() == {"signature": ""}
+    assert client.get("/accounts/1/signature").json()["signature"] == ""
     r = client.post("/accounts/1/signature", json={"signature": " " + SIG + " "})
-    assert r.json() == {"signature": SIG}
-    assert client.get("/accounts/1/signature").json() == {"signature": SIG}
+    assert r.json()["signature"] == SIG
+    assert client.get("/accounts/1/signature").json()["signature"] == SIG
     assert client.post("/accounts/9/signature",
                        json={"signature": SIG}).status_code == 404
     too_long = "x" * (signature.MAX_CHARS + 1)
@@ -169,3 +169,62 @@ def test_cli_sets_shows_and_clears(account_signature, capsys):
     assert signature.get(1) == "Mario Rossi\nVia Roma 10"
     assert "nessuna firma" in run(clear=True)
     assert signature.get(1) == ""
+
+
+# ── "Sent via GigaMail Desktop" ──────────────────────────────────────
+
+@pytest.mark.sent_via
+@pytest.mark.parametrize("lang, line", [
+    ("en", "Sent via GigaMail Desktop – gigamail.ai"),
+    ("it", "Inviato da GigaMail Desktop – gigamail.ai"),
+])
+def test_sent_via_line_closes_every_mail_in_the_user_language(account_signature, monkeypatch, lang, line):
+    monkeypatch.setenv("GIGAMAIL_LANG", lang)
+    aid = 1
+    account_signature(aid, "Mario Rossi")
+    out = signature.apply(aid, "Hello")
+    assert out == f"Hello\n\nMario Rossi\n\n{line}\n"
+    # Applied twice (a redraft), still once.
+    assert signature.apply(aid, out) == out
+
+
+@pytest.mark.sent_via
+def test_sent_via_line_without_a_signature(account_signature, monkeypatch):
+    monkeypatch.setenv("GIGAMAIL_LANG", "en")
+    aid = 1
+    assert signature.apply(aid, "Hello") == "Hello\n\nSent via GigaMail Desktop – gigamail.ai\n"
+
+
+@pytest.mark.sent_via
+def test_sent_via_line_can_be_switched_off(account_signature, monkeypatch):
+    monkeypatch.setenv("GIGAMAIL_LANG", "en")
+    aid = 1
+    assert signature.sent_via_enabled(aid) is True
+    signature.set_sent_via(aid, False)
+    assert signature.sent_via_enabled(aid) is False
+    assert signature.apply(aid, "Hello") == "Hello"
+
+
+@pytest.mark.sent_via
+def test_a_body_tagged_in_another_language_is_not_tagged_again(account_signature, monkeypatch):
+    monkeypatch.setenv("GIGAMAIL_LANG", "en")
+    aid = 1
+    body = "Ciao\n\nInviato da GigaMail Desktop – gigamail.ai\n"
+    assert signature.apply(aid, body) == body
+
+
+@pytest.mark.sent_via
+def test_console_switches_the_sent_via_line(client, monkeypatch):
+    from gigamail.http_api import accounts
+    monkeypatch.setenv("GIGAMAIL_LANG", "en")
+    monkeypatch.setattr(accounts.core_accounts, "get_account_by_id",
+                        lambda aid: {"id": aid} if aid == 1 else None)
+    got = client.get("/accounts/1/signature").json()
+    assert got["sent_via"] is True
+    assert got["sent_via_text"] == "Sent via GigaMail Desktop – gigamail.ai"
+    r = client.post("/accounts/1/signature", json={"signature": SIG, "sent_via": False})
+    assert r.json()["sent_via"] is False
+    # Saving the signature alone leaves the switch as it is.
+    client.post("/accounts/1/signature", json={"signature": SIG})
+    assert client.get("/accounts/1/signature").json()["sent_via"] is False
+    assert signature.apply(1, "Hello") == "Hello\n\n" + SIG + "\n"
