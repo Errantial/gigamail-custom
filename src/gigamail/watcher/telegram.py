@@ -26,15 +26,14 @@ def _complete_agent_request(tg, rid: str) -> None:
     """A request of the agent, approved here: GigaMail completes it with
     the stored arguments and says what happened. It used to answer
     "the agent completes it", and nothing ever did."""
-    from gigamail import server
-    try:
-        server.execute_approved(rid)
-    except Exception as e:
-        say(tg, f"⚠ Approvata ma non eseguita ({rid}): {e}",
-            f"⚠ Approved but not executed ({rid}): {e}")
+    from gigamail import completion
+    rep = completion.complete(rid)
+    if rep.get("status") != policy.EXECUTED:
+        err = rep.get("error") or rep.get("status")
+        say(tg, f"⚠ Approvata ma non eseguita ({rid}): {err}",
+            f"⚠ Approved but not executed ({rid}): {err}")
         return
-    rec = policy.store().get(rid) or {}
-    ok = rec.get("execution_outcome") in ("ok", "dryrun")
+    ok = rep.get("outcome") in ("ok", "dryrun")
     say(tg,
         f"✅ Eseguita ({rid})." if ok else f"⚠ Approvata ma esecuzione fallita ({rid}).",
         f"✅ Done ({rid})." if ok else f"⚠ Approved but execution failed ({rid}).")
