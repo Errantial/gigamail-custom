@@ -251,9 +251,13 @@ WATCH_GUARD_SECONDS = 60
 
 def start_watch_guard(interval: int = WATCH_GUARD_SECONDS) -> None:
     """A daemon thread of the backend: watch_autostart now and every
-    minute. Covers the watcher dying at any time, and an update landing
-    while the backend keeps running (the console reuses a live backend)."""
+    minute, and the sweep of approved requests nobody sent. Covers the
+    watcher dying at any time, an update landing while the backend keeps
+    running (the console reuses a live backend), and an approval that
+    an older backend recorded without executing it."""
     import threading
+
+    from gigamail import completion
 
     def _loop():
         while True:
@@ -263,6 +267,15 @@ def start_watch_guard(interval: int = WATCH_GUARD_SECONDS) -> None:
                     print(f"[console] watcher started (pid {pid})", flush=True)
             except Exception as e:
                 print(f"[console] watcher guard: {e}", flush=True)
+            # Approved and never sent (an approval an older backend took,
+            # or one lost half-way): completed here, not left for good.
+            try:
+                for rep in completion.complete_left_behind():
+                    print(f"[console] approved request {rep['request_id']} resumed:"
+                          f" {rep.get('outcome') or rep.get('status')}"
+                          f"{' ' + rep['error'] if rep.get('error') else ''}", flush=True)
+            except Exception as e:
+                print(f"[console] approvals sweep: {e}", flush=True)
             time.sleep(interval)
 
     threading.Thread(target=_loop, name="watch-guard", daemon=True).start()

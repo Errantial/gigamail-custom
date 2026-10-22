@@ -316,6 +316,24 @@ class ApprovalStore:
             out.append(d)
         return out
 
+    def list_approved(self) -> List[Dict[str, Any]]:
+        """Approved and still valid, not consumed yet: what someone said
+        yes to and nothing has sent. Normally empty for more than a
+        moment; anything older was left behind and is resumed."""
+        now = time.time()
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM approvals WHERE status=? AND expires_at > ?"
+                " ORDER BY decided_at", (APPROVED, now),
+            ).fetchall()
+        out = []
+        for row in rows:
+            d = dict(row)
+            d["args"] = json.loads(d.pop("args_json"))
+            d["preview"] = json.loads(d.pop("preview_json"))
+            out.append(d)
+        return out
+
     def list_decided(self, since_ts: float, limit: int = 50) -> List[Dict[str, Any]]:
         """Requests that are no longer waiting: approved, rejected, executed
         (with the provider's outcome) or expired undecided, newest first.

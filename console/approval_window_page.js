@@ -110,7 +110,7 @@ async function doApprove() {
       say(r.outcome === 'failed' ? `${T('st_send_failed', 'invio fallito')}: ${r.error || ''}` : T('aw_done', 'Fatto: eseguita.'), r.outcome === 'failed' ? 'err' : 'ok');
       if (r.outcome === 'failed') decided = false;   // leave the reason on screen
     } else {
-      say(T('aw_approved_watcher', 'Approvata: la invia il watcher al prossimo giro.'), 'ok');
+      say(`${T('aw_approved_watcher', 'Approvata: la invio ora.')}${r.error ? ' ' + r.error : ''}`, 'ok');
     }
   } catch (e) {
     clearTimeout(hint);

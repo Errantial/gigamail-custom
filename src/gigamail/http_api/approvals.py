@@ -20,17 +20,11 @@ router = APIRouter()
 # e leggerne lo stato, ma non puo' approvarle.
 
 def _completed_by(request_id: str) -> str:
-    """Who sends an approved request: "watcher" for a draft born from a
-    rule (the watcher executes it on its next cycle), "agent" for a tool
-    request (the agent that asked completes it with the request_id). The
-    console says this after an approval, instead of implying "sent"."""
-    try:
-        from gigamail.core import rules as rules_mod
-        if rules_mod.store().find_by_request(request_id):
-            return "watcher"
-    except Exception:
-        pass
-    return "agent"
+    """Where a request comes from: "watcher" for a draft born from a rule,
+    "agent" for a tool request. Both are sent by GigaMail as soon as they
+    are approved; the origin tells the console what to show."""
+    from gigamail import completion
+    return completion.origin_of(request_id)
 
 
 def _with_origin(rec):
@@ -110,30 +104,18 @@ def approve_request(request_id: str, request: Request = None):
         raise HTTPException(409, "Richiesta non approvabile (già decisa o scaduta)")
     out = {"success": True, "request_id": request_id, "status": "approved",
            "completed_by": _completed_by(request_id)}
-    if out["completed_by"] == "agent":
-        out.update(complete_agent_request(request_id))
+    out.update(complete_agent_request(request_id))
     return out
 
 
 def complete_agent_request(request_id: str) -> dict:
-    """An approved request of the agent is completed by GigaMail itself,
-    with the arguments stored with it. Before, only the agent bar made
-    the agent call the tool again: approved from Telegram, from this
-    page or from the CLI, the request stayed "approved" and the mail
-    never left. Returns what was recorded: status, outcome, error."""
-    from gigamail import server
-    try:
-        server.execute_approved(request_id)
-    except Exception as e:
-        rec = policy.store().get(request_id) or {}
-        return {"status": rec.get("status", "approved"),
-                "outcome": rec.get("execution_outcome") or "failed",
-                "error": str(e)[:500]}
-    rec = policy.store().get(request_id) or {}
-    return {"status": rec.get("status", "executed"),
-            "outcome": rec.get("execution_outcome") or "",
-            "error": (rec.get("provider_result") or {}).get("error", "")
-            if isinstance(rec.get("provider_result"), dict) else ""}
+    """An approved request is completed by GigaMail itself, here and now:
+    a tool request with the arguments stored with it, a rule's draft
+    with the watcher's send path. Before, only the agent bar made the
+    agent call the tool again, and a draft waited for the watcher's next
+    tick. Returns what was recorded: status, outcome, error."""
+    from gigamail import completion
+    return completion.complete(request_id)
 
 
 @router.post("/approvals/{request_id}/reject")

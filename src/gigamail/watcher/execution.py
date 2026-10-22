@@ -12,47 +12,63 @@ from .ingestion import folder_of
 from .log import _log
 
 
+def complete_row(row, rec=None, verbose: bool = False) -> dict:
+    """Closes one handled row whose request is decided: sends it when
+    approved, records the outcome of an execution done elsewhere, marks
+    rejected or expired. Returns {status, reason} as written on the row,
+    or {} when the request is still waiting."""
+    rs = rules_mod.store()
+    rule_id, message_id = row["rule_id"], row["message_id"]
+    if rec is None:
+        rec = policy.store().get(row["request_id"])
+
+    def _set(status, reason=""):
+        rs.set_status(rule_id, message_id, status, reason)
+        return {"status": status, "reason": reason}
+
+    if rec is None:
+        return _set("failed", "request-vanished")
+    if rec["status"] == policy.PENDING:
+        if rec["expired"]:
+            return _set("expired", "approval-ttl-expired")
+        return {}
+    if rec["status"] == policy.REJECTED:
+        return _set("rejected")
+    if rec["status"] == policy.EXECUTED:
+        # Consume precede la chiamata al provider: EXECUTED da solo
+        # non prova che una mail sia partita. Se l'altro esecutore e'
+        # ancora al lavoro, si aspetta il suo esito senza reinviare.
+        outcome = rec.get("execution_outcome")
+        if outcome == "ok":
+            return _set("sent", "executed-elsewhere")
+        if outcome:
+            return _set("failed", f"execution-{outcome}-elsewhere")
+        return {}
+    if rec["expired"]:
+        return _set("expired", "approval-ttl-expired")
+    # approved → esegue
+    try:
+        result = _execute_reply(row["request_id"], rec["args"])
+    except Exception as e:
+        # Qualunque cosa sia andata storta nel provider, lo stato
+        # lo registra: la mail non sparisce in un limbo.
+        return _set("failed", str(e)[:200])
+    ok = bool(result.get("success", True)) if isinstance(result, dict) else bool(result)
+    out = _set("sent" if ok else "failed", "" if ok else "send-failed")
+    _log(("inviata " if ok else "INVIO FALLITO ")
+         + f"{row['request_id']} ({rule_id})", verbose)
+    return out
+
+
 def execute_approved(w) -> int:
     done = 0
     rs = rules_mod.store()
     for row in rs.pending_requests():
         rec = policy.store().get(row["request_id"])
-        rule_id, message_id = row["rule_id"], row["message_id"]
-        if rec is None:
-            rs.set_status(rule_id, message_id, "failed", "request-vanished")
-            continue
-        if rec["status"] == policy.PENDING:
-            if rec["expired"]:
-                rs.set_status(rule_id, message_id, "expired",
-                              "approval-ttl-expired")
-            continue
-        if rec["status"] == policy.REJECTED:
-            rs.set_status(rule_id, message_id, "rejected")
-            continue
-        if rec["status"] == policy.EXECUTED:
-            # Consume precede la chiamata al provider: EXECUTED da solo
-            # non prova che una mail sia partita. Se l'altro esecutore e'
-            # ancora al lavoro, si aspetta il suo esito senza reinviare.
-            outcome = rec.get("execution_outcome")
-            if outcome == "ok":
-                rs.set_status(rule_id, message_id, "sent", "executed-elsewhere")
-            elif outcome:
-                rs.set_status(rule_id, message_id, "failed",
-                              f"execution-{outcome}-elsewhere")
-            continue
-        # approved → esegue
-        try:
-            result = _execute_reply(row["request_id"], rec["args"])
-            ok = bool(result.get("success", True)) if isinstance(result, dict) else bool(result)
-            rs.set_status(rule_id, message_id, "sent" if ok else "failed",
-                          "" if ok else "send-failed")
+        was_approved = rec is not None and rec["status"] == policy.APPROVED
+        out = complete_row(row, rec, verbose=w.verbose)
+        if was_approved and out.get("status") == "sent":
             done += 1
-            _log(("inviata " if ok else "INVIO FALLITO ")
-                 + f"{row['request_id']} ({rule_id})", w.verbose)
-        except Exception as e:
-            # Qualunque cosa sia andata storta nel provider, lo stato
-            # lo registra: la mail non sparisce in un limbo.
-            rs.set_status(rule_id, message_id, "failed", str(e)[:200])
     return done
 
 

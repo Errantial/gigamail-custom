@@ -33,12 +33,13 @@ def client(monkeypatch):
     importlib.reload(http_api)
 
 
-def _request(to="mario.rossi@example.com", ttl=900.0):
+def _request(to="mario.rossi@example.com", ttl=900.0, tool="send_mail"):
     preview = {"to": to, "subject": "Visit", "body": "hello"}
-    return policy.store().create("send_mail", {"to": to}, preview, ttl=ttl)
+    return policy.store().create(tool, {"to": to}, preview, ttl=ttl)
 
 
 def _born_from_rule(rid):
+    # a rule's draft is a reply_mail request, sent by the watcher's path
     rules_mod.store().record("rule_x", 1, "m1", "mario.rossi@example.com",
                              "awaiting_approval", request_id=rid)
 
@@ -88,13 +89,16 @@ def test_approving_reports_who_sends(client, monkeypatch):
     monkeypatch.setenv("GIGAMAIL_CONSENT_BACKEND", "allow")
     monkeypatch.setenv("ADE_MAIL_DRYRUN", "1")
     agent_rid = _request()
-    watcher_rid = _request(to="anna.bianchi@example.com")
+    watcher_rid = _request(to="anna.bianchi@example.com", tool="reply_mail")
     _born_from_rule(watcher_rid)
     r = client.post(f"/approvals/{agent_rid}/approve")
     assert r.status_code == 200 and r.json()["completed_by"] == "agent"
     r = client.post(f"/approvals/{watcher_rid}/approve")
     assert r.status_code == 200 and r.json()["completed_by"] == "watcher"
-    assert policy.store().get(watcher_rid)["status"] == policy.APPROVED
+    # a rule's draft is sent here too (dry run: consumed, nothing leaves)
+    assert r.json()["status"] == "executed" and r.json()["outcome"] == "dryrun"
+    assert policy.store().get(watcher_rid)["status"] == policy.EXECUTED
+    assert rules_mod.store().get_handled("rule_x", "m1")["status"] == "sent"
 
 
 def test_an_agent_request_approved_here_is_executed_by_gigamail(client, monkeypatch):
@@ -126,11 +130,44 @@ def test_an_agent_request_approved_here_is_executed_by_gigamail(client, monkeypa
     assert r.status_code == 200
     assert r.json()["status"] == "executed" and r.json()["outcome"] == "failed"
     assert "SMTP down" in r.json()["error"]
-    # a watcher draft is still left to the watcher
-    rid3 = _request(to="w@example.com")
+    # a watcher draft goes out now, by the watcher's own send path
+    from gigamail.watcher import execution
+    gone = []
+    monkeypatch.setattr(execution, "_execute_reply",
+                        lambda rid, a: gone.append(rid) or policy.store().consume_approved(rid, "reply_mail") and {"success": True})
+    rid3 = _request(to="w@example.com", tool="reply_mail")
     _born_from_rule(rid3)
-    assert client.post(f"/approvals/{rid3}/approve").json()["status"] == "approved"
-    assert policy.store().get(rid3)["status"] == policy.APPROVED
+    r = client.post(f"/approvals/{rid3}/approve").json()
+    assert r["status"] == "executed" and r["completed_by"] == "watcher", r
+    assert gone == [rid3]
+    assert rules_mod.store().get_handled("rule_x", "m1")["status"] == "sent"
+
+
+def test_approved_requests_nobody_sent_are_resumed(client, monkeypatch):
+    """An approval taken by an older backend, or lost half-way, left the
+    request "approved" for good and the card said "executing" for days.
+    The backend's sweep completes it, and the audit says it was resumed."""
+    from gigamail import completion, server
+    sent = []
+    monkeypatch.setitem(server.APPROVED_EXECUTORS, "send_mail",
+                        lambda a: sent.append(a["to"]) or {"success": True})
+    old = _request(to="left@example.com")
+    policy.store().approve(old, by="console:older-backend")
+    expired = _request(to="late@example.com", ttl=0.01)
+    policy.store().approve(expired, by="console:older-backend")
+    time.sleep(0.05)
+    still_pending = _request(to="pending@example.com")
+    audit = []
+    monkeypatch.setattr(policy, "audit", lambda tool, args, outcome, *a, **k: audit.append((args.get("request_id"), outcome)))
+    reps = completion.complete_left_behind()
+    assert [r["request_id"] for r in reps] == [old]
+    assert reps[0]["status"] == "executed" and reps[0]["outcome"] == "ok"
+    assert sent == ["left@example.com"]
+    assert (old, "approval_resumed") in audit
+    assert policy.store().get(still_pending)["status"] == policy.PENDING
+    assert policy.store().get(expired)["status"] == policy.APPROVED
+    # nothing left: the sweep is idempotent
+    assert completion.complete_left_behind() == []
 
 
 def test_edit_closes_the_request_with_a_note_and_requeues_a_rule_draft(client, monkeypatch):

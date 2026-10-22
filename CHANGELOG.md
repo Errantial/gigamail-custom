@@ -2,6 +2,17 @@
 
 ## v0.6.6 — 2026-10-22
 
+- **Approve means send, from every channel, for every request.** A draft
+  a rule prepared used to wait for the watcher's next tick after the
+  approval; the console now sends it in the same click, like a request
+  of the agent, and says "sent" or "failed" at once. The CLI does the
+  same.
+- **Requests approved and never sent are resumed.** An approval the
+  console handled with an older backend still running, or lost half-way
+  (app closed, backend restarted, an error after the decision), left the
+  card on "approved, executing" for good. The backend now sweeps, at
+  start and every minute, every request that is approved, still valid
+  and not consumed, sends it, and writes `approval_resumed` in the audit.
 - **An update installs even while ChatGPT, Codex or Claude Desktop run
   GigaMail's MCP server.** Those apps start the server from the install
   folder and restart it the instant it is killed; electron-builder's

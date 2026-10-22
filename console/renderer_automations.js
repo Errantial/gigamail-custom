@@ -456,9 +456,15 @@
       if (btn.dataset.act === 'approve') {
         toast(L('pending_confirm_hello', 'Conferma con Windows Hello…'));
         const r = await api(`/approvals/${encodeURIComponent(id)}/approve`, { method: 'POST' });
-        toast(r.completed_by === 'watcher'
-          ? L('pending_approved_watcher', 'Approvata. Il watcher la invia al suo prossimo giro, entro un paio di minuti.')
-          : L('pending_approved_agent', "Approvata. La completa l'agente che l'ha chiesta."), 'ok');
+        if (r.status === 'executed' && r.outcome === 'failed') {
+          toast(`${L('st_send_failed', 'invio fallito')}: ${r.error || ''}`, 'error');
+        } else if (r.status === 'executed') {
+          toast(r.completed_by === 'watcher'
+            ? L('pending_approved_watcher', 'Approvata e inviata.')
+            : L('pending_approved_agent', 'Approvata ed eseguita.'), 'ok');
+        } else {
+          toast(`${L('st_approved_agent', 'approvata, in esecuzione')}${r.error ? ': ' + r.error : ''}`, 'ok');
+        }
       } else if (btn.dataset.act === 'reject') {
         await api(`/approvals/${encodeURIComponent(id)}/reject`, { method: 'POST' });
         toast(L('pending_rejected_msg', 'Rifiutata: non parte nulla.'), 'ok');
