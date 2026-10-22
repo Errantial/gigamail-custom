@@ -6,7 +6,7 @@
   guard pauses a rule (too many matching mails in ten minutes), the rule
   answered nothing until someone read "paused" in its card. Now an amber
   banner sits above the rules with a Resume button, and the Automations
-  icon carries a mark from any view, until the rule is resumed.
+  icon shows how many rules wait to be resumed, from any view.
 - **A notification that never left says so.** A watcher draft expired at
   night because the Telegram send had failed, and nothing recorded it.
   Every Telegram send now lands in the audit with its outcome and

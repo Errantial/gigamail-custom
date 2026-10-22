@@ -150,10 +150,12 @@
   function setRulesBadge(rules) {
     const b = $('automationsBadge');
     if (!b) return;
+    // how many rules wait for a human to resume them (paused by the burst
+    // guard): what needs doing here, not a statistic
     const n = AV() ? AV().autoPaused(rules).length : 0;
-    b.textContent = n ? '!' : '';
+    b.textContent = AV() ? AV().badgeText(n) : (n ? String(n) : '');
     b.hidden = !n;
-    b.title = T('Una regola si è messa in pausa da sola', 'A rule paused itself', '有规则已自动暂停');
+    b.title = T('Regole in pausa da sole, da riattivare', 'Rules paused by themselves, to resume', '已自动暂停、待恢复的规则');
   }
 
   async function onRuleAction(e) {
