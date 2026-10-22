@@ -157,7 +157,7 @@ def test_stop_holds_until_start_even_with_the_guard(client, monkeypatch):
     # undo the user's choice); `gigamail watch` by hand does
     client.post("/watch/stop", headers=H)
     assert rules_mod.store().kv_get(rules_api.USER_STOPPED_KEY, "0") == "1"
-    process_state.heartbeat(60)
+    process_state.heartbeat(60, force=True)
     assert rules_mod.store().kv_get(rules_api.USER_STOPPED_KEY, "0") == "1"
     from gigamail import cli
     from gigamail import watcher as watcher_mod

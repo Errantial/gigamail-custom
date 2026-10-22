@@ -47,15 +47,28 @@ def my_code_stamp() -> str:
     return _MY_STAMP
 
 
-def heartbeat(interval: int) -> None:
+_LAST_BEAT = 0.0
+HEARTBEAT_MIN_SECONDS = 2.0
+
+
+def heartbeat(interval: int, force: bool = False) -> None:
     """Stato del processo per la console: pid, intervallo e ultimo
-    giro, in rules.db (kv). 'attivo' = heartbeat recente."""
+    giro, in rules.db (kv). 'attivo' = heartbeat recente.
+
+    One transaction, and at most one every couple of seconds: a tick
+    beats a dozen times, and a dozen commits with fsync each stalled a
+    slow disk for longer than the tick itself."""
+    global _LAST_BEAT
+    now = time.time()
+    if not force and now - _LAST_BEAT < HEARTBEAT_MIN_SECONDS:
+        return
     try:
         rs = rules_mod.store()
-        rs.kv_set("watch_pid", str(os.getpid()))
-        rs.kv_set("watch_interval", str(interval))
-        rs.kv_set("watch_heartbeat", str(time.time()))
-        rs.kv_set("watch_stamp", my_code_stamp())
+        rs.kv_set_many({"watch_pid": str(os.getpid()),
+                        "watch_interval": str(interval),
+                        "watch_heartbeat": str(now),
+                        "watch_stamp": my_code_stamp()})
+        _LAST_BEAT = now
     except Exception as e:
         # Senza heartbeat la console dira' "fermo" mentre il watcher gira,
         # e chi lancia il task ne avviera' un secondo: va detto.

@@ -629,7 +629,7 @@ def test_a_watcher_leaves_when_another_one_runs_or_the_code_changed(monkeypatch,
     monkeypatch.setattr(cs, "code_stamp", lambda: "v1")
     assert process_state.my_code_stamp() == "v1"
     # alone: nothing to yield to
-    process_state.heartbeat(60)
+    process_state.heartbeat(60, force=True)
     assert process_state.should_yield(60) == ""
     # another process, alive and ticking with the current code, holds the heartbeat
     rs.kv_set("watch_pid", str(os.getpid() + 1))

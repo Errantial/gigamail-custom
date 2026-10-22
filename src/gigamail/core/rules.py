@@ -72,10 +72,23 @@ class RuleStore:
         conn = sqlite3.connect(self.path, timeout=10,
                                factory=_ClosingConnection)
         conn.row_factory = sqlite3.Row
+        # WAL (set once, kept by the file) and synchronous=NORMAL (per
+        # connection): the watcher writes its heartbeat many times a tick,
+        # and a full fsync per write stalled a slow Windows disk (CI timed
+        # out inside kv_set). Durable across a crash of the process; a
+        # power loss can lose the last heartbeat, which is nothing.
+        try:
+            conn.execute("PRAGMA synchronous=NORMAL")
+        except sqlite3.Error:
+            pass
         return conn
 
     def _init(self) -> None:
         with self._conn() as conn:
+            try:
+                conn.execute("PRAGMA journal_mode=WAL")
+            except sqlite3.Error:
+                pass
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS rules (
                     rule_id           TEXT PRIMARY KEY,
@@ -397,6 +410,12 @@ class RuleStore:
         with self._conn() as conn:
             conn.execute("INSERT OR REPLACE INTO kv (key, value) VALUES (?,?)",
                          (key, str(value)))
+
+    def kv_set_many(self, values: Dict[str, str]) -> None:
+        """Several keys in one transaction: one commit, not one per key."""
+        with self._conn() as conn:
+            conn.executemany("INSERT OR REPLACE INTO kv (key, value) VALUES (?,?)",
+                             [(k, str(v)) for k, v in values.items()])
 
     def kv_keys(self, prefix: str) -> List[str]:
         """Keys starting with `prefix`, in key order."""

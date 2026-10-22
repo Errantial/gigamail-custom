@@ -2,6 +2,10 @@
 
 ## v0.6.5 — 2026-10-22
 
+- **A lighter watcher heartbeat.** It wrote four rows in four commits a
+  dozen times per tick; on a slow disk the commits took longer than the
+  tick (CI on Windows timed out inside them). One transaction, at most
+  one every two seconds, and rules.db in WAL mode.
 - **Notification buttons registered on the old "ADE Mail" are replaced.**
   A machine that had the old project kept its `gigamail://` registration
   pointing at that project's Python: every toast button opened the old
