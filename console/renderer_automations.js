@@ -119,14 +119,41 @@
     if (!box) return;
     try {
       const rules = await api('/rules');
-      box.innerHTML = rules.length
+      setRulesBadge(rules);
+      box.innerHTML = pausedBanner(rules) + (rules.length
         ? rules.map(ruleCard).join('')
         : `<div class="hint">${T('Nessuna regola. Creane una qui sotto: la conferma finale è Windows Hello.',
                                  'No rules yet. Create one below: the final confirmation is Windows Hello.',
-                                 '还没有规则。在下方创建一条：最终确认由 Windows Hello 完成。')}</div>`;
+                                 '还没有规则。在下方创建一条：最终确认由 Windows Hello 完成。')}</div>`);
     } catch (e) {
       box.innerHTML = `<div class="hint">${T('Errore', 'Error', '错误')}: ${escapeHtml(e.message)}</div>`;
     }
+  }
+
+  // A rule that paused itself (burst guard) stops answering until a human
+  // resumes it with Hello: a banner above the list and a mark on the
+  // sidebar icon, visible from any view, until that happens.
+  function pausedBanner(rules) {
+    const stuck = AV() ? AV().autoPaused(rules) : [];
+    return stuck.map((r) => `
+      <div class="ai-card gm-rule-alert" data-rule-alert="${escapeHtml(r.rule_id)}">
+        <div class="ai-card-title">${T('Regola in pausa da sola', 'Rule paused itself', '规则已自动暂停')}: ${escapeHtml((r.trigger_values || []).join(', '))}</div>
+        <div class="ai-card-sub">${escapeHtml(r.pause_reason || '')} · ${T('non risponde a nessuna mail finché non la riattivi.', 'it answers no mail until you resume it.', '在你恢复之前不会回复任何邮件。')}</div>
+        <div class="ai-card-row" style="margin-top:8px">
+          <span style="flex:1"></span>
+          <button class="chip-btn" data-act="activity" data-id="${escapeHtml(r.rule_id)}">${(typeof GMIcons !== 'undefined' ? GMIcons.svg('clipboard', 12) : '')} ${T('Attività', 'Activity', '活动')}</button>
+          <button class="chip-btn" data-act="resume" data-id="${escapeHtml(r.rule_id)}">▶ ${T('Riattiva (Hello)', 'Resume (Hello)', '恢复 (Hello)')}</button>
+        </div>
+      </div>`).join('');
+  }
+
+  function setRulesBadge(rules) {
+    const b = $('automationsBadge');
+    if (!b) return;
+    const n = AV() ? AV().autoPaused(rules).length : 0;
+    b.textContent = n ? '!' : '';
+    b.hidden = !n;
+    b.title = T('Una regola si è messa in pausa da sola', 'A rule paused itself', '有规则已自动暂停');
   }
 
   async function onRuleAction(e) {
@@ -402,6 +429,7 @@
     try {
       const pending = await api('/approvals');
       setBadge(pending.length);
+      setRulesBadge(await api('/rules'));
     } catch (_) { /* no backend yet: the badge stays as it is */ }
   }
 

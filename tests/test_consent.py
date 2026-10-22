@@ -293,3 +293,10 @@ def test_approvals_check_riporta_la_diagnosi(monkeypatch, capsys):
     monkeypatch.setattr(consent, "require_human", lambda reason: True)
     assert cli.cmd_approvals_check(types.SimpleNamespace(no_prompt=False)) == 0
     assert cli.cmd_approvals_check(types.SimpleNamespace(no_prompt=True)) == 0
+
+
+def test_bringing_the_hello_dialog_to_front_is_best_effort_everywhere():
+    """Off Windows there is no user32: the helper returns at once and the
+    verification goes on as before."""
+    from gigamail import consent
+    consent._bring_hello_to_front(seconds=0.2)

@@ -83,6 +83,10 @@ class Telegram:
         self.token = cfg["token"]
         self.chat_id = int(cfg["chat_id"])
         self.approve_enabled = bool(cfg.get("approve", False))
+        # Why the last call failed, for the audit: a notification that
+        # never left used to vanish without a word (a watcher draft at
+        # 01:31 expired unseen, and nothing said the Telegram send failed).
+        self.last_error = ""
 
     def _call(self, method: str, http_timeout: float = _TIMEOUT, **params) -> Optional[Dict[str, Any]]:
         try:
@@ -90,9 +94,12 @@ class Telegram:
                               json=params, timeout=http_timeout)
             data = r.json()
             if not data.get("ok"):
+                self.last_error = f"{method}: {data.get('description') or r.status_code}"
                 return None
+            self.last_error = ""
             return data
-        except Exception:
+        except Exception as e:
+            self.last_error = f"{method}: {type(e).__name__}: {str(e)[:160]}"
             return None
 
     # ------------------------------------------------------------ out

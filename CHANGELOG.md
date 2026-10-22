@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- **A rule that paused itself is impossible to miss.** When the burst
+  guard pauses a rule (too many matching mails in ten minutes), the rule
+  answered nothing until someone read "paused" in its card. Now an amber
+  banner sits above the rules with a Resume button, and the Automations
+  icon carries a mark from any view, until the rule is resumed.
+- **A notification that never left says so.** A watcher draft expired at
+  night because the Telegram send had failed, and nothing recorded it.
+  Every Telegram send now lands in the audit with its outcome and
+  reason, and the request's card shows "notification not delivered" and
+  the channels that were tried.
+- **The Windows Hello prompt comes to the front.** Opened by the backend
+  (no window of its own) it sat behind the other windows: "Resume
+  (Hello)" seemed to do nothing. The prompt is now brought to the
+  foreground when it appears.
 - **The watcher comes back by itself.** It is its own process and dies
   with every update (the installer ends the python processes of the
   install folder) or a crash; only the button in Automations started it

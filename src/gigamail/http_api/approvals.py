@@ -37,10 +37,24 @@ def _with_origin(rec):
     return rec
 
 
+def _with_notifications(recs):
+    """Each request with the notifications sent for it, and the ones that
+    failed: a draft that expired at night with the Telegram send broken
+    should say so where the user looks."""
+    recs = [_with_origin(r) for r in recs]
+    try:
+        seen = policy.notifications_of([r["request_id"] for r in recs])
+    except Exception:
+        seen = {}
+    for r in recs:
+        r["notified"] = seen.get(r["request_id"], [])
+    return recs
+
+
 @router.get("/approvals")
 def list_approvals():
     """Richieste in attesa di approvazione umana."""
-    return [_with_origin(r) for r in policy.store().list_pending()]
+    return _with_notifications(policy.store().list_pending())
 
 
 @router.get("/approvals/recent")
@@ -49,7 +63,7 @@ def recent_approvals(hours: float = 24):
     console's "recently decided" list, with the execution outcome."""
     hours = max(0.0, min(float(hours), 24 * 30))
     since = time.time() - hours * 3600
-    return [_with_origin(r) for r in policy.store().list_decided(since)]
+    return _with_notifications(policy.store().list_decided(since))
 
 
 @router.get("/approvals/{request_id}")

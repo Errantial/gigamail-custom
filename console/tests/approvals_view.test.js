@@ -185,3 +185,31 @@ test('a recently decided card opens on what was sent, escaped', () => {
   const failed = V.recentCard({ ...rec, execution_outcome: 'failed', provider_result: { error: 'SMTP <550>' } }, t, NOW);
   assert.ok(failed.includes('SMTP &lt;550&gt;'));
 });
+
+test('a request whose notification failed says so, with the channel and the reason', () => {
+  const rec = { ...WATCHER_REPLY, status: 'expired', expires_at: NOW - 10,
+    notified: [{ channel: 'desktop', ok: true, error: '' },
+      { channel: 'telegram', ok: false, error: 'sendMessage: 401 Unauthorized' }] };
+  const s = V.summarize(rec, NOW);
+  assert.equal(V.notifyFailed(s), true);
+  assert.equal(V.notifiedText(s, t), 'desktop ✓ · telegram: sendMessage: 401 Unauthorized');
+  const html = V.recentCard(rec, t, NOW);
+  assert.match(html, /notifica non arrivata/);
+  assert.match(html, /Notifiche<\/span><span class="recent-v">desktop ✓ · telegram: sendMessage: 401 Unauthorized/);
+  // all delivered, or nothing recorded: no tag
+  assert.doesNotMatch(V.pendingCard(WATCHER_REPLY, t, NOW), /notifica non arrivata/);
+  const ok = { ...WATCHER_REPLY, notified: [{ channel: 'telegram', ok: true, error: '' }] };
+  assert.doesNotMatch(V.pendingCard(ok, t, NOW), /notifica non arrivata/);
+});
+
+test('only a rule paused by the burst guard counts as paused by itself', () => {
+  const rules = [
+    { rule_id: 'a', state: 'paused', pause_reason: 'raffica: 10 match in 10 minuti' },
+    { rule_id: 'b', state: 'paused', pause_reason: 'burst: 6 matches in 10 minutes' },
+    { rule_id: 'c', state: 'paused', pause_reason: '' },
+    { rule_id: 'd', state: 'active', pause_reason: 'raffica: 10 match in 10 minuti' },
+    { rule_id: 'e', state: 'expired' },
+  ];
+  assert.deepEqual(V.autoPaused(rules).map((r) => r.rule_id), ['a', 'b']);
+  assert.deepEqual(V.autoPaused([]), []);
+});

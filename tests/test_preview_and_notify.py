@@ -389,3 +389,69 @@ def test_preview_move_mostra_la_destinazione_su_telegram():
         "folder_from": "Inbox", "folder_to": "Archivio",
     })
     assert "Archivio" in testo and "Inbox" in testo
+
+
+def test_a_telegram_send_that_fails_is_on_record_with_its_reason(monkeypatch, tmp_path):
+    """A watcher draft at 01:31 expired unseen: the Telegram send had
+    failed and nothing said so. Now the audit has the outcome, and the
+    console reads it back next to the request."""
+    import threading
+
+    from gigamail.core import desktop_notify, telegram_channel
+    monkeypatch.setenv("GIGAMAIL_ROOT", str(tmp_path))
+    monkeypatch.setattr(desktop_notify, "notify", lambda *a, **k: False)
+    monkeypatch.delenv("GIGAMAIL_APPROVAL_NOTIFY_CMD", raising=False)
+    threads = []
+    real_thread = threading.Thread
+
+    class JoinedThread(real_thread):
+        def start(self):
+            super().start()
+            threads.append(self)
+
+    monkeypatch.setattr(threading, "Thread", JoinedThread)
+
+    class Down:
+        last_error = ""
+
+        def send(self, text, buttons=None, html=False):
+            self.last_error = "sendMessage: ConnectionError: name resolution failed"
+            return False
+
+    monkeypatch.setattr(telegram_channel, "channel", lambda: Down())
+    assert policy.notify_approval_requested("req_tg1", "reply_mail", {"subject": "s"}) is True
+    for t in threads:
+        t.join(5)
+    seen = policy.notifications_of(["req_tg1", "req_other"])
+    assert seen["req_other"] == []
+    assert seen["req_tg1"] == [{"channel": "telegram", "ok": False,
+                                "error": "sendMessage: ConnectionError: name resolution failed"}]
+
+    class Up(Down):
+        def send(self, text, buttons=None, html=False):
+            return True
+
+    monkeypatch.setattr(telegram_channel, "channel", lambda: Up())
+    policy.notify_approval_requested("req_tg2", "reply_mail", {"subject": "s"})
+    for t in threads:
+        t.join(5)
+    assert policy.notifications_of(["req_tg2"])["req_tg2"] == [
+        {"channel": "telegram", "ok": True, "error": ""}]
+
+
+def test_the_recent_list_carries_the_notifications(monkeypatch, tmp_path):
+    from fastapi.testclient import TestClient
+
+    from gigamail import http_api
+    monkeypatch.setenv("GIGAMAIL_ROOT", str(tmp_path))
+    policy.set_store(policy.ApprovalStore(str(tmp_path / "approvals.db")))
+    try:
+        rid = policy.store().create("reply_mail", {"body": "x"}, {"subject": "s"}, ttl=1)
+        policy.audit("reply_mail", {"request_id": rid}, "approval_notify_failed",
+                     detail="telegram: sendMessage: 401 Unauthorized")
+        with TestClient(http_api.app) as c:
+            pending = c.get("/approvals").json()
+            assert pending[0]["notified"] == [
+                {"channel": "telegram", "ok": False, "error": "sendMessage: 401 Unauthorized"}]
+    finally:
+        policy.set_store(None)

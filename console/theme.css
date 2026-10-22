@@ -340,3 +340,9 @@ html[data-theme="dark"] body .s-item:hover { background: var(--gm-tint) !importa
 .gm-mail-alert-btn.primary:hover { background: var(--gm-pink-hi); color: #fff; }
 html[data-theme="dark"] .gm-mail-alert { box-shadow: 0 12px 30px rgba(0,0,0,0.5); }
 html[data-theme="dark"] body .gm-mail-alert-btn.primary, html[data-theme="dark"] body .gm-mail-alert-btn.primary * { color: #fff !important; }
+
+/* A rule that paused itself: amber banner above the rules list, amber
+   mark on the Automations icon */
+.s-badge.warn { background: var(--gm-amber, #d97706); }
+.gm-rule-alert { border-color: var(--gm-amber, #d97706); background: color-mix(in srgb, var(--gm-amber, #d97706) 10%, transparent); }
+.ai-card-status.warn { color: var(--gm-amber, #d97706); }

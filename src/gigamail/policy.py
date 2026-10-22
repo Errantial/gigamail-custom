@@ -141,6 +141,44 @@ def audit(tool: str, args: Dict[str, Any], outcome: str, detail: str = "",
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
+def notifications_of(request_ids, max_lines: int = 20000) -> Dict[str, List[Dict[str, str]]]:
+    """For each request: the notification lines of the audit log, newest
+    last: [{"channel": "telegram", "ok": False, "error": "..."}]. Read
+    from the tail of the log, so an old log costs the same as a new one.
+    The console shows it next to a request that nobody saw in time."""
+    wanted = set(request_ids or [])
+    out: Dict[str, List[Dict[str, str]]] = {rid: [] for rid in wanted}
+    if not wanted:
+        return out
+    try:
+        with open(_audit_path(), "rb") as f:
+            f.seek(0, 2)
+            size = f.tell()
+            f.seek(max(0, size - max_lines * 200))
+            lines = f.read().decode("utf-8", errors="replace").splitlines()[-max_lines:]
+    except OSError:
+        return out
+    for line in lines:
+        if "approval_notif" not in line:
+            continue
+        try:
+            e = json.loads(line)
+        except ValueError:
+            continue
+        rid = str((e.get("args") or {}).get("request_id") or "")
+        if rid not in wanted:
+            continue
+        outcome = str(e.get("outcome") or "")
+        detail = str(e.get("detail") or "")
+        if outcome == "approval_notified":
+            out[rid].append({"channel": detail, "ok": True, "error": ""})
+        elif outcome == "approval_notify_failed":
+            channel, _, error = detail.partition(":")
+            out[rid].append({"channel": channel.strip(), "ok": False,
+                             "error": error.strip()})
+    return out
+
+
 class _ClosingConnection(sqlite3.Connection):
     """`with conn:` di serie fa commit/rollback ma NON chiude: la
     connessione vive fino al garbage collector, e su Windows tiene il
@@ -717,12 +755,22 @@ def notify_approval_requested(request_id: str, tool: str, preview: Dict[str, Any
             # scritto il suo messaggio (`message`), quello vince.
             lungo = text if message else full_preview_text(tool, preview)
             testo_tg = telegram_channel.Telegram.safe_html(lungo)
-            threading.Thread(
-                target=lambda: tg.send(testo_tg, buttons=buttons,
-                                       html=True),
-                daemon=False).start()
-            audit(tool, {"request_id": request_id}, "approval_notified",
-                  detail="telegram")
+
+            def _send_tg():
+                # On record either way: "I got nothing on Telegram" can
+                # then be checked against a line that says why.
+                try:
+                    ok = tg.send(testo_tg, buttons=buttons, html=True)
+                except Exception as e:  # pragma: no cover - requests only
+                    ok, tg.last_error = False, f"{type(e).__name__}: {str(e)[:160]}"
+                if ok:
+                    audit(tool, {"request_id": request_id}, "approval_notified",
+                          detail="telegram")
+                else:
+                    audit(tool, {"request_id": request_id}, "approval_notify_failed",
+                          detail=f"telegram: {tg.last_error or 'send failed'}")
+
+            threading.Thread(target=_send_tg, daemon=False).start()
             fired = True
     except Exception:
         pass
