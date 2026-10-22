@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
 from gigamail.core import mail_guard, mail_router
+from gigamail.core import rules as rules_mod
 
 from .log import _log
 
@@ -20,7 +21,18 @@ def matches(rule: Dict[str, Any], message: Dict[str, Any]) -> bool:
         return True  # la cartella E' il trigger
     sender = mail_guard.sender_address(message)
     wanted = {str(v).strip().lower() for v in rule["trigger_values"]}
-    return sender in wanted
+    if sender in wanted:
+        return True
+    # The conversation goes on: a reply from someone this rule answered
+    # (through the form's relay, say) belongs to the rule too.
+    return is_followup(rule, sender)
+
+
+def is_followup(rule: Dict[str, Any], sender: str) -> bool:
+    try:
+        return bool(sender) and rules_mod.store().is_contact(rule["rule_id"], sender)
+    except Exception:
+        return False
 
 
 def poll_folder(rule: Dict[str, Any], *, top: int, unread_days: int,

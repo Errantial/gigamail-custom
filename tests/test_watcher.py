@@ -583,3 +583,33 @@ def test_many_drafts_in_one_tick_give_one_notification(fake_world, monkeypatch):
     fake_world["unread"] = [_msg(mid="x1", sender="a@x.it"), _msg(mid="x2", sender="b@x.it")]
     watcher_mod.Watcher().tick()
     assert len(toasts) == 2
+
+
+def test_a_rule_follows_the_conversation_it_opened(fake_world):
+    """The site form relays a lead; the rule answers the person whose
+    address is in the body. When that person writes back from her own
+    address, no trigger names her: the rule must take the mail anyway,
+    and reply to her From, not to an address quoted below."""
+    rid = _rule(trigger_values=["postmaster@20128milano.it"], mode="semi",
+                reply_to_body_address=True)
+    lead = _msg(mid="f1", sender="postmaster@20128milano.it",
+                body="Messaggio dal sito\nEmail: bruna@example.com\nInfo sui prezzi?")
+    fake_world["unread"] = [lead]
+    watcher_mod.Watcher().tick()
+    pend = policy.store().list_pending()
+    assert len(pend) == 1 and pend[0]["args"]["to"] == "bruna@example.com"
+    assert rules_mod.store().is_contact(rid, "bruna@example.com")
+
+    followup = _msg(mid="f2", sender="bruna@example.com",
+                    body="Grazie. E le planimetrie?\n> info@20128milano.it ha scritto:\n> Email: altro@example.com")
+    fake_world["unread"] = [lead, followup]
+    watcher_mod.Watcher().tick()
+    pend = policy.store().list_pending()
+    assert len(pend) == 2
+    mine = [p for p in pend if p["args"]["message_id"] == "f2"][0]
+    assert "to" not in mine["args"]          # a reply to her From, in thread
+    frm = mine["preview"]["replying_to"]["from"]
+    assert "bruna@example.com" in (frm if isinstance(frm, str) else str(frm))
+    # someone the rule never answered is still not its business
+    fake_world["unread"] = [_msg(mid="f3", sender="nobody@example.com")]
+    assert watcher_mod.Watcher().tick()["processed"] == 0

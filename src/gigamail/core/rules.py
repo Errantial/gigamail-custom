@@ -128,6 +128,19 @@ class RuleStore:
             conn.execute(
                 "CREATE INDEX IF NOT EXISTS ix_handled_rule_ts"
                 " ON handled (rule_id, ts)")
+            # The people a rule has answered: a reply from one of them
+            # belongs to that rule, whatever the trigger says. A lead
+            # from the site form was answered; the person wrote back from
+            # her own address, and no rule matched her.
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS contacts (
+                    rule_id    TEXT NOT NULL,
+                    account_id INTEGER NOT NULL,
+                    address    TEXT NOT NULL,
+                    ts         REAL NOT NULL,
+                    PRIMARY KEY (rule_id, address)
+                )
+            """)
             # feedback dell'umano per "rifiuta e riprova con modifica"
             cols = {r[1] for r in conn.execute("PRAGMA table_info(handled)")}
             if "feedback" not in cols:
@@ -240,6 +253,23 @@ class RuleStore:
                 "SELECT * FROM rules WHERE paused=0 AND expires_at > ?"
                 " ORDER BY created_at", (now,)).fetchall()
         return [self._row_to_rule(r) for r in rows]
+
+    def record_contact(self, rule_id: str, account_id: int, address: str) -> None:
+        """The rule answered (or drafted an answer to) this person."""
+        address = (address or "").strip().lower()
+        if not address or "@" not in address:
+            return
+        with self._conn() as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO contacts (rule_id, account_id, address, ts)"
+                " VALUES (?,?,?,?)", (rule_id, int(account_id), address, time.time()))
+
+    def is_contact(self, rule_id: str, address: str) -> bool:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT 1 FROM contacts WHERE rule_id=? AND address=? LIMIT 1",
+                (rule_id, (address or "").strip().lower())).fetchone()
+        return row is not None
 
     def pause(self, rule_id: str, reason: str = "") -> bool:
         """Mettere in pausa e' sempre lecito, da chiunque: riduce l'autonomia.

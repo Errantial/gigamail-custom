@@ -28,7 +28,7 @@ from gigamail.core import (
 )
 from gigamail.core import rules as rules_mod
 
-from . import drafting, notify
+from . import drafting, ingestion, notify
 from .addressing import _reply_subject, body_reply_address
 from .approvals import TOOL, _create_request, _execute_reply, _preview_for
 from .ingestion import folder_of
@@ -265,7 +265,11 @@ def process_message(w, rule: Dict[str, Any], message: Dict[str, Any],
     args = {"message_id": message_id, "body": body, "account_id": account_id,
             "folder": folder}
     to_address = None
-    if rule.get("reply_to_body_address"):
+    # A follow-up from the person the rule already answered is a normal
+    # mail: the reply goes to its From, not to an address found in the
+    # quoted text below it.
+    followup = ingestion.is_followup(rule, sender)
+    if rule.get("reply_to_body_address") and not followup:
         to_address = body_reply_address(full, sender)
         if not to_address:
             # La regola promette di scrivere alla persona e la
@@ -327,6 +331,8 @@ def process_message(w, rule: Dict[str, Any], message: Dict[str, Any],
     if not request_id:
         rs.set_status(rule_id, message_id, "skipped", "approval-cap")
         return "skipped"
+    # From now on a mail from this person belongs to this rule.
+    rs.record_contact(rule_id, account_id, to_address or sender)
 
     if mode == "semi":
         rs.record(rule_id, account_id, message_id, sender,

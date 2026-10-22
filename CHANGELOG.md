@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **A rule follows the conversations it opened.** The site form relays a
+  lead, the rule answers the person named in it; when that person wrote
+  back from her own address, no rule matched her and the mail waited
+  for a human. A rule now remembers whom it answered: a mail from that
+  person belongs to the rule, and the reply goes to her, in the thread,
+  not to an address quoted below.
 - **A night's mail is not a burst.** The guard that pauses a rule after
   too many matching mails in ten minutes counted by when the watcher
   read them: back after an update, it read the night's form mails in
