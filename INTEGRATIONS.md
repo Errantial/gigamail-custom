@@ -306,6 +306,22 @@ from GitHub after the push (`claude plugin marketplace add
 adecubed/gigamail`, plugin 0.4.0 from `main`): same result. Not yet
 verified: a model-driven session through the skill.
 
+**Anthropic's directory follows the `claude-plugin` branch, not `main`.**
+The directory records a new version for every commit on the branch it
+tracks, and each version is held for review again; following `main` it
+recorded a dozen versions of 0.5.1 alone. `claude-plugin` is always a
+commit of `main`, moved only when `plugins/gigamail/` changes other than
+in its version number:
+
+```bash
+python scripts/publish-claude-plugin.py          # report only
+python scripts/publish-claude-plugin.py --push   # move the branch
+```
+
+Run it after a push that touches the skill, the plugin README or the
+manifest. The repository marketplace (`claude plugin marketplace add
+adecubed/gigamail`) still reads `main`.
+
 ## OpenClaw — verified (tool discovery)
 
 Tested 2026-08-16 on Windows: OpenClaw **2026.7.1-2**, Node 24.19. `openclaw

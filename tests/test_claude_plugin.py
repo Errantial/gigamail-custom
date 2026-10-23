@@ -74,3 +74,52 @@ def test_skill_tells_both_clients_how_to_register_the_server():
     text = (PLUGIN / "skills" / "gigamail" / "SKILL.md").read_text(encoding="utf-8")
     assert "claude plugin install gigamail@gigamail" in text
     assert "codex plugin add gigamail@gigamail" in text
+
+
+def test_tool_counts_in_the_listing_texts_match_the_server():
+    """test_codex_plugin checks the tool names; the numbers in the prose
+    went stale on their own (a listing said 29 with 30 tools)."""
+    import asyncio
+    import re
+
+    from gigamail.server import mcp
+
+    count = len(asyncio.new_event_loop().run_until_complete(mcp.list_tools()))
+    texts = {
+        "skill": (ROOT / "skills" / "gigamail" / "SKILL.md").read_text(encoding="utf-8"),
+        "plugin README": (PLUGIN / "README.md").read_text(encoding="utf-8"),
+        "codex manifest": _load(ROOT / ".codex-plugin" / "plugin.json")["interface"]["longDescription"],
+    }
+    for where, text in texts.items():
+        numbers = {int(n) for n in re.findall(r"\b(\d+) (?:typed MCP )?tools\b", text)}
+        assert numbers == {count}, (where, numbers)
+
+
+def _publish_script():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("publish_claude_plugin", ROOT / "scripts" / "publish-claude-plugin.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _manifest(version, description="Mail and calendar"):
+    return json.dumps({"name": "gigamail", "version": version, "description": description}).encode()
+
+
+def test_a_version_bump_alone_does_not_move_the_branch():
+    """Every release bumps plugin.json; the directory must not get a new
+    version to review for that alone."""
+    script = _publish_script()
+    old = {script.MANIFEST: _manifest("0.6.6"), "plugins/gigamail/README.md": b"same"}
+    new = {script.MANIFEST: _manifest("0.6.7"), "plugins/gigamail/README.md": b"same"}
+    assert not script.plugin_changed(old, new)
+
+
+def test_a_real_change_moves_the_branch():
+    script = _publish_script()
+    base = {script.MANIFEST: _manifest("0.6.6"), "plugins/gigamail/README.md": b"old"}
+    assert script.plugin_changed(base, {**base, "plugins/gigamail/README.md": b"new"})
+    assert script.plugin_changed(base, {**base, script.MANIFEST: _manifest("0.6.6", "Other")})
+    assert script.plugin_changed(base, {**base, "plugins/gigamail/extra.md": b"x"})

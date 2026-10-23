@@ -5,7 +5,7 @@ description: "Email and calendar on the user's real mailbox (Microsoft 365 or IM
 
 # GigaMail
 
-GigaMail gives you the user's real mailboxes and calendar as 29 typed MCP
+GigaMail gives you the user's real mailboxes and calendar as 30 typed MCP
 tools on the `gigamail` server. Reading, searching, attachment text, sender
 history, free-slot computation and drafting are free. Sending, replying,
 deleting and calendar writes are **two-phase**: the first call returns an
