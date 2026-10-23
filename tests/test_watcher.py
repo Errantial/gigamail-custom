@@ -458,6 +458,22 @@ def test_prompt_del_drafter_marca_la_mail_come_non_fidata(fake_world, tmp_path):
     assert low.index("mail in arrivo") < low.index("exfil@attacker.example")
 
 
+def test_long_rule_document_brings_the_row_the_mail_asks_about(fake_world, tmp_path):
+    """The row is far beyond the first 8000 characters: before, the prompt
+    stopped there and the draft said the information was missing."""
+    doc = tmp_path / "price_list.txt"
+    filler = "".join(f"Apartment B.{i}.2, {60 + i} sqm, garden view\n" for i in range(400))
+    doc.write_text("Price list 2026 - Via Roma 10\n" + filler
+                   + "Apartment X.4.2, 95 sqm, terrace, price 210000\n",
+                   encoding="utf-8")
+    rule = rules_mod.store().get(_rule(doc_paths=[str(doc)]))
+    prompt = watcher_mod.build_draft_prompt(
+        rule, 1, _msg(body="Hello, how much is apartment X.4.2?"))
+    assert "price 210000" in prompt
+    assert "Price list 2026 - Via Roma 10" in prompt   # the head stays
+    assert "do not invent it" in prompt
+
+
 def test_risposta_con_uid_uguali_usa_la_cartella_approvata(fake_world, monkeypatch):
     """UID 42 di Leads e UID 42 di INBOX sono due persone diverse."""
     _rule(trigger_kind="folder", trigger_values=["INBOX.Leads"])

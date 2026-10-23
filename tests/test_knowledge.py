@@ -97,3 +97,70 @@ def test_extract_text_txt(tmp_path):
     f.write_text("Riga uno\nRiga due", encoding="utf-8")
     text, kind = file_extractor.extract_text(str(f), original_filename="doc.txt")
     assert "Riga uno" in text
+
+
+def test_an_empty_cell_keeps_the_columns_in_place(tmp_path):
+    """A row with an empty cell used to lose it, and the price moved
+    under the previous column's header."""
+    openpyxl = pytest.importorskip("openpyxl")
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Prices"
+    ws.append(["Code", "Sqm", "Balcony", "Price", None])
+    ws.append(["X.4.2", 95, None, 210000, None])
+    ws.append([None, None, None, None, None])
+    f = tmp_path / "list.xlsx"
+    wb.save(f)
+    text, kind = file_extractor.extract_text(str(f))
+    assert kind == "excel"
+    assert text.splitlines() == ["[Foglio: Prices]",
+                                 "Code | Sqm | Balcony | Price",
+                                 "X.4.2 | 95 |  | 210000"]
+
+
+def test_an_old_xls_is_read_with_xlrd(tmp_path, monkeypatch):
+    """openpyxl does not open .xls. No library here writes one, so the
+    workbook xlrd returns is built from xlrd's own cells."""
+    xlrd = pytest.importorskip("xlrd")
+    from datetime import datetime
+
+    from xlrd.sheet import Cell
+
+    rows = [
+        [Cell(xlrd.XL_CELL_TEXT, "Code"), Cell(xlrd.XL_CELL_TEXT, "Balcony"),
+         Cell(xlrd.XL_CELL_TEXT, "Price"), Cell(xlrd.XL_CELL_TEXT, "Available")],
+        [Cell(xlrd.XL_CELL_TEXT, "Y.2.5"), Cell(xlrd.XL_CELL_EMPTY, ""),
+         Cell(xlrd.XL_CELL_NUMBER, 185000.0),
+         Cell(xlrd.XL_CELL_DATE, xlrd.xldate.xldate_from_date_tuple((2027, 3, 1), 0))],
+        [Cell(xlrd.XL_CELL_BLANK, ""), Cell(xlrd.XL_CELL_EMPTY, "")],
+    ]
+
+    class Sheet:
+        name = "Old"
+        nrows = len(rows)
+
+        def row(self, r):
+            return rows[r]
+
+    class Book:
+        datemode = 0
+
+        def sheets(self):
+            return [Sheet()]
+
+    f = tmp_path / "old_list.xls"
+    f.write_bytes(b"\xd0\xcf\x11\xe0")
+    monkeypatch.setattr(xlrd, "open_workbook", lambda path: Book())
+    text, kind = file_extractor.extract_text(str(f))
+    assert kind == "excel"
+    assert text.splitlines() == ["[Foglio: Old]",
+                                 "Code | Balcony | Price | Available",
+                                 f"Y.2.5 |  | 185000 | {datetime(2027, 3, 1)}"]
+
+
+def test_a_broken_xls_raises_instead_of_returning_text(tmp_path):
+    xlrd = pytest.importorskip("xlrd")
+    f = tmp_path / "broken.xls"
+    f.write_bytes(b"not an excel file")
+    with pytest.raises(xlrd.XLRDError):
+        file_extractor.extract_text(str(f))

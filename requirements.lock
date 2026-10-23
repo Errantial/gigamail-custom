@@ -1628,3 +1628,7 @@ x-wr-timezone==2.0.1 \
     --hash=sha256:9166c40e6ffd4c0edebabc354e1a1e2cffc1bb473f88007694793757685cc8c3 \
     --hash=sha256:e74a53b9f4f7def8138455c240e65e47c224778bce3c024fcd6da2cbe91ca038
     # via recurring-ical-events
+xlrd==2.0.2 \
+    --hash=sha256:08b5e25de58f21ce71dc7db3b3b8106c1fa776f3024c54e45b45b374e89234c9 \
+    --hash=sha256:ea762c3d29f4cca48d82df517b6d89fbce4db3107f9d78713e48cd321d5c9aa9
+    # via gigamail (pyproject.toml)

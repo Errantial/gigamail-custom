@@ -170,9 +170,9 @@ reply, and asks you before sending.
 
 ## Tools
 
-29 typed tools, generated from the server itself:
+30 typed tools, generated from the server itself:
 
-- **Read (17)** — accounts, identity, knowledge files, messages, unread,
+- **Read (18)** — accounts, identity, knowledge files and search inside them, messages, unread,
   folders, hybrid search, attachment text, sender history, learned
   patterns, calendar events, free-slot availability, Drive files and
   their text
@@ -456,9 +456,9 @@ risposta e ti chiede conferma prima di inviare.
 
 ## Tool
 
-29 tool tipizzati, generati dal server stesso:
+30 tool tipizzati, generati dal server stesso:
 
-- **Lettura (17)** — account, identità, file di conoscenza, messaggi, non
+- **Lettura (18)** — account, identità, file di conoscenza e ricerca al loro interno, messaggi, non
   lette, cartelle, ricerca ibrida, testo degli allegati, storico mittenti,
   pattern appresi, eventi di calendario, slot liberi, file di Drive e il
   loro testo

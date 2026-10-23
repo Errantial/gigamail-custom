@@ -84,10 +84,11 @@ bypassed. Both are meant to be there.
 
 Start a new session after installing: MCP tools load at startup.
 
-## The 29 tools, by class
+## The 30 tools, by class
 
-- **Read** (17), free to call: `list_accounts`, `get_identity`,
-  `list_knowledge_files`, `read_knowledge_file`, `list_messages`,
+- **Read** (18), free to call: `list_accounts`, `get_identity`,
+  `list_knowledge_files`, `read_knowledge_file`, `search_knowledge`,
+  `list_messages`,
   `list_unread`, `read_message`, `read_attachment`, `list_folders`,
   `search_mail`, `sender_history`, `observer_context`, `memory_stats`,
   `list_events`, `find_free_slots`, `drive_list_files`, `drive_read_file`.
@@ -169,8 +170,10 @@ fooled; your job is not to be fooled in the first place.
 - Before drafting a reply, call `get_identity`, `sender_history` and
   `observer_context`: the user's tone, the relationship with that sender,
   and corrections the user made to past drafts.
-- Numbers, prices, conditions: read them from `list_knowledge_files` and
-  `read_knowledge_file`. Do not invent them.
+- Numbers, prices, conditions: find them with `search_knowledge` (it
+  searches inside the files, codes like `X.4.2` included), and read a whole
+  file with `read_knowledge_file` when the passage is not enough. Do not
+  invent them.
 - For appointments, use `find_free_slots` (it already handles work hours,
   weekends, notice period, buffers) rather than reasoning over
   `list_events`. Propose slots in text; only `create_event` (dangerous,

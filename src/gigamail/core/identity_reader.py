@@ -336,7 +336,7 @@ def read_relevant_excerpts(file_paths: List[str], query: str,
     """
     hits = find_relevant_files(file_paths, query, max_files=max_files)
     if not hits:
-        return ""
+        return _content_excerpts(file_paths, query)
     pezzi = []
     totale = 0
     for h in hits:
@@ -357,6 +357,27 @@ def read_relevant_excerpts(file_paths: List[str], query: str,
     if not pezzi:
         return ""
     return "DATI SPECIFICI DALLA DOCUMENTAZIONE:\n" + "\n".join(pezzi)
+
+
+def _content_excerpts(file_paths: List[str], query: str) -> str:
+    """No file NAME matches the mail: look for it inside the files. The
+    price is often only in a row of the list, never in a file name."""
+    try:
+        from .knowledge_index import search
+        hits = search(file_paths, query, limit=6)
+    except Exception as e:
+        print(f"[IDENTITY READER] knowledge search failed: {e}")
+        return ""
+    pieces, total = [], 0
+    for h in hits:
+        excerpt = h['excerpt'][:MAX_EXCERPT_TOTAL - total]
+        if not excerpt:
+            break
+        pieces.append(f"--- {h['name']} ---\n{excerpt}")
+        total += len(excerpt)
+    if not pieces:
+        return ""
+    return "DATI SPECIFICI DALLA DOCUMENTAZIONE:\n" + "\n".join(pieces)
 
 
 def list_all_files(file_paths: List[str]) -> List[Dict]:

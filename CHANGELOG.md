@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased
+
+- **Knowledge files are searched by what they say.** Files used to be
+  picked by name, and a rule's document entered the draft only up to
+  its first 8000 characters: a price that sat on row 400 of a long list
+  never reached the agent, and the draft said the information was
+  missing. GigaMail now keeps a local full-text index of the registered
+  files (`.knowledge_index.db`, refreshed when a file changes) and:
+  - a new MCP tool, `search_knowledge`, returns the passages most
+    relevant to a question or a code such as `X.4.2` (30 tools, 18 reads);
+  - a long rule document reaches the draft as its head plus the
+    passages about the incoming mail, still only from that rule's
+    documents;
+  - the agent bar looks inside the files when no file name matches.
+  Only the files the user registered are searched; every chunk of a
+  spreadsheet carries its header row.
+- **Excel rows keep their empty cells.** A row with an empty cell lost
+  it, and the price moved under the previous column's header; the text
+  of a sheet now keeps every column in place.
+- **Old `.xls` files are read.** openpyxl only opens `.xlsx`: a
+  registered `.xls` price list or attachment could not be read. The
+  `documents` and `all` extras now include `xlrd`.
+
 ## v0.6.6 — 2026-10-22
 
 - **Approve means send, from every channel, for every request.** A draft

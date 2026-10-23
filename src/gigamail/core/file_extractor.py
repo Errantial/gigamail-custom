@@ -56,15 +56,61 @@ def _extract_word(path: str) -> str:
     return '\n'.join(paragraphs).strip()
 
 
+def _cell_text(value) -> str:
+    if value is None:
+        return ''
+    # xlrd gives every number as a float: 25000.0 is 25000 in the sheet.
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value).strip()
+
+
+def _row_text(values) -> str:
+    """One sheet row, empty cells kept in place: dropping them moved the
+    price of a row with an empty cell under the previous column's
+    header. Trailing empty cells are trimmed."""
+    cells = [_cell_text(v) for v in values]
+    while cells and not cells[-1]:
+        cells.pop()
+    return ' | '.join(cells)
+
+
 def _extract_excel(path: str) -> str:
+    if path.lower().endswith('.xls'):
+        return _extract_xls(path)
     import openpyxl
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
     lines = []
     for sheet in wb.worksheets:
         lines.append(f'[Foglio: {sheet.title}]')
         for row in sheet.iter_rows(values_only=True):
-            row_text = ' | '.join(str(v) for v in row if v is not None)
-            if row_text.strip():
+            row_text = _row_text(row)
+            if row_text.strip(' |'):
+                lines.append(row_text)
+    return '\n'.join(lines).strip()
+
+
+def _extract_xls(path: str) -> str:
+    """The old binary Excel format, which openpyxl does not read."""
+    try:
+        import xlrd
+    except ImportError:
+        raise ValueError('xlrd not installed. Run: pip install xlrd') from None
+    wb = xlrd.open_workbook(path)
+    lines = []
+    for sheet in wb.sheets():
+        lines.append(f'[Foglio: {sheet.name}]')
+        for r in range(sheet.nrows):
+            values = []
+            for cell in sheet.row(r):
+                if cell.ctype == xlrd.XL_CELL_DATE:
+                    values.append(xlrd.xldate_as_datetime(cell.value, wb.datemode))
+                elif cell.ctype in (xlrd.XL_CELL_EMPTY, xlrd.XL_CELL_BLANK):
+                    values.append(None)
+                else:
+                    values.append(cell.value)
+            row_text = _row_text(values)
+            if row_text.strip(' |'):
                 lines.append(row_text)
     return '\n'.join(lines).strip()
 

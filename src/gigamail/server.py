@@ -33,6 +33,7 @@ from gigamail.core import (
     file_extractor,
     google_drive,
     identity_reader,
+    knowledge_index,
     mail_memory,
     mail_router,
     observer,
@@ -227,6 +228,27 @@ def read_knowledge_file(
     f = matches[0]
     text, kind = file_extractor.extract_text(f["path"], original_filename=f["name"])
     return {"name": f["name"], "kind": kind, "text": text}
+
+
+@mcp.tool(annotations=READ_LOCAL)
+def search_knowledge(
+    query: Annotated[str, Field(
+        description="What to look for: a question, a product or apartment "
+                    "code (e.g. 'X.4.2'), or the text of the mail being "
+                    "answered. Matched by content, not by file name.")],
+    account_id: AccountId = None,
+    limit: Annotated[int, Field(description="Max passages to return, best first.",
+                                ge=1, le=20)] = 5,
+) -> list[dict]:
+    """Search INSIDE the account's knowledge files (price lists, terms,
+    product sheets) and return the most relevant passages, best first:
+    [{name, path, excerpt, score}]. Use it for prices, conditions and
+    codes before reading a whole file with read_knowledge_file. Only the
+    files the user registered are searched; the local index is refreshed
+    when a file changes. Returns [] when nothing matches. Read-only,
+    local."""
+    hits = knowledge_index.search(_identity_paths(account_id), query, limit=limit)
+    return [{k: h[k] for k in ("name", "path", "excerpt", "score")} for h in hits]
 
 
 Folder = Annotated[str, Field(

@@ -17,6 +17,7 @@ from gigamail.core import (
     extensions,
     file_extractor,
     injection_guard,
+    knowledge_index,
     mail_guard,
     observer,
 )
@@ -26,6 +27,9 @@ from .log import logger
 _DRAFT_ATTEMPTS = 3
 _DRAFT_TIMEOUT_SECONDS = policy._env_int("GIGAMAIL_DRAFT_TIMEOUT", 300)
 _DOC_CHARS_MAX = 8000
+# The head of a long document goes in anyway: title, who it is from, the
+# terms that apply to every row.
+_DOC_HEAD_CHARS = 1500
 # Quanto in la' guardare quando si cercano slot da proporre. Il sabato e'
 # escluso di default (find_free_slots salta il weekend); chi riceve in
 # ufficio anche di sabato mette GIGAMAIL_SLOTS_SABATO=1.
@@ -35,7 +39,29 @@ _MAIL_CHARS_MAX = 6000
 _DRAFT_CHARS_MAX = 20000
 
 
-def _rule_docs_text(rule: Dict[str, Any]) -> str:
+def _long_doc_text(path: str, text: str, query: str) -> str:
+    """A document longer than the prompt allows: its head plus the
+    passages relevant to the mail. Cutting at 8000 characters lost the
+    rest of a long price list, and the draft answered "we do not have
+    this information" about a row that was in the file."""
+    budget = _DOC_CHARS_MAX - _DOC_HEAD_CHARS - 200
+    try:
+        excerpts = knowledge_index.relevant_excerpts(path, query, budget)
+    except Exception as e:
+        logger.warning("relevant excerpts not found in %s: %s", path, e)
+        excerpts = None
+    if not excerpts:
+        return text[:_DOC_CHARS_MAX]
+    return (text[:_DOC_HEAD_CHARS]
+            + "\n[...]\n(Excerpts relevant to this mail: the full document "
+            "is longer. If the answer is not here, do not invent it.)\n"
+            + excerpts)
+
+
+def _rule_docs_text(rule: Dict[str, Any], query: str = "") -> str:
+    """The rule's documents for the prompt. With `query` (the incoming
+    mail), a long document is reduced to the passages about it; the
+    search stays inside the rule's own documents."""
     parts = []
     for path in rule.get("doc_paths") or []:
         try:
@@ -46,7 +72,10 @@ def _rule_docs_text(rule: Dict[str, Any]) -> str:
             logger.warning("documento della regola non leggibile %s: %s", path, e)
             text = f"(documento non leggibile: {e})"
         name = os.path.basename(str(path))
-        parts.append(f"--- DOCUMENTO: {name} ---\n{str(text)[:_DOC_CHARS_MAX]}")
+        text = str(text)
+        if len(text) > _DOC_CHARS_MAX and query.strip():
+            text = _long_doc_text(str(path), text, query)
+        parts.append(f"--- DOCUMENTO: {name} ---\n{text[:_DOC_CHARS_MAX]}")
     return "\n\n".join(parts)
 
 
@@ -213,7 +242,7 @@ def build_draft_prompt(rule: Dict[str, Any], account_id: int,
                                               includi_esempi=False) or ""
     except Exception as e:
         logger.debug("observer non disponibile per %s: %s", account_id, e)
-    docs = _rule_docs_text(rule)
+    docs = _rule_docs_text(rule, f"{subject}\n{_message_body_text(message)}")
     appointment = _thread_appointment(account_id, subject, sender)
     exclude = [appointment["event_id"]] if appointment else []
     identity_lines = "\n".join(
