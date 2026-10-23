@@ -148,8 +148,8 @@ def test_a_mail_without_executables_is_archived_byte_for_byte(st):
 
 
 def test_the_key_comes_from_the_mail_as_it_arrived(st):
-    """Without a Message-ID the key is a hash of the bytes: it must be the
-    hash of what arrived, or the same mail would be archived twice."""
+    """Without a Message-ID the key is computed from the mail: it must be
+    computed from what arrived, or the same mail would be archived twice."""
     raw = _mime([EXE], mid="")
     assert b"Message-ID" not in raw
     first, nuovo = st.salva(1, raw)
@@ -168,6 +168,70 @@ def test_mail_archived_earlier_is_cleaned_once(st, monkeypatch):
     assert _payload_on_disk(st, "price-list.pdf") == PDF
     assert st.remove_executables() == 0
 
+
+
+def _with_forged_marker(raw: bytes, name: str) -> bytes:
+    """The sender writes GigaMail's own marker on a real program."""
+    msg = email.message_from_bytes(raw, policy=email_policy.default)
+    for part in msg.walk():
+        if part.get_filename() == name:
+            part["X-GigaMail-Removed"] = "executable"
+            part["X-GigaMail-Original-Size"] = "1"
+    return msg.as_bytes()
+
+
+def test_a_marker_written_by_the_sender_does_not_keep_the_program(st):
+    """Review of #26: a part was trusted on the marker header alone, so a
+    sender who wrote it got the program archived whole."""
+    st.salva(1, _with_forged_marker(_mime([EXE, PDF_ATT]), "invoice.pdf.exe"))
+    assert PROGRAM not in _payload_on_disk(st, "invoice.pdf.exe")
+    assert _payload_on_disk(st, "price-list.pdf") == PDF
+    raw = _on_disk(st).decode("utf-8", "replace")
+    # one marker, ours, with the real size and hash
+    assert raw.count("X-GigaMail-Removed") == 1
+    assert hashlib.sha256(PROGRAM).hexdigest() in raw
+    assert f"X-GigaMail-Original-Size: {len(PROGRAM)}" in raw
+
+
+def test_the_later_cleaning_does_not_trust_the_marker_either(st, monkeypatch):
+    monkeypatch.setattr(archivio, "without_executables", lambda raw: raw)
+    st.salva(1, _with_forged_marker(_mime([EXE]), "invoice.pdf.exe"))
+    assert _payload_on_disk(st, "invoice.pdf.exe") == PROGRAM
+    monkeypatch.undo()
+
+    assert st.remove_executables() == 1
+    assert PROGRAM not in _payload_on_disk(st, "invoice.pdf.exe")
+
+
+def test_the_archive_never_hands_out_a_program_even_if_it_kept_one(st, monkeypatch):
+    monkeypatch.setattr(archivio, "without_executables", lambda raw: raw)
+    mid, _ = st.salva(1, _with_forged_marker(_mime([EXE]), "invoice.pdf.exe"))
+    with pytest.raises(archivio.AttachmentRemoved):
+        archivio.leggi_allegato(1, f"{archivio.PREFISSO_ID}{mid}", "invoice.pdf.exe")
+
+
+def test_a_forged_marker_on_a_document_is_not_reported_as_removed(st):
+    mid, _ = st.salva(1, _with_forged_marker(_mime([PDF_ATT]), "price-list.pdf"))
+    msg = archivio.leggi(1, f"{archivio.PREFISSO_ID}{mid}")
+    att = msg["attachments"][0]
+    assert "removed" not in att and att["size"] == len(PDF)
+    data, _ = archivio.leggi_allegato(1, f"{archivio.PREFISSO_ID}{mid}", "price-list.pdf")
+    assert data == PDF
+
+
+def test_a_program_named_only_in_the_content_type_is_removed(st):
+    """filename= says .pdf, name= says .exe: some programs save the file
+    under the second one."""
+    m = email.message_from_bytes(_mime([EXE]), policy=email_policy.default)
+    for part in m.walk():
+        if part.get_filename() == "invoice.pdf.exe":
+            part.set_param("filename", "invoice.pdf", header="content-disposition")
+            part.set_param("name", "invoice.exe", header="content-type")
+    st.salva(1, m.as_bytes())
+    msg = email.message_from_bytes(_on_disk(st), policy=email_policy.default)
+    parts = [p for p in msg.walk() if p.get("X-GigaMail-Removed")]
+    assert len(parts) == 1
+    assert PROGRAM not in (parts[0].get_payload(decode=True) or b"")
 
 # ── the MCP tools ───────────────────────────────────────────────────
 

@@ -322,7 +322,11 @@ the program is not something the agent can get from it:
   to download, open or run the file nor look for it elsewhere.
 - **The archive keeps the mail, not the program.** The part is replaced by
   a short note with the original name, type, size and SHA-256. Mail
-  archived before this change is cleaned once per watcher process.
+  archived before this change is cleaned once per watcher process. The
+  note's marker header is trusted only when the part's content is exactly
+  the note, because a sender can write the header on a real program; a
+  file name in either Content-Disposition or Content-Type counts, and the
+  archive never hands out an executable's bytes whatever its headers say.
 - **The local API releases it only to a person.** The console token is in a
   file any process of the user can read; for an executable,
   `GET /mail/{id}/attachment/{name}` needs the console's click secret or

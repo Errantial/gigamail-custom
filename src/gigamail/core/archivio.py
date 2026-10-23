@@ -38,7 +38,7 @@ import sqlite3
 import time
 from datetime import datetime, timezone
 from email import policy as email_policy
-from email.utils import getaddresses, parsedate_to_datetime
+from email.utils import collapse_rfc2231_value, getaddresses, parsedate_to_datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -64,6 +64,37 @@ _REMOVED_NOTE = (
 
 class AttachmentRemoved(ValueError):
     """The archive holds no bytes for this attachment (executable)."""
+
+
+def _is_our_note(part) -> bool:
+    """True only for a part GigaMail itself wrote in place of an executable.
+
+    The marker header alone proves nothing: whoever sends the mail can
+    write X-GigaMail-Removed on a real program, and a part trusted on the
+    header was skipped by the cleaning and kept whole on disk. A part is
+    ours when it carries the marker AND its content is exactly the note,
+    so no program bytes can hide behind it."""
+    if not part.get(REMOVED_HEADER) or part.get_content_type() != "text/plain":
+        return False
+    try:
+        return str(part.get_content()).replace("\r\n", "\n") == _REMOVED_NOTE
+    except Exception:
+        return False
+
+
+def _executable_name(part) -> str:
+    """The part's executable file name, or "" when it has none.
+
+    The name can be written twice, in Content-Disposition (filename=) and
+    in Content-Type (name=), and programs differ on which one they use to
+    save the file: a part is executable when either name is."""
+    names = [part.get_filename(), part.get_param("name", header="content-type")]
+    for name in names:
+        if isinstance(name, tuple):   # RFC 2231 (charset, language, value)
+            name = collapse_rfc2231_value(name)
+        if mail_guard.is_executable_name(name):
+            return str(name)
+    return ""
 
 # Il prefisso degli id restituiti dall'archivio. Non puo' collidere con un
 # UID IMAP (solo cifre) ne' con un id Graph (base64 senza trattini a
@@ -670,7 +701,7 @@ def messaggio(riga: Dict[str, Any], raw: bytes) -> Dict[str, Any]:
         piano, html, tipo = "", "", "text"
     allegati = []
     for p in _allegati(msg):
-        if p.get(REMOVED_HEADER):
+        if _is_our_note(p):
             try:
                 size = int(p.get(_ORIGINAL_SIZE) or 0)
             except ValueError:
@@ -710,7 +741,9 @@ def allegato(raw: bytes, filename: str) -> Tuple[bytes, str]:
     msg = email.message_from_bytes(raw, policy=email_policy.default)
     for p in _allegati(msg):
         if _nome_allegato(p) == filename:
-            if p.get(REMOVED_HEADER):
+            # Never the bytes of a program, whatever its headers claim: a
+            # mail whose cleaning failed still does not hand one out.
+            if _is_our_note(p) or _executable_name(p):
                 raise AttachmentRemoved(
                     f'The archive does not keep "{filename}": it is an executable file.')
             return p.get_payload(decode=True) or b"", p.get_content_type()
@@ -731,13 +764,19 @@ def without_executables(raw: bytes) -> bytes:
         msg = email.message_from_bytes(raw, policy=email_policy.default)
         removed = 0
         for p in _allegati(msg):
-            nome = _nome_allegato(p)
-            if p.get(REMOVED_HEADER) or not mail_guard.is_executable_name(nome):
+            if _is_our_note(p):
+                continue
+            nome = _executable_name(p)
+            if not nome:
                 continue
             dati = p.get_payload(decode=True) or b""
             tipo = p.get_content_type()
             p.set_content(_REMOVED_NOTE, subtype="plain", disposition="attachment",
                           filename=nome)
+            # Markers the sender may have written are dropped, so the part
+            # carries ours only, once.
+            for header in (REMOVED_HEADER, _ORIGINAL_TYPE, _ORIGINAL_SIZE, _ORIGINAL_SHA256):
+                del p[header]
             p[REMOVED_HEADER] = "executable"
             p[_ORIGINAL_TYPE] = tipo
             p[_ORIGINAL_SIZE] = str(len(dati))
