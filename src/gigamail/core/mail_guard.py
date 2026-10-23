@@ -32,13 +32,44 @@ _NOREPLY_LOCALPARTS = (
     "mailer-daemon", "postmaster", "bounce", "bounces",
 )
 
+# Files that run something when opened: programs, installers, scripts,
+# shortcuts and disk images (Windows mounts them with a double click and
+# shows the program inside). One list for every place that must not hand
+# such a file to an agent or open it for the user: the archive keeps no
+# bytes of them, the console never opens them, the local API releases them
+# only to a click in the console or after Windows Hello / Touch ID, and
+# read_attachment does not even download them. console/attachment_guard.js
+# carries the same list for the console's main process; a test keeps the
+# two equal.
+EXECUTABLE_EXTENSIONS = (
+    # Windows programs, installers and libraries
+    ".exe", ".com", ".scr", ".pif", ".msi", ".msp", ".dll", ".cpl",
+    ".appx", ".msix", ".appinstaller",
+    # scripts the system runs on a double click
+    ".bat", ".cmd", ".js", ".jse", ".vbs", ".vbe", ".wsf", ".wsh",
+    ".ps1", ".psm1", ".hta", ".jar", ".reg",
+    # shortcuts and disk images
+    ".lnk", ".iso", ".img", ".vhd", ".vhdx",
+    # macOS
+    ".app", ".pkg", ".dmg", ".command",
+)
+
 # Estensioni che non devono mai innescare una risposta automatica:
 # eseguibili, script, archivi (possono contenere entrambi), immagini disco.
-_BLOCKED_EXTENSIONS = (
-    ".exe", ".bat", ".cmd", ".com", ".scr", ".pif", ".msi", ".dll",
-    ".js", ".jse", ".vbs", ".vbe", ".wsf", ".ps1", ".hta", ".jar",
-    ".zip", ".rar", ".7z", ".tar", ".gz", ".iso", ".img", ".lnk",
-)
+_BLOCKED_EXTENSIONS = EXECUTABLE_EXTENSIONS + (".zip", ".rar", ".7z", ".tar", ".gz")
+
+
+def _normalized_name(name: Any) -> str:
+    # Windows drops trailing dots and spaces from a file name, so
+    # "invoice.exe." and "invoice.exe " run as "invoice.exe".
+    return str(name or "").strip().lower().rstrip(". ")
+
+
+def is_executable_name(name: Any) -> bool:
+    """True when a file with this name would run something if opened.
+    Double extensions count by their last part: "invoice.pdf.exe" is a
+    program."""
+    return _normalized_name(name).endswith(EXECUTABLE_EXTENSIONS)
 
 # Un corpo oltre questa soglia non e' una mail da rispondere in automatico.
 MAX_BODY_CHARS = 200_000
@@ -131,10 +162,9 @@ def provider_says_spam(headers: Dict[str, List[str]]) -> bool:
 
 def has_blocked_attachment(message: Dict[str, Any]) -> Optional[str]:
     for att in message.get("attachments") or []:
-        name = str((att or {}).get("name") or "").lower()
-        for ext in _BLOCKED_EXTENSIONS:
-            if name.endswith(ext):
-                return name
+        name = _normalized_name((att or {}).get("name"))
+        if name.endswith(_BLOCKED_EXTENSIONS):
+            return name
     return None
 
 

@@ -9,6 +9,7 @@ const Database = require('better-sqlite3');
 const { restartReason, pidFromNetstat, pidFromLsof } = require('./backend_reuse');
 const appPaths = require('./app_paths');
 const { mt, setLang } = require('./main_i18n');
+const { isExecutableName } = require('./attachment_guard');
 
 let mainWindow;
 // Finestre di composizione come figlie della principale: Windows le tiene
@@ -920,6 +921,11 @@ const os = require('os');
 ipcMain.handle('mail-attachment-open', async (_evt, { name, bytes }) => {
   try {
     const safe = (name || 'allegato').replace(/[\\/:*?"<>|]/g, '_');
+    // Opening a program means running it: never from here, whichever
+    // window asks. "Save as" stays (attachment_guard.js).
+    if (isExecutableName(name) || isExecutableName(safe)) {
+      return { ok: false, blocked: true, error: mt('attachment_exec_blocked') };
+    }
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ade-att-'));
     const filePath = path.join(dir, safe);
     fs.writeFileSync(filePath, Buffer.from(bytes));

@@ -12,6 +12,7 @@ const TEXTS = {
     title_reply: 'Nuova risposta', title_new_mail: 'Nuova mail', title_approval: 'Richiesta da approvare',
     title_calendar: 'GigaMail — Calendario', title_marketing: 'GigaMail — Marketing',
     title_ask: 'Chiedi alle mail',
+    attachment_exec_blocked: 'è un file che avvia un programma: GigaMail non lo apre. Se ti serve davvero, usa «Salva con nome».',
   },
   en: {
     menu_cut: 'Cut', menu_copy: 'Copy', menu_paste: 'Paste', menu_select_all: 'Select all',
@@ -22,6 +23,7 @@ const TEXTS = {
     title_reply: 'New reply', title_new_mail: 'New mail', title_approval: 'Request to approve',
     title_calendar: 'GigaMail — Calendar', title_marketing: 'GigaMail — Marketing',
     title_ask: 'Ask your mail',
+    attachment_exec_blocked: 'this file starts a program, so GigaMail does not open it. If you really need it, use "Save as".',
   },
   zh: {
     menu_cut: '剪切', menu_copy: '复制', menu_paste: '粘贴', menu_select_all: '全选',
@@ -32,6 +34,7 @@ const TEXTS = {
     title_reply: '新回复', title_new_mail: '新邮件', title_approval: '待批准的请求',
     title_calendar: 'GigaMail — 日历', title_marketing: 'GigaMail — 营销',
     title_ask: '询问邮件',
+    attachment_exec_blocked: '该文件会启动程序，GigaMail 不会打开它。如确有需要，请使用“另存为”。',
   },
 };
 

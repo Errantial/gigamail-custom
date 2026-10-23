@@ -154,7 +154,10 @@ async function loadMail(id, folder, accountId, preloadedMsg = null) {
 
     async function openAttachment(att) {
       try {
-        const bytes = await fetchAttachmentBytes(att);
+        // A program is never opened (main.js refuses it): ask without
+        // fetching its bytes, so the refusal is all that happens.
+        const exe = window.GMAttachmentGuard?.isExecutableName(att.name);
+        const bytes = exe ? new Uint8Array(0) : await fetchAttachmentBytes(att);
         const res = await window.mailWindowAPI?.openAttachment(att.name, bytes);
         if (res && !res.ok && !res.canceled) alert(T('mv_cannot_open', 'Impossibile aprire') + ': ' + (res.error || T('mv_error_lower', 'errore')));
       } catch (e) { alert(T('mv_attachment_open_error', 'Errore apertura allegato') + ': ' + e.message); }

@@ -131,7 +131,19 @@ class Watcher:
         Outlook. Un server lento o un Outlook assente non fermano il
         watcher: si riprova al giro dopo."""
         from gigamail.core import accounts as core_accounts
-        from gigamail.core import archivio_sync, outlook_import
+        from gigamail.core import archivio, archivio_sync, outlook_import
+
+        # Once per watcher process: mail archived before the archive
+        # stopped keeping executables still holds them on disk.
+        if not getattr(self, "_executables_removed", False):
+            self._executables_removed = True
+            try:
+                tolti = archivio.store().remove_executables()
+                if tolti:
+                    _log(f"archive: executable attachments removed from {tolti} "
+                         "mails archived earlier", self.verbose)
+            except Exception as e:
+                _log(f"archive: executable attachments not checked: {e}", self.verbose)
 
         nuovi = 0
         for a in core_accounts.get_accounts():

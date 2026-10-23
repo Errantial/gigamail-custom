@@ -304,6 +304,56 @@ and neither survives in a deleted database.
   with a sharpening from **u/anderson_the_one** on binding approval to the
   exact operation shown. Thank you both.
 
+## Executable attachments, and agents that hold a shell
+
+GigaMail is also used as an MCP server from harnesses (Hermes, OpenClaw,
+Claude Code, Codex) whose agent can run commands. A mail that says
+"download the attachment and install it" next to a program is read by that
+agent, with whatever model the user put in it. The approval gate does not
+cover this: running a file is not a GigaMail action. So GigaMail makes sure
+the program is not something the agent can get from it:
+
+- **`read_attachment` does not download an executable.** It answers that
+  the file is a program and is not handed to agents. Other attachments are
+  still downloaded to a temporary file, turned into text and deleted.
+- **`read_message` marks it.** Executable attachments carry
+  `"executable": true` and the result carries a `warning`, written after
+  the mail rather than only in the tool description, telling the agent not
+  to download, open or run the file nor look for it elsewhere.
+- **The archive keeps the mail, not the program.** The part is replaced by
+  a short note with the original name, type, size and SHA-256. Mail
+  archived before this change is cleaned once per watcher process. The
+  note's marker header is trusted only when the part's content is exactly
+  the note, because a sender can write the header on a real program; a
+  file name in either Content-Disposition or Content-Type counts, and the
+  archive never hands out an executable's bytes whatever its headers say.
+- **The local API releases it only to a person.** The console token is in a
+  file any process of the user can read; for an executable,
+  `GET /mail/{id}/attachment/{name}` needs the console's click secret or
+  Windows Hello / Touch ID, and is audited either way.
+- **The console never opens one.** "Open" on a program means running it;
+  the console's main process refuses it whichever window asks. "Save as"
+  still works.
+
+"Executable" is one list, `mail_guard.EXECUTABLE_EXTENSIONS` (programs,
+installers, scripts, shortcuts, disk images), kept equal to
+`console/attachment_guard.js` by a test. A trailing dot or space and a
+double extension (`invoice.pdf.exe`) do not hide it. Archives (`.zip`,
+`.rar`, `.7z`) are not on it: they are kept, and auto-reply rules still
+skip them.
+
+What this does not stop, stated plainly:
+
+- **The words still reach the model.** The body of the mail is returned as
+  it is; the warning is advice to the model, not a barrier. An agent can
+  still be talked into something that does not go through GigaMail.
+- **A link in the mail.** An agent with a shell and network access can
+  download a file from the web by itself.
+- **Everything else on the machine.** See "An agent with shell access using
+  something other than GigaMail" above. If you connect GigaMail to an agent
+  that runs commands, keep its command approvals on, or run its commands in
+  a container that cannot see GigaMail's data folder.
+
 ## The desktop console
 
 The Windows app (0.3) renders mail written by strangers, so its renderer is

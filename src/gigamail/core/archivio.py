@@ -38,13 +38,63 @@ import sqlite3
 import time
 from datetime import datetime, timezone
 from email import policy as email_policy
-from email.utils import getaddresses, parsedate_to_datetime
+from email.utils import collapse_rfc2231_value, getaddresses, parsedate_to_datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from . import mail_guard
 from .html_text import html_to_text
 
 logger = logging.getLogger("gigamail.archivio")
+
+# An executable attachment is not kept in the archive: its part is replaced
+# by a short note carrying these headers, so the mail still shows that the
+# file was there, how big it was and its hash.
+REMOVED_HEADER = "X-GigaMail-Removed"
+_ORIGINAL_TYPE = "X-GigaMail-Original-Type"
+_ORIGINAL_SIZE = "X-GigaMail-Original-Size"
+_ORIGINAL_SHA256 = "X-GigaMail-Original-SHA256"
+_REMOVED_NOTE = (
+    "GigaMail did not keep this attachment: it is a file that runs a program "
+    "when opened. Its name, size and SHA-256 are in this part's headers. If "
+    "you really need it and the server still has the mail, save it from the "
+    "console with \"Save as\".\n"
+)
+
+
+class AttachmentRemoved(ValueError):
+    """The archive holds no bytes for this attachment (executable)."""
+
+
+def _is_our_note(part) -> bool:
+    """True only for a part GigaMail itself wrote in place of an executable.
+
+    The marker header alone proves nothing: whoever sends the mail can
+    write X-GigaMail-Removed on a real program, and a part trusted on the
+    header was skipped by the cleaning and kept whole on disk. A part is
+    ours when it carries the marker AND its content is exactly the note,
+    so no program bytes can hide behind it."""
+    if not part.get(REMOVED_HEADER) or part.get_content_type() != "text/plain":
+        return False
+    try:
+        return str(part.get_content()).replace("\r\n", "\n") == _REMOVED_NOTE
+    except Exception:
+        return False
+
+
+def _executable_name(part) -> str:
+    """The part's executable file name, or "" when it has none.
+
+    The name can be written twice, in Content-Disposition (filename=) and
+    in Content-Type (name=), and programs differ on which one they use to
+    save the file: a part is executable when either name is."""
+    names = [part.get_filename(), part.get_param("name", header="content-type")]
+    for name in names:
+        if isinstance(name, tuple):   # RFC 2231 (charset, language, value)
+            name = collapse_rfc2231_value(name)
+        if mail_guard.is_executable_name(name):
+            return str(name)
+    return ""
 
 # Il prefisso degli id restituiti dall'archivio. Non puo' collidere con un
 # UID IMAP (solo cifre) ne' con un id Graph (base64 senza trattini a
@@ -391,7 +441,10 @@ class ArchiveStore:
         (quella del server vince su quella ricostruita da Outlook)."""
         if source not in FONTI:
             raise ValueError(f"fonte sconosciuta: {source}")
+        # The fields (and the key, which may be a hash of the bytes) come
+        # from the mail as it arrived; the file on disk keeps no executable.
         campi = analizza(raw, ripiego_data)
+        raw = without_executables(raw)
         chiave = campi["message_key"]
         with self._conn() as conn:
             riga = conn.execute(
@@ -432,6 +485,31 @@ class ArchiveStore:
                  campi["attachment_names"], campi["body_text"],
                  campi["size"], str(percorso), source, time.time()))
             return int(cur.lastrowid), True
+
+    def remove_executables(self) -> int:
+        """Take the executable attachments out of mail archived before the
+        archive stopped keeping them. Only rows whose attachment names
+        include an executable are opened; a file already cleaned is left
+        alone. Returns how many files were rewritten."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT raw_path, attachment_names FROM messages"
+                " WHERE attachment_names <> ''").fetchall()
+        rewritten = 0
+        for r in rows:
+            names = [n for n in (r["attachment_names"] or "").split(" | ") if n]
+            if not any(mail_guard.is_executable_name(n) for n in names):
+                continue
+            path = Path(r["raw_path"])
+            try:
+                raw = gzip.decompress(path.read_bytes())
+                clean = without_executables(raw)
+                if clean != raw:
+                    path.write_bytes(gzip.compress(clean))
+                    rewritten += 1
+            except Exception as e:
+                logger.warning("archive file not cleaned (%s): %s", path.name, e)
+        return rewritten
 
     # -- stato della sincronizzazione ------------------------------------
 
@@ -623,6 +701,15 @@ def messaggio(riga: Dict[str, Any], raw: bytes) -> Dict[str, Any]:
         piano, html, tipo = "", "", "text"
     allegati = []
     for p in _allegati(msg):
+        if _is_our_note(p):
+            try:
+                size = int(p.get(_ORIGINAL_SIZE) or 0)
+            except ValueError:
+                size = 0
+            allegati.append({"name": _nome_allegato(p), "size": size,
+                             "type": str(p.get(_ORIGINAL_TYPE) or "application/octet-stream"),
+                             "removed": True})
+            continue
         dati = p.get_payload(decode=True) or b""
         allegati.append({"name": _nome_allegato(p), "size": len(dati),
                          "type": p.get_content_type()})
@@ -654,8 +741,51 @@ def allegato(raw: bytes, filename: str) -> Tuple[bytes, str]:
     msg = email.message_from_bytes(raw, policy=email_policy.default)
     for p in _allegati(msg):
         if _nome_allegato(p) == filename:
+            # Never the bytes of a program, whatever its headers claim: a
+            # mail whose cleaning failed still does not hand one out.
+            if _is_our_note(p) or _executable_name(p):
+                raise AttachmentRemoved(
+                    f'The archive does not keep "{filename}": it is an executable file.')
             return p.get_payload(decode=True) or b"", p.get_content_type()
     raise ValueError(f"Allegato non trovato nell'archivio: {filename}")
+
+
+def without_executables(raw: bytes) -> bytes:
+    """The mail with every executable attachment replaced by a short note.
+
+    The archive keeps every mail whole, and a program sent by mail would
+    sit on disk where any process of the user can unpack it, an agent with
+    a shell that a hostile mail told to "install the attachment" included.
+    Name, type, size and SHA-256 stay in the note's headers. A mail with no
+    executable comes back byte for byte; one that cannot be parsed comes
+    back as it is, because analizza could not read its attachments either.
+    """
+    try:
+        msg = email.message_from_bytes(raw, policy=email_policy.default)
+        removed = 0
+        for p in _allegati(msg):
+            if _is_our_note(p):
+                continue
+            nome = _executable_name(p)
+            if not nome:
+                continue
+            dati = p.get_payload(decode=True) or b""
+            tipo = p.get_content_type()
+            p.set_content(_REMOVED_NOTE, subtype="plain", disposition="attachment",
+                          filename=nome)
+            # Markers the sender may have written are dropped, so the part
+            # carries ours only, once.
+            for header in (REMOVED_HEADER, _ORIGINAL_TYPE, _ORIGINAL_SIZE, _ORIGINAL_SHA256):
+                del p[header]
+            p[REMOVED_HEADER] = "executable"
+            p[_ORIGINAL_TYPE] = tipo
+            p[_ORIGINAL_SIZE] = str(len(dati))
+            p[_ORIGINAL_SHA256] = hashlib.sha256(dati).hexdigest()
+            removed += 1
+        return msg.as_bytes() if removed else raw
+    except Exception as e:
+        logger.warning("executable attachments not checked, mail archived as it is: %s", e)
+        return raw
 
 
 # ── ACCESSO CONDIVISO ────────────────────────────────────────────────
