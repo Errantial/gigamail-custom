@@ -397,7 +397,9 @@ async function openMail(id, overrideFolder = null) {
         return new Uint8Array(await r.arrayBuffer());
       }
       async function openAtt(att) {
-        try { const b = await fetchBytes(att); const res = await window.electronAPI?.openAttachment(att.name, b);
+        // a program is never opened (main.js refuses it): no need to fetch it
+        const exe = window.GMAttachmentGuard?.isExecutableName(att.name);
+        try { const b = exe ? new Uint8Array(0) : await fetchBytes(att); const res = await window.electronAPI?.openAttachment(att.name, b);
           if (res && !res.ok && !res.canceled) alert(T('mv_cannot_open','Impossibile aprire') + ': ' + (res.error||T('mv_error_lower','errore'))); }
         catch(e){ alert(T('mv_open_error','Errore apertura') + ': ' + e.message); }
       }

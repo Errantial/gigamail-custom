@@ -7,12 +7,15 @@ from urllib.parse import quote
 from fastapi import APIRouter, HTTPException, Path, Request, Response
 from pydantic import BaseModel, Field
 
+from gigamail import consent, policy
 from gigamail.core import (
+    mail_guard,
     mail_memory,
     mail_router,
     signature,
 )
 
+from . import console_click
 from .addresses import _remember_message_addresses, _save_address
 from .common import _active_id, _human_action, _user_action
 
@@ -257,13 +260,40 @@ def send_mail(req: SendRequest, request: Request, account_id: Optional[int] = No
     return result
 
 
+def _release_executable(filename: str, message_id: str, request: Optional[Request]) -> None:
+    """An executable attachment leaves the backend only for a person.
+
+    The console token sits in a file any process of the user can read, an
+    agent with a shell included: holding it proves a process, not a person.
+    A click in the console carries the click secret; any other caller meets
+    Windows Hello / Touch ID, and without a person nothing is released."""
+    if request is not None and console_click.is_console_click(request.headers):
+        policy.audit("download_attachment", {"message_id": message_id, "filename": filename},
+                     "executable_released", detail="console click")
+        return
+    try:
+        approved = consent.require_human(
+            f'GigaMail: release the executable attachment "{filename}"')
+    except consent.ConsentUnavailable as e:
+        raise HTTPException(503, str(e)) from e
+    outcome = "executable_released" if approved else "executable_refused"
+    policy.audit("download_attachment", {"message_id": message_id, "filename": filename},
+                 outcome, detail="os verification")
+    if not approved:
+        raise HTTPException(403, f'"{filename}" is an executable file: '
+                                 "releasing it needs the user's verification.")
+
+
 @router.get("/mail/{message_id}/attachment/{filename:path}")
 def download_attachment(message_id: str, filename: str, folder: str = "",
-                        account_id: Optional[int] = None):
+                        account_id: Optional[int] = None, request: Request = None):
     """I byte di un allegato, per "apri" e "salva con nome" della console.
     Mancava del tutto: la console chiedeva questa URL e riceveva 404 su
     qualunque allegato. Il provider (Graph o IMAP) restituisce
-    (bytes, content_type); il nome viaggia percent-encoded nel percorso."""
+    (bytes, content_type); il nome viaggia percent-encoded nel percorso.
+    An executable attachment needs a console click or the OS prompt."""
+    if mail_guard.is_executable_name(filename):
+        _release_executable(filename, message_id, request)
     aid = account_id or _active_id()
     try:
         data = mail_router.get_attachment(account_id=aid, message_id=message_id,

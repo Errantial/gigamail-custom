@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- **Executable attachments never reach an agent and are never opened.**
+  GigaMail also runs inside harnesses whose agent holds a shell, and a
+  mail saying "install the attachment" next to a program was read by that
+  agent; the program itself sat whole in the archive, and "Open" in the
+  console would have run it. Now, for programs, installers, scripts,
+  shortcuts and disk images (`mail_guard.EXECUTABLE_EXTENSIONS`):
+  - `read_attachment` does not download them, and `read_message` marks
+    them (`"executable": true`) and adds a `warning` after the mail;
+  - the archive keeps the mail but replaces the file with a note holding
+    its name, size and SHA-256; mail archived earlier is cleaned once per
+    watcher start;
+  - the local API releases one only to a click in the console or after
+    Windows Hello / Touch ID, and audits it;
+  - the console refuses to open one; "Save as" still works.
+  Auto-reply rules skip the same files, plus archives. See SECURITY.md.
 - **Knowledge files are searched by what they say.** Files used to be
   picked by name, and a rule's document entered the draft only up to
   its first 8000 characters: a price that sat on row 400 of a long list
