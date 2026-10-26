@@ -26,6 +26,19 @@
   which reaches the CLI on its stdin. No terminal is opened. New routes:
   `GET/POST /agent/claude/login`, `POST /agent/claude/login/code`.
 
+- **Toasts always have something to press, or say why not.** Past three
+  requests in one watcher tick, the summary toast had no button: it now
+  has **Open**, which brings up *Waiting for you* in the console (a new
+  `gigamail://pending` link; without the console the CLI lists the
+  requests). A toast that loses its Approve / Reject buttons because
+  `gigamail://` is not registered for this installation (for example
+  HKLM still opening the old `ade_mail_agent` CLI) now says so, with
+  where to turn them on (Automations → Desktop notifications → Enable
+  buttons); the audit records it as `desktop, no buttons: …` and the
+  console's status names an old registration.
+- **A spam filter that moved a mail no longer stops the watcher's tick.**
+  The log line after the move raised an error, so the rules and the
+  archive of that tick were skipped until the next one.
 - **Executable attachments never reach an agent and are never opened.**
   GigaMail also runs inside harnesses whose agent holds a shell, and a
   mail saying "install the attachment" next to a program was read by that
