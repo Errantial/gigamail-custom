@@ -1627,10 +1627,39 @@ def cmd_google_calendar(args) -> int:
     return 0
 
 
+def cmd_send_mode(args):
+    import json
+
+    from gigamail.core import send_config
+    if args.mode:
+        if args.account_id is not None and not _core_accounts.get_account_by_id(args.account_id):
+            print("Account not found")
+            return 1
+        send_config.configure(args.mode, args.account_id)
+    print(json.dumps(send_config.status(args.account_id)))
+    return 0
+
+
+def cmd_doctor(args):
+    import json
+
+    from gigamail.diagnostics import report
+    result = report(args.connectivity)
+    print(json.dumps(result, indent=2))
+    return int(any(a["connectivity"] == "failed" for a in result["accounts"]))
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="gigamail")
     sub = parser.add_subparsers(dest="command", required=True)
 
+    mode = sub.add_parser("send-mode", help="Show or configure MCP email approval mode")
+    mode.add_argument("mode", nargs="?", choices=("approval", "immediate", "inherit"))
+    mode.add_argument("--account-id", type=int)
+    mode.set_defaults(fn=cmd_send_mode)
+    doctor = sub.add_parser("doctor", help="Show credential-free setup diagnostics")
+    doctor.add_argument("--connectivity", action="store_true", help="Check provider access without sending mail")
+    doctor.set_defaults(fn=cmd_doctor)
     sub.add_parser("login").set_defaults(fn=cmd_login)
     sub.add_parser("logout").set_defaults(fn=cmd_logout)
 

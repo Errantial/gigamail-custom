@@ -141,6 +141,28 @@ def audit(tool: str, args: Dict[str, Any], outcome: str, detail: str = "",
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
+def safe_audit(*args, **kwargs):
+    """Post-operation logging must never change a known provider result."""
+    import logging
+    try:
+        audit_fn = kwargs.pop("audit_fn", audit)
+        audit_fn(*args, **kwargs)
+        return True
+    except Exception:
+        logging.getLogger(__name__).exception("Cannot record action outcome")
+        return False
+
+
+def _record_outcome(request_id, outcome, provider_result=None):
+    import logging
+    try:
+        store().record_outcome(request_id, outcome, provider_result)
+        return True
+    except Exception:
+        logging.getLogger(__name__).exception("Cannot update approval outcome")
+        return False
+
+
 def notifications_of(request_ids, max_lines: int = 20000) -> Dict[str, List[Dict[str, str]]]:
     """For each request: the notification lines of the audit log, newest
     last: [{"channel": "telegram", "ok": False, "error": "..."}]. Read
@@ -315,6 +337,20 @@ class ApprovalStore:
             d["preview"] = json.loads(d.pop("preview_json"))
             out.append(d)
         return out
+
+    def badge_summary(self, since_ts):
+        """Counter metadata only: do not parse message bodies for badge refreshes."""
+        now = time.time()
+        with self._conn() as conn:
+            pending = conn.execute("SELECT COUNT(*) FROM approvals WHERE status=? AND expires_at>?",
+                                   (PENDING, now)).fetchone()[0]
+            rows = conn.execute(
+                "SELECT status, created_at, decided_at, expires_at, execution_outcome FROM approvals WHERE"
+                " (status != ? AND COALESCE(decided_at, created_at) > ?)"
+                " OR (status = ? AND expires_at <= ? AND expires_at > ?)"
+                " ORDER BY COALESCE(decided_at, expires_at) DESC LIMIT 50",
+                (PENDING, since_ts, PENDING, now, since_ts)).fetchall()
+        return {"pending_count": pending, "recent": [dict(row) for row in rows]}
 
     def list_approved(self) -> List[Dict[str, Any]]:
         """Approved and still valid, not consumed yet: what someone said
@@ -1107,15 +1143,25 @@ def execute_dangerous(
     # Da qui in poi registriamo cosa e' successo DAVVERO — sulla riga e
     # nell'audit — perche' "consumata" non vuol dire "consegnata".
     try:
-        result = execute_fn(canonical_args)
+        if tool in {"send_mail", "reply_mail"}:
+            from gigamail.core.outbound import operation_key, reply_key
+            fallback = (reply_key(canonical_args.get("message_id"), canonical_args.get("folder"))
+                        if tool == "reply_mail" else request_id)
+            with operation_key(canonical_args.get("idempotency_key") or fallback):
+                result = execute_fn(canonical_args)
+        else:
+            result = execute_fn(canonical_args)
     except Exception as e:
-        store().record_outcome(request_id, "failed", {"error": str(e)})
-        audit(tool, canonical_args, "error", str(e))
+        _record_outcome(request_id, "unknown" if tool in {"send_mail", "reply_mail"} else "failed", {"error": str(e)})
+        safe_audit(tool, canonical_args, "error", str(e))
         raise
     provider_result = result.get("provider_result") if isinstance(result, dict) else None
     ok = (result.get("success", True) if isinstance(result, dict) else bool(result))
-    store().record_outcome(request_id, "ok" if ok else "failed", provider_result)
-    audit(tool, canonical_args, "executed" if ok else "executed_with_error",
+    outcome = "unknown" if isinstance(result, dict) and result.get("submission_state") == "unknown" else ("ok" if ok else "failed")
+    recorded = _record_outcome(request_id, outcome, provider_result)
+    logged = safe_audit(tool, canonical_args, "executed" if ok else "executed_with_error",
           detail="" if ok else str((result or {}).get("error", "")),
           provider_result=provider_result)
+    if isinstance(result, dict) and not (recorded and logged):
+        result["audit_warning"] = "Outcome tracking unavailable; preserve the provider result"
     return result

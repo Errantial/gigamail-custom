@@ -229,6 +229,18 @@ class SendRequest(BaseModel):
     attachments: Optional[List[AttachmentRequest]] = None
     reply_to_id: Optional[str] = None
     account_id: Optional[int] = None
+    idempotency_key: Optional[str] = Field(None, min_length=1, max_length=200)
+
+
+@router.get("/mail/operations/{operation_id}")
+def get_outbound_operation(operation_id: str, account_id: int):
+    from gigamail.core import outbound
+    record = outbound.store().get(account_id, operation_id)
+    if not record:
+        raise HTTPException(404, "Operation not found")
+    import json
+    return {"operation_id": record["operation_id"], "state": record["state"],
+            "result": json.loads(record["result"]) if record["result"] else None}
 
 
 @router.post("/mail/send")

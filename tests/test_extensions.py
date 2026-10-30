@@ -70,7 +70,8 @@ def test_invio_con_appuntamenti_spenti_non_chiama_l_agente(monkeypatch):
     monkeypatch.setattr(appointments, "dalla_mail_async", lambda *a: chiamate.append(a))
     esito = mail_router.send_message(account_id=2, to="c@example.com",
                                      subject="Visita", body="martedi' alle 10?")
-    assert esito == {"success": True}
+    assert esito["success"] is True
+    assert esito["submission_state"] == "accepted"
     assert chiamate == []
 
 

@@ -3,9 +3,9 @@ mail.py — Lettura, invio e gestione mail via Microsoft Graph API.
 """
 from typing import Dict, List
 
-import requests
-
+from . import http_transport as requests
 from .addresses import split_addresses
+from .attachments import validate_wire_attachment
 from .auth import get_token
 
 GRAPH_URL = 'https://graph.microsoft.com/v1.0'
@@ -19,7 +19,7 @@ def get_messages(folder: str = 'inbox', top: int = 20, skip: int = 0) -> List[Di
         '$select': 'id,subject,from,receivedDateTime,isRead,bodyPreview,hasAttachments',
         '$orderby': 'receivedDateTime desc',
     }
-    res = requests.get(url, headers=_headers(), params=params, timeout=30)
+    res = requests.get(url, headers=_headers(), params=params, timeout=(5, 30))
     res.raise_for_status()
     return res.json().get('value', [])
 
@@ -33,7 +33,7 @@ def count_unread(folder: str = 'inbox', since_iso: str = '', cap: int = 99) -> i
     if since_iso:
         flt += f' and receivedDateTime ge {since_iso}'
     params = {'$filter': flt, '$select': 'id', '$top': int(cap)}
-    res = requests.get(url, headers=_headers(), params=params, timeout=30)
+    res = requests.get(url, headers=_headers(), params=params, timeout=(5, 30))
     res.raise_for_status()
     return len(res.json().get('value', []))
 def get_message(message_id: str) -> Dict:
@@ -69,17 +69,15 @@ def get_message(message_id: str) -> Dict:
             print(f"[MAIL] attachments fetch error: {e}")
             msg['attachments'] = []
 
-    try:
-        mark_read(message_id)
-    except Exception:
-        pass
     return msg
 def mark_read(message_id: str):
     url = f'{GRAPH_URL}/me/messages/{message_id}'
-    requests.patch(url, headers=_headers(), json={'isRead': True})
+    res = requests.patch(url, headers=_headers(), json={'isRead': True})
+    res.raise_for_status()
 def set_read_status(message_id: str, is_read: bool = True):
     url = f'{GRAPH_URL}/me/messages/{message_id}'
-    requests.patch(url, headers=_headers(), json={'isRead': is_read})
+    res = requests.patch(url, headers=_headers(), json={'isRead': is_read})
+    res.raise_for_status()
 def get_message_headers(message_id: str):
     """Intestazioni internet del messaggio come {nome-minuscolo: [valori]},
     per le barriere anti-spam delle regole (mail_guard). None = non
@@ -113,20 +111,41 @@ def send_message(to: str, subject: str, body: str,
         """Converte [{name, data_b64, type}] in fileAttachment Graph."""
         out = []
         for a in (atts or []):
-            b64 = a.get('data_b64') or a.get('contentBytes')
-            if not b64:
-                continue
+            data, content_type = validate_wire_attachment(a)
+            if len(data) >= 3 * 1024 * 1024:
+                raise ValueError(f"Attachment {a['name']} exceeds the 3 MB inline limit")
+            b64 = a.get('data_b64') if a.get('data_b64') is not None else a.get('contentBytes')
             out.append({
                 '@odata.type': '#microsoft.graph.fileAttachment',
                 'name': a.get('name') or 'allegato',
-                'contentType': a.get('type') or 'application/octet-stream',
+                'contentType': content_type,
                 'contentBytes': b64,
             })
         return out
 
     graph_atts = _graph_attachments(attachments)
 
-    if reply_to_id and not graph_atts:
+    if reply_to_id and graph_atts:
+        # Create a reply draft so attachments do not turn a reply into a new thread.
+        from urllib.parse import quote
+        original = quote(str(reply_to_id), safe="")
+        draft = requests.post(f'{GRAPH_URL}/me/messages/{original}/createReply',
+                              headers=_headers(), json={})
+        draft.raise_for_status()
+        draft_id = quote(draft.json()['id'], safe="")
+        draft_url = f'{GRAPH_URL}/me/messages/{draft_id}'
+        updated = requests.patch(draft_url, headers=_headers(), json={
+            'body': {'contentType': 'Text', 'content': body},
+            'toRecipients': _recipients(split_addresses(to)),
+            'ccRecipients': _recipients(split_addresses(cc)),
+            'bccRecipients': _recipients(split_addresses(bcc)),
+        })
+        updated.raise_for_status()
+        for attachment in graph_atts:
+            added = requests.post(draft_url + '/attachments', headers=_headers(), json=attachment)
+            added.raise_for_status()
+        res = requests.post(draft_url + '/send', headers=_headers())
+    elif reply_to_id:
         # Reply senza allegati: endpoint /reply (mantiene il thread)
         url = f'{GRAPH_URL}/me/messages/{reply_to_id}/reply'
         # Explicit recipients override Graph's default Reply-To routing and
@@ -174,6 +193,7 @@ def send_message(to: str, subject: str, body: str,
         provider_result['error'] = f'HTTP {res.status_code}: {res.text[:300]}'
     return {
         'success': ok,
+        'submission_state': 'accepted' if ok else ('unknown' if res.status_code >= 500 else 'failed'),
         'provider': 'microsoft',
         'sent_copy_saved': ok,
         'warning': None,

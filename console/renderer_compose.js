@@ -506,7 +506,9 @@ async function handleNewMailAttachment() {
   renderPendingAttachments();
 }
 
+let inlineSendInFlight = false;
 async function sendNewMail() {
+  if (inlineSendInFlight) return;
   const to      = byId('newMailTo')?.value.trim() || '';
   const ccRaw   = byId('newMailCc')?.value.trim() || '';
   const bccRaw  = byId('newMailBcc')?.value.trim() || '';
@@ -517,7 +519,10 @@ async function sendNewMail() {
   const bcc     = ComposeView.splitAddresses(bccRaw);
   if (!to || !subject || !body) { if (status) status.textContent = T('cmp_fill_to_subject_body', 'Compila destinatario, oggetto e testo'); return; }
   if (status) status.textContent = T('cmp_sending', 'Invio in corso...');
+  inlineSendInFlight = true;
+  const scope = `inline:${activeAccountId}`;
   try {
+    const key = await window.MailSendAttempt.keyFor({accountId: activeAccountId, to, subject, body, cc, bcc, attachments:pendingAttachments}, scope);
     const result = await api.sendMail(
       to,
       subject,
@@ -528,7 +533,8 @@ async function sendNewMail() {
       activeAccountId,
       pendingAttachments,
       cc,
-      bcc
+      bcc,
+      key
     );
     // Simulazione (#14): niente e' partito, quindi testo e bozza restano.
     if (result.success && result.dryrun) {
@@ -537,9 +543,8 @@ async function sendNewMail() {
     }
     if (result.success) {
       if (status) {
-        status.textContent = result.sent_copy_saved === false
-          ? T('cmp_sent_not_saved_short', 'Mail inviata, ma non salvata in Inviate')
-          : T('cmp_mail_sent', 'Mail inviata!');
+        status.textContent = window.MailSendAttempt.message(result, document.documentElement.lang === 'it');
+        if (result.warning) status.textContent += ' ' + result.warning;
       }
       autosaveSignature = '';
       if (inlineDraftId) {
@@ -547,6 +552,7 @@ async function sendNewMail() {
         inlineDraftId = null;
       }
       setTimeout(() => {
+        window.MailSendAttempt.clear(scope);
         setHidden('newMailPanel', true);
         if (byId('newMailTo'))      byId('newMailTo').value = '';
         if (byId('newMailCc'))      byId('newMailCc').value = '';
@@ -557,8 +563,11 @@ async function sendNewMail() {
         pendingAttachments = [];
         renderPendingAttachments();
       }, 1200);
-    } else if (status) { status.textContent = T('cmp_send_failed', 'Invio fallito'); }
+    } else if (status) { status.textContent = result.status === 'unknown'
+      ? window.MailSendAttempt.message(result, document.documentElement.lang === 'it')
+      : (result.error || T('cmp_send_failed', 'Invio fallito')); }
   } catch (e) { if (status) status.textContent = `${T('error', 'Errore')}: ${e}`; }
+  finally { inlineSendInFlight = false; }
 }
 
 async function autosaveDraft() {

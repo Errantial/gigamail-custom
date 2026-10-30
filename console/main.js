@@ -18,6 +18,7 @@ let mainWindow;
 const childParent = () => (mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined);
 let serverProcess;
 let notifPoller = null;
+let pollingGeneration = 0;
 let lastUnreadCounts = {};
 
 // Token di sessione per il backend console: generato qui, passato al processo
@@ -148,9 +149,10 @@ function apiGet(urlPath) {
 
 // ── NOTIFICHE NUOVA MAIL ──────────────────────────────────────────────────────
 async function checkNewMail() {
+  let healthy = true;
   try {
     const accounts = await apiGet('/accounts');
-    if (!Array.isArray(accounts)) return;
+    if (!Array.isArray(accounts)) return false;
     for (const acc of accounts) {
       const aid = acc.id;
       try {
@@ -177,9 +179,10 @@ async function checkNewMail() {
           } catch(e) {}
         }
         lastUnreadCounts[aid] = count;
-      } catch(e) {}
+      } catch(e) { healthy = false; }
     }
-  } catch(e) {}
+  } catch(e) { healthy = false; }
+  return healthy;
 }
 
 function showMailNotification(accountName, count) {
@@ -227,19 +230,30 @@ async function checkFollowups() {
 
 // ── POLLING ───────────────────────────────────────────────────────────────────
 function startPolling() {
-  if (notifPoller) return;
-  setTimeout(async () => {
-    await checkNewMail();
-    await checkFollowups();
-    notifPoller = setInterval(async () => {
-      await checkNewMail();
+  if (notifPoller !== null) return;
+  const generation = ++pollingGeneration;
+  let delay = 60 * 1000;
+  async function tick() {
+    try {
+      const healthy = await checkNewMail();
+      if (generation !== pollingGeneration) return;
       await checkFollowups();
-    }, 60 * 1000);
-  }, 15000);
+      if (healthy === false) throw new Error('mail polling unavailable');
+      delay = 60 * 1000;
+    } catch (error) {
+      console.error('[POLL]', error.message);
+      delay = Math.min(delay * 2, 5 * 60 * 1000);
+    } finally {
+      if (generation === pollingGeneration) notifPoller = setTimeout(tick, delay);
+    }
+  }
+  notifPoller = setTimeout(tick, 15000);
 }
 
 function stopPolling() {
-  if (notifPoller) { clearInterval(notifPoller); notifPoller = null; }
+  ++pollingGeneration;
+  if (notifPoller !== null) clearTimeout(notifPoller);
+  notifPoller = null;
 }
 
 // ── SERVER PYTHON ─────────────────────────────────────────────────────────────

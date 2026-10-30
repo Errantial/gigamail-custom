@@ -30,11 +30,13 @@ def _account(account_id=None):
         # Se è già un dict account, restituiscilo direttamente
         if isinstance(account_id, dict):
             return _with_ms_context(account_id)
-        # Normalizza a int
+        # Reject malformed explicit ids instead of changing the target account.
+        if isinstance(account_id, (bool, float)):
+            raise ValueError("Invalid explicit account id")
         try:
             aid = int(account_id)
-        except (TypeError, ValueError):
-            return acc.get_active_account()
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Invalid explicit account id") from exc
         # Id esplicito: se non esiste NON ripiegare sull'account attivo —
         # un chiamante (specie un agente) che chiede l'account X non deve
         # mai ricevere silenziosamente i dati di un altro account.
@@ -96,6 +98,8 @@ def _normalize_send_result(result) -> Dict:
             'warning': result.get('warning'),
             'error': result.get('error'),
         }
+        if result.get('submission_state'):
+            out['submission_state'] = result['submission_state']
         # cio' che il provider ha accettato (SMTP: per destinatario; Graph:
         # id/errore) — finisce nell'audit accanto al payload approvato
         if result.get('provider_result') is not None:
@@ -227,6 +231,7 @@ def send_message(
     cc: list = None,
     bcc: list = None,
     auto_submitted: bool = False,
+    idempotency_key: str = None,
 ) -> Dict:
     """Invia, e con gli appuntamenti accesi (`gigamail extensions enable
     appointments`) porta in agenda quelli di cui la mail parla.
@@ -238,12 +243,23 @@ def send_message(
 
     Il calendario non puo' far fallire un invio: la lettura gira in un
     thread a perdere e qualunque errore resta nel log."""
-    esito = _send_backend(
+    from . import outbound
+    from .attachments import validate_wire_attachment
+    for attachment in attachments or []:
+        validate_wire_attachment(attachment)
+    account = _account(account_id)
+    if not account:
+        return {"success": False, "error": "Account not found"}
+    # Freeze the account before claiming; never hash credentials or store bodies.
+    account_id = account["id"]
+    payload = dict(to=to, subject=subject, body=body, reply_to_id=reply_to_id,
+                   attachments=attachments, cc=cc, bcc=bcc, auto_submitted=auto_submitted)
+    esito = outbound.store().execute(account_id, idempotency_key or outbound.current_key.get(), payload, lambda: _send_backend(
         account_id=account_id, to=to, subject=subject, body=body,
         reply_to_id=reply_to_id, attachments=attachments, cc=cc, bcc=bcc,
-        auto_submitted=auto_submitted)
+        auto_submitted=auto_submitted))
     try:
-        if isinstance(esito, dict) and esito.get('success'):
+        if isinstance(esito, dict) and esito.get('success') and not esito.get('deduplicated'):
             a = _account(account_id)
             aid = (a or {}).get('id')
             from . import extensions
@@ -337,7 +353,7 @@ def _send_backend(
 def reply_message(account_id=None, message_id: str = '', body: str = '',
                   auto_submitted: bool = False,
                   attachments: list = None, cc: list = None,
-                  folder: str = '') -> Dict:
+                  folder: str = '', idempotency_key: str = None) -> Dict:
     """
     Risponde a una mail esistente.
     Recupera mittente e oggetto originale, poi invia la risposta
@@ -345,6 +361,7 @@ def reply_message(account_id=None, message_id: str = '', body: str = '',
     Ritorna il risultato normalizzato di send_message (con provider_result):
     "success: false" senza il PERCHE' del provider era un buco nell'audit.
     """
+    from .outbound import reply_key
     a = _account(account_id)
     if not a:
         return {'success': False, 'error': 'Account non trovato'}
@@ -377,6 +394,7 @@ def reply_message(account_id=None, message_id: str = '', body: str = '',
         subject=reply_subject,
         body=body,
         reply_to_id=risposta_a,
+        idempotency_key=idempotency_key or reply_key(message_id, folder),
         auto_submitted=auto_submitted,
         attachments=attachments,
         cc=cc,

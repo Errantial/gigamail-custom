@@ -54,7 +54,7 @@ def _request_state(request_id: str) -> Optional[str]:
 
 
 def existing_reply(message_id: str,
-                   exclude_rule: str = "") -> Optional[Dict[str, Any]]:
+                   exclude_rule: str = "", *, account_id=None, folder=None, uidvalidity=None) -> Optional[Dict[str, Any]]:
     """The reply already drafted for this mail, if there is one.
 
     Returns {"state": PENDING | SENT, "request_id", "rule_id"}, or None
@@ -66,7 +66,7 @@ def existing_reply(message_id: str,
         return None
     pending: Optional[Dict[str, Any]] = None
     try:
-        rows = rules_mod.store().replies_to(mid)
+        rows = rules_mod.store().replies_to(mid, account_id=account_id, folder=folder, uidvalidity=uidvalidity)
     except Exception as e:  # pragma: no cover - store unavailable
         logger.debug("handled rows for %s not read: %s", mid, e)
         rows = []
@@ -92,7 +92,14 @@ def existing_reply(message_id: str,
         for rec in policy.store().list_pending():
             if rec.get("tool") != _TOOL:
                 continue
-            if str((rec.get("args") or {}).get("message_id") or "") == mid:
+            args = rec.get("args") or {}
+            if account_id is not None and args.get("account_id") != account_id:
+                continue
+            if folder is not None and rules_mod.normalize_folder(args.get("folder")) != rules_mod.normalize_folder(folder):
+                continue
+            if uidvalidity is not None and str(args.get("uidvalidity") or "") != str(uidvalidity):
+                continue
+            if str(args.get("message_id") or "") == mid:
                 return {"state": PENDING, "request_id": rec["request_id"],
                         "rule_id": ""}
     except Exception as e:  # pragma: no cover - store unavailable

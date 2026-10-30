@@ -86,8 +86,8 @@ def update_sent_cache(account_id: int, messages: List[Dict]) -> bool:
             "count":      len(slim),
             "messages":   slim,
         }
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        from .atomic_file import write_text
+        write_text(path, json.dumps(data, ensure_ascii=False))
         print(f"[SENT CACHE] account {account_id} — cache aggiornata ({len(slim)} messaggi)")
         return True
     except Exception as e:

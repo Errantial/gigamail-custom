@@ -25,7 +25,7 @@ const BROWSER_GLOBALS = {
   setInterval: 'readonly', clearInterval: 'readonly',
   requestAnimationFrame: 'readonly', URL: 'readonly',
   URLSearchParams: 'readonly', Blob: 'readonly', FileReader: 'readonly',
-  FormData: 'readonly', AbortController: 'readonly', Audio: 'readonly',
+  FormData: 'readonly', AbortController: 'readonly', AbortSignal: 'readonly', Audio: 'readonly',
   MediaRecorder: 'readonly', AudioContext: 'readonly', Event: 'readonly',
   CustomEvent: 'readonly', DOMParser: 'readonly', Node: 'readonly',
   getComputedStyle: 'readonly', atob: 'readonly', btoa: 'readonly',
@@ -56,7 +56,7 @@ module.exports = [
     },
   },
   {
-    files: ['renderer*.js', 'i18n.js', 'voice_mail.js', 'popup_bridge.js', 'mail_render.js', 'features.js', '*_page.js', 'window_resize.js', 'theme_mode.js', 'approvals_view.js'],
+    files: ['renderer*.js', 'i18n.js', 'voice_mail.js', 'popup_bridge.js', 'mail_render.js', 'features.js', '*_page.js', 'window_resize.js', 'theme_mode.js', 'approvals_view.js', 'send_attempt.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'script',

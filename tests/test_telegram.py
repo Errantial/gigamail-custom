@@ -535,4 +535,4 @@ def test_tap_approva_una_richiesta_dell_agente_la_esegue(world, monkeypatch):
                                  {"to": "c@example.com", "subject": "s"})
     w.handle_telegram_event(world["tg"], _ev_cb(f"a:{rid2}"))
     assert "SMTP down" in world["tg"].sent[-1]["text"]
-    assert policy.store().get(rid2)["execution_outcome"] == "failed"
+    assert policy.store().get(rid2)["execution_outcome"] == "unknown"

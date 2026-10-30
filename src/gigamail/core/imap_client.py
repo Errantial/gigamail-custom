@@ -1567,7 +1567,6 @@ def send_message(
     TLS: il certificato del server SMTP e' verificato di default. Per server
     con certificato self-signed l'account puo' dichiarare insecure_tls=True
     (opt-in esplicito, per quell'account soltanto)."""
-    import base64
     from email import encoders
     from email.mime.base import MIMEBase
     from email.utils import formatdate
@@ -1590,31 +1589,38 @@ def send_message(
     # riceve niente, con l'invio che torna success.
     all_recipients = (split_addresses(to) + split_addresses(cc)
                       + split_addresses(bcc))
+    from .attachments import validate_wire_attachment
     for att in attachments or []:
         try:
-            data = base64.b64decode(att["data_b64"])
-            main_type, sub_type = (att.get("type", "application/octet-stream").split("/", 1))
+            data, content_type = validate_wire_attachment(att)
+            main_type, sub_type = content_type.split("/", 1)
             part = MIMEBase(main_type, sub_type)
             part.set_payload(data)
             encoders.encode_base64(part)
             part.add_header("Content-Disposition", f'attachment; filename="{att["name"]}"')
             msg.attach(part)
         except Exception as e:
-            print(f'[IMAP] Allegato errore {att.get("name")}: {e}')
+            raise ValueError(f"Cannot attach {att.get('name') or 'unnamed'}: {e}") from e
+    submission_started = False
+    submission_accepted = False
     try:
         ctx = ssl.create_default_context()
         if insecure_tls:
             ctx.check_hostname = False
             ctx.verify_mode = ssl.CERT_NONE
         if smtp_port == 465:
-            with smtplib.SMTP_SSL(smtp_host, smtp_port, context=ctx) as server:
+            with smtplib.SMTP_SSL(smtp_host, smtp_port, context=ctx, timeout=30) as server:
                 server.login(email_addr, password)
+                submission_started = True
                 refused = server.sendmail(email_addr, all_recipients, msg.as_string())
+                submission_accepted = True
         else:
-            with smtplib.SMTP(smtp_host, smtp_port) as server:
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as server:
                 server.starttls(context=ctx)
                 server.login(email_addr, password)
+                submission_started = True
                 refused = server.sendmail(email_addr, all_recipients, msg.as_string())
+                submission_accepted = True
         # sendmail: {} = tutti accettati; altrimenti {rcpt: (code, msg)} per i rifiutati
         refused = refused or {}
         accepted = [r for r in all_recipients if r not in refused]
@@ -1653,14 +1659,18 @@ def send_message(
         }
     except Exception as e:
         print(f"[IMAP] Send error: {e}")
+        definite_rejection = isinstance(e, (smtplib.SMTPRecipientsRefused, smtplib.SMTPDataError,
+                                            smtplib.SMTPSenderRefused))
+        state = "accepted" if submission_accepted else ("unknown" if submission_started and not definite_rejection else "failed")
         return {
-            "success": False,
+            "success": submission_accepted,
+            "submission_state": state,
             "provider": "imap",
             "sent_copy_saved": False,
-            "warning": None,
-            "error": str(e),
+            "warning": str(e) if submission_accepted else None,
+            "error": None if submission_accepted else str(e),
             "provider_result": {"provider": "smtp", "requested": len(all_recipients),
-                                "accepted": 0, "error": str(e),
+                                "accepted": (len(all_recipients) - len(refused or {})) if submission_accepted else (None if state == "unknown" else 0), "error": str(e),
                                 "tls_verified": not insecure_tls},
         }
 def delete_message(

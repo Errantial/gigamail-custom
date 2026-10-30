@@ -393,18 +393,14 @@ async function execSend() {
     if (mailData.account_id) url += `?account_id=${mailData.account_id}`;
     // Manda attachments senza il campo dataUrl (non serve al backend)
     const attachmentsClean = attachments.map(({dataUrl, isImage, ...rest}) => rest);
+    const payload = {
+      to, subject, body, reply_to_id: mailData.id,
+      cc: cc ? [cc] : [], attachments: attachmentsClean,
+    };
+    payload.idempotency_key = await window.MailSendAttempt.keyFor(payload, `reply:${mailData.account_id}:${mailData.id}`);
     const response = await fetch(url, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        to,
-        subject,
-        body,
-        reply_to_id:    mailData.id,
-        cc:             cc ? [cc] : [],
-        attachments:    attachmentsClean,
-        original_draft: window._lastGeneratedDraft || '',
-        instruction:    document.getElementById('instruction')?.value?.trim() || '',
-      })
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
     });
     let result = {};
     try { result = await response.json(); } catch {}
@@ -412,6 +408,9 @@ async function execSend() {
       const detail = Array.isArray(result?.detail)
         ? result.detail.map(d => d?.msg || JSON.stringify(d)).join('; ')
         : result?.detail;
+      if (result.status === 'unknown' || result.submission_state === 'unknown') {
+        throw new Error(window.MailSendAttempt.message(result, document.documentElement.lang === 'it'));
+      }
       throw new Error(detail || result?.error || `${T('cmp_send_unconfirmed', 'Invio non confermato')} (HTTP ${response.status})`);
     }
     if (result.dryrun) {
@@ -423,6 +422,10 @@ async function execSend() {
       try {
         await window.replyWindowAPI?.followupSave({ message_id:mailData.id||null, account_id:mailData.account_id||0, subject, to_addr:to, hours:followupHours });
       } catch (e) { console.warn('followupSave:', e); }
+    }
+    if (result.warning || result.audit_warning || result.tracking_warning || result.submission_state === 'partially_accepted') {
+      alert(window.MailSendAttempt.message(result, document.documentElement.lang === 'it') + ' ' +
+        (result.warning || result.audit_warning || result.tracking_warning || ''));
     }
     window.replyWindowAPI?.close();
   } catch(e) {

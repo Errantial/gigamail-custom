@@ -32,13 +32,30 @@ def origin_of(request_id: str) -> str:
     return "agent"
 
 
-def _report(request_id: str, origin: str, error: str = "") -> Dict[str, Any]:
-    rec = policy.store().get(request_id) or {}
+def _report(request_id: str, origin: str, error: str = "", result=None) -> Dict[str, Any]:
+    try:
+        rec = policy.store().get(request_id) or {}
+    except Exception:
+        if not isinstance(result, dict):
+            raise
+        rec = {"status": policy.EXECUTED}
+        result = dict(result, tracking_warning="Approval status unavailable; preserve the provider result")
     pr = rec.get("provider_result")
+    fallback = "failed" if error else ""
+    if isinstance(result, dict):
+        if result.get("dryrun"):
+            fallback = "dryrun"
+        elif result.get("submission_state") == "unknown":
+            fallback = "unknown"
+        elif result.get("success"):
+            fallback = "ok"
+        elif "success" in result:
+            fallback = "failed"
     return {"status": rec.get("status", "approved"),
-            "outcome": rec.get("execution_outcome") or ("failed" if error else ""),
+            "outcome": rec.get("execution_outcome") or fallback,
             "error": error or (pr.get("error", "") if isinstance(pr, dict) else ""),
-            "completed_by": origin}
+            "completed_by": origin,
+            "warning": (result.get("audit_warning") or result.get("tracking_warning")) if isinstance(result, dict) else None}
 
 
 def complete(request_id: str) -> Dict[str, Any]:
@@ -54,13 +71,16 @@ def complete(request_id: str) -> Dict[str, Any]:
         err = ""
         if out.get("status") == "failed":
             err = out.get("reason") or "send-failed"
-        return _report(request_id, origin, err)
+        fallback = {"success": out.get("status") == "sent",
+                    "submission_state": "unknown" if out.get("status") == "unknown" else "",
+                    "tracking_warning": out.get("tracking_warning")}
+        return _report(request_id, origin, err, result=fallback)
     from gigamail import server
     try:
-        server.execute_approved(request_id)
+        result = server.execute_approved(request_id)
     except Exception as e:
         return _report(request_id, origin, str(e)[:500])
-    return _report(request_id, origin)
+    return _report(request_id, origin, result=result)
 
 
 def complete_left_behind() -> List[Dict[str, Any]]:

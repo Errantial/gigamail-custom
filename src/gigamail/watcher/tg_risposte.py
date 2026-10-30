@@ -239,7 +239,7 @@ def rispondi(w, tg, chiave: str, istruzione: str,
     # One reply per mail: a confirmation drafted by the watcher or the
     # link mail from the video-call path may already be waiting. A second
     # draft for the same mail is how two confirmations got sent.
-    other = reply_guard.existing_reply(ctx["message_id"])
+    other = reply_guard.existing_reply(ctx["message_id"], account_id=aid, folder=ctx["folder"])
     if other and other["state"] == reply_guard.PENDING:
         rid = other["request_id"]
         _say(tg, "Una risposta a questa mail e' gia' in attesa di approvazione "
@@ -353,7 +353,7 @@ def draft_confirmation(w, tg, account_id: int, row: Dict[str, Any],
     if not _confirmable(outcome, touched):
         return None
     mid = str(message.get("id") or "")
-    if mid and rules_mod.store().get_handled(RULE_ID, mid):
+    if mid and rules_mod.store().get_handled(RULE_ID, mid, account_id=account_id, folder=row.get("folder") or "inbox"):
         return None                      # already drafted for this mail
     video = outcome.get("video") or {}
     if video.get("stato") == "creata":
@@ -361,7 +361,7 @@ def draft_confirmation(w, tg, account_id: int, row: Dict[str, Any],
         # mail IS the confirmation. Two confirmations for one appointment
         # went out when both were approved.
         return None
-    other = reply_guard.existing_reply(mid)
+    other = reply_guard.existing_reply(mid, account_id=account_id, folder=row.get("folder") or "inbox")
     if other:
         _log(f"confirmation not drafted for {mid}: a reply is already "
              f"{other['state']} ({other['request_id'] or other['rule_id']})",

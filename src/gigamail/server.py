@@ -39,6 +39,7 @@ from gigamail.core import (
     mail_router,
     observer,
     reply_guard,
+    send_config,
     signature,
     zoom,
 )
@@ -64,7 +65,10 @@ mcp = MCPServer(
         "until a HUMAN approves it out of band (GigaMail console, CLI or "
         "Telegram, behind Windows Hello / Touch ID). You cannot approve it: "
         "show the preview, ask the user to approve, then call the same tool "
-        "again with the request_id. Insisting achieves nothing."
+        "again with the request_id. Insisting achieves nothing. "
+        "Custom version: list_accounts reports the effective send_mode per account. "
+        "In immediate mode, send_mail and reply_mail without request_id send immediately; "
+        "use a stable idempotency_key to retry the same email safely."
     ),
 )
 
@@ -97,7 +101,9 @@ RequestId = Annotated[Optional[str], Field(
                 "or Telegram — all behind Windows Hello / Touch ID). Then "
                 "call again with the same request_id to execute. The agent "
                 "cannot approve; repeating the call without approval just "
-                "returns awaiting_approval.")]
+                "returns awaiting_approval. Custom mail option: send_mail and reply_mail "
+                "send immediately without request_id when the server operator sets "
+                "GIGAMAIL_SEND_REQUIRE_APPROVAL=false.")]
 
 TWO_PHASE = (
     " TWO-PHASE, HUMAN-APPROVED: the first call (no request_id) executes "
@@ -112,18 +118,52 @@ TWO_PHASE = (
 )
 
 
+def _execute_mail(tool, args, request_id, *, preview_fn, execute_fn):
+    """Allow operator-configured immediate mail, preserving existing requests."""
+    immediate = not send_config.requires_approval(args.get("account_id"))
+    if request_id or not immediate:
+        return policy.execute_dangerous(
+            tool, args, request_id, preview_fn=preview_fn, execute_fn=execute_fn)
+    if policy.dry_run_active():
+        audit(tool, args, "dryrun_executed", detail="mail approval disabled")
+        return {"dryrun": True, "tool": tool,
+                "note": ("Simulazione: email non inviata" if policy.user_lang() == "it"
+                         else "Dry run: email was not sent")}
+    audit(tool, args, "execution_without_approval_requested")
+    try:
+        result = execute_fn(args)
+    except Exception as exc:
+        policy.safe_audit(tool, args, "error", detail=str(exc), audit_fn=audit)
+        raise
+    ok = result.get("success", True) if isinstance(result, dict) else bool(result)
+    logged = policy.safe_audit(tool, args, "executed" if ok else "executed_with_error",
+          detail="mail approval disabled",
+          provider_result=result.get("provider_result") if isinstance(result, dict) else None, audit_fn=audit)
+    if not logged and isinstance(result, dict):
+        result["audit_warning"] = "Outcome audit unavailable; preserve the provider result"
+    return result
+
+
 def _two_phase(what: str, detail: str) -> str:
     """Descrizione di un tool DANGEROUS: cosa fa + il contratto a due fasi
     (identico per tutti) + i dettagli specifici. Un docstring composto con
     `+` non e' un docstring: per questo passa dal decoratore."""
     def norm(t: str) -> str:
         return " ".join(t.split())
-    return norm(what) + TWO_PHASE + " " + norm(detail)
+    contract = TWO_PHASE
+    if what.strip() in {"Send a new email from the user's account.",
+                        "Reply to an existing message in its thread."}:
+        contract += (" CUSTOM OPTION: when the server operator sets "
+                     "GIGAMAIL_SEND_REQUIRE_APPROVAL=false (or configures immediate mode "
+                     "with gigamail send-mode), calls without request_id "
+                     "send immediately. Calls with request_id still require approval.")
+    return norm(what) + contract + " " + norm(detail)
 
 
 def _safe_account(a: dict) -> dict:
     """Proiezione di un account senza credenziali."""
     return {
+        "send_mode": send_config.status(a.get("id")),
         "id": a.get("id"),
         "name": a.get("name"),
         "email": a.get("email"),
@@ -613,7 +653,8 @@ def _exec_send_mail(a: dict):
     return mail_router.send_message(
         account_id=_approved_mail_account(a), to=a["to"], subject=a["subject"],
         body=a["body"], cc=a["cc"], bcc=a["bcc"],
-        attachments=_attachments_payload(a.get("attachments")))
+        attachments=_attachments_payload(a.get("attachments")),
+        idempotency_key=a.get("idempotency_key"))
 
 
 def _exec_reply_mail(a: dict):
@@ -624,11 +665,12 @@ def _exec_reply_mail(a: dict):
             account_id=_approved_mail_account(a), to=a["to"],
             subject=a.get("subject") or "", body=a["body"],
             attachments=_attachments_payload(a.get("attachments")),
-            cc=a.get("cc"), auto_submitted=True)
+            cc=a.get("cc"), auto_submitted=True, idempotency_key=a.get("idempotency_key"))
     return mail_router.reply_message(
         account_id=_approved_mail_account(a), message_id=a["message_id"],
         body=a["body"], attachments=_attachments_payload(a.get("attachments")),
-        cc=a.get("cc"), folder=a.get("folder") or "inbox")
+        cc=a.get("cc"), folder=a.get("folder") or "inbox",
+        idempotency_key=a.get("idempotency_key"))
 
 
 def _exec_delete_message(a: dict) -> dict:
@@ -773,6 +815,9 @@ def send_mail(
                     "sending the mail without it.")] = None,
     account_id: AccountId = None,
     request_id: RequestId = None,
+    idempotency_key: Annotated[Optional[str], Field(
+        description="Stable key (1-200 characters) for retries of this email; use a new key for a deliberate new send.",
+        min_length=1, max_length=200)] = None,
 ) -> dict:
     if not request_id:
         account_id = _freeze_mail_account(account_id)
@@ -793,10 +838,10 @@ def send_mail(
         "cc": cc, "bcc": bcc, "account_id": account_id,
         # i percorsi RISOLTI, non i nomi chiesti: cosi' parte
         # esattamente il file che compare nell'anteprima approvata
-        "attachments": allegati,
+        "attachments": allegati, "idempotency_key": idempotency_key,
     }
     sender = core_accounts.get_account_by_id(account_id) if not request_id else None
-    return policy.execute_dangerous(
+    return _execute_mail(
         "send_mail", args, request_id,
         preview_fn=lambda: {
             "from": (sender or {}).get("email"),
@@ -811,13 +856,13 @@ def send_mail(
     )
 
 
-def _reply_already_pending(message_id: str) -> Optional[dict]:
+def _reply_already_pending(message_id: str, *, account_id=None, folder="inbox") -> Optional[dict]:
     """A reply to this mail drafted by the watcher (a rule, the
     confirmation drafted at once, the video-call link) and still waiting
     for the human: the agent gets THAT request back instead of a second
     one. Two different texts for one mail slip past the payload dedup,
     and both got approved and sent."""
-    other = reply_guard.existing_reply(message_id)
+    other = reply_guard.existing_reply(message_id, account_id=account_id, folder=folder)
     if not other or other["state"] != reply_guard.PENDING:
         return None
     rid = other["request_id"]
@@ -865,6 +910,9 @@ def reply_mail(
     account_id: AccountId = None,
     request_id: RequestId = None,
     folder: Annotated[str, Field(description="Folder containing the original message (IMAP only; default inbox).")] = "inbox",
+    idempotency_key: Annotated[Optional[str], Field(
+        description="Stable key (1-200 characters) for retries of this email; use a new key for a deliberate new send.",
+        min_length=1, max_length=200)] = None,
 ) -> dict:
     if not request_id:
         account_id = _freeze_mail_account(account_id)
@@ -877,12 +925,14 @@ def reply_mail(
     if not request_id and not allegati and _promette_allegati(body):
         return _errore_promessa()
     if not request_id:
-        gia = _reply_already_pending(message_id)
+        gia = _reply_already_pending(message_id, account_id=account_id, folder=folder)
         if gia:
             return gia
         body = signature.apply(account_id, body)
+    from gigamail.core.outbound import reply_key
+    idempotency_key = idempotency_key or reply_key(message_id, folder)
     args = {"message_id": message_id, "body": body, "account_id": account_id,
-            "attachments": allegati, "cc": cc, "folder": folder}
+            "attachments": allegati, "cc": cc, "folder": folder, "idempotency_key": idempotency_key}
 
     def _preview():
         original = mail_router.get_message(
@@ -898,7 +948,7 @@ def reply_mail(
             "cc": cc or [],
         }
 
-    return policy.execute_dangerous(
+    return _execute_mail(
         "reply_mail", args, request_id,
         preview_fn=_preview,
         # reply_message ritorna il risultato normalizzato: provider_result

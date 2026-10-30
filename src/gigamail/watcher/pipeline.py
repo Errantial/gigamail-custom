@@ -49,10 +49,13 @@ def process_message(w, rule: Dict[str, Any], message: Dict[str, Any],
     rule_id = rule["rule_id"]
     account_id = rule["account_id"]
     message_id = str(message.get("id"))
+    from functools import partial
+    record = partial(rs.record, folder=folder_of(rule))
+    set_status = partial(rs.set_status, account_id=account_id, folder=folder_of(rule))
     sender = mail_guard.sender_address(message)
 
     def _skip(reason: str) -> str:
-        rs.record(rule_id, account_id, message_id, sender, "skipped", reason)
+        record(rule_id, account_id, message_id, sender, "skipped", reason)
         policy.audit("watch_rule", {"rule_id": rule_id,
                                     "message_id": message_id}, "skipped",
                      detail=reason)
@@ -64,7 +67,7 @@ def process_message(w, rule: Dict[str, Any], message: Dict[str, Any],
     # il conteggio vive. Leggendolo dopo si ripartiva da 1 a ogni
     # giro: la regola riprovava all'infinito senza mai raggiungere la
     # soglia che avvisa l'umano, e un agente rotto restava invisibile.
-    _prev = rs.get_handled(rule_id, message_id) or {}
+    _prev = rs.get_handled(rule_id, message_id, account_id=account_id, folder=folder_of(rule)) or {}
     _m = re.match(r"^draft-attempt:(\d+)$", str(_prev.get("reason") or ""))
     tentativi_falliti = int(_m.group(1)) if _m else 0
 
@@ -76,7 +79,7 @@ def process_message(w, rule: Dict[str, Any], message: Dict[str, Any],
     # again at once.
     _dt = mail_router._message_datetime(str(message.get("receivedDateTime") or ""))
     received_ts = _dt.timestamp() if _dt is not None else None
-    rs.record(rule_id, account_id, message_id, sender, "matched",
+    record(rule_id, account_id, message_id, sender, "matched",
               received_ts=received_ts)
     if received_ts is not None:
         n = rs.matches_received_between(
@@ -90,7 +93,7 @@ def process_message(w, rule: Dict[str, Any], message: Dict[str, Any],
                   if policy.user_lang() == "it"
                   else f"burst: {n} matches in {window_min} minutes")
         rs.pause(rule_id, reason)
-        rs.set_status(rule_id, message_id, "skipped", "burst-pause")
+        set_status(rule_id, message_id, "skipped", "burst-pause")
         policy.audit("watch_rule", {"rule_id": rule_id}, "rule_paused",
                      detail=reason)
         if policy.user_lang() == "it":
@@ -111,7 +114,7 @@ def process_message(w, rule: Dict[str, Any], message: Dict[str, Any],
     # once, video-call link) or a reply asked from Telegram may already
     # have answered this mail. The rule steps aside instead of adding a
     # third text for the human to approve.
-    other = reply_guard.existing_reply(message_id, exclude_rule=rule_id)
+    other = reply_guard.existing_reply(message_id, exclude_rule=rule_id, account_id=account_id, folder=folder_of(rule))
     if other:
         return _skip("already-answered:" + (other["rule_id"] or "agent"))
 
@@ -175,7 +178,7 @@ def process_message(w, rule: Dict[str, Any], message: Dict[str, Any],
         policy.audit("watch_rule", {"rule_id": rule_id,
                                     "message_id": message_id}, "draft_blocked",
                      detail=f"injection_guard: {', '.join(e.reasons)[:160]}")
-        rs.set_status(rule_id, message_id, "blocked", f"injection:{e}")
+        set_status(rule_id, message_id, "blocked", f"injection:{e}")
         motivi = ", ".join(injection_guard.descrivi(m, policy.user_lang())
                            for m in e.reasons)
         policy.notify_approval_requested(
@@ -199,9 +202,9 @@ def process_message(w, rule: Dict[str, Any], message: Dict[str, Any],
                      detail=f"attempt {attempt}: {str(e)[:160]}")
         if attempt < drafting._DRAFT_ATTEMPTS:
             rs.request_retry(rule_id, message_id, retry_feedback or "")
-            rs.set_status(rule_id, message_id, "retry", f"draft-attempt:{attempt}")
+            set_status(rule_id, message_id, "retry", f"draft-attempt:{attempt}")
             return "retry"
-        rs.set_status(rule_id, message_id, "failed", f"draft:{e}")
+        set_status(rule_id, message_id, "failed", f"draft:{e}")
         policy.notify_approval_requested(
             "-", f"draft_failed:{rule_id}", {"action": "draft failed"},
             message=(f"Bozza NON prodotta per la mail da {sender} "
@@ -250,7 +253,7 @@ def process_message(w, rule: Dict[str, Any], message: Dict[str, Any],
             body = corretta
         else:
             ext, esito = secondo
-            rs.set_status(rule_id, message_id, "skipped",
+            set_status(rule_id, message_id, "skipped",
                           f"extension-check:{ext.name}")
             policy.audit("watch_rule", {"rule_id": rule_id,
                                         "message_id": message_id},
@@ -285,7 +288,7 @@ def process_message(w, rule: Dict[str, Any], message: Dict[str, Any],
             # persona non c'e': fermarsi e' l'unica opzione. Il
             # ripiego sul mittente manderebbe la risposta al relay
             # del portale, cioe' proprio cio' che la regola evita.
-            rs.set_status(rule_id, message_id, "skipped",
+            set_status(rule_id, message_id, "skipped",
                           "no-body-address")
             policy.audit("watch_rule", {"rule_id": rule_id,
                                         "message_id": message_id},
@@ -310,7 +313,7 @@ def process_message(w, rule: Dict[str, Any], message: Dict[str, Any],
             # La regola promette allegati che non esistono piu'
             # (file rinominato, identity cambiata): fermarsi e'
             # meglio di una mail che cita planimetrie assenti.
-            rs.set_status(rule_id, message_id, "skipped",
+            set_status(rule_id, message_id, "skipped",
                           "attachments-missing")
             policy.audit("watch_rule", {"rule_id": rule_id,
                                         "message_id": message_id},
@@ -325,7 +328,7 @@ def process_message(w, rule: Dict[str, Any], message: Dict[str, Any],
         # La bozza annuncia un allegato e non ne e' uscito nessuno:
         # spedirla vuol dire contraddirsi davanti al cliente. Meglio
         # fermarsi e lasciarla all'umano.
-        rs.set_status(rule_id, message_id, "skipped",
+        set_status(rule_id, message_id, "skipped",
                       "attachments-promised-missing")
         policy.audit("watch_rule", {"rule_id": rule_id,
                                     "message_id": message_id},
@@ -338,13 +341,13 @@ def process_message(w, rule: Dict[str, Any], message: Dict[str, Any],
                            allegati)
     request_id, created = _create_request(rule, args, preview)
     if not request_id:
-        rs.set_status(rule_id, message_id, "skipped", "approval-cap")
+        set_status(rule_id, message_id, "skipped", "approval-cap")
         return "skipped"
     # From now on a mail from this person belongs to this rule.
     rs.record_contact(rule_id, account_id, to_address or sender)
 
     if mode == "semi":
-        rs.record(rule_id, account_id, message_id, sender,
+        record(rule_id, account_id, message_id, sender,
                   "awaiting_approval", "", request_id)
         if created:
             buttons = None
@@ -374,13 +377,20 @@ def process_message(w, rule: Dict[str, Any], message: Dict[str, Any],
         result = _execute_reply(request_id, args)
         ok = bool(result.get("success", True)) if isinstance(result, dict) else bool(result)
     except Exception as e:
-        rs.record(rule_id, account_id, message_id, sender, "failed",
+        record(rule_id, account_id, message_id, sender, "failed",
                   str(e)[:200], request_id)
         policy.notify_approval_requested(
             request_id, TOOL, preview,
             message=notify._auto_notify_text(rule, full, body, ok=False))
         return "failed"
-    rs.record(rule_id, account_id, message_id, sender,
+    if isinstance(result, dict) and result.get("submission_state") == "unknown":
+        record(rule_id, account_id, message_id, sender, "unknown",
+               "submission-uncertain-do-not-resend", request_id)
+        policy.notify_approval_requested(request_id, TOOL, preview,
+            message=("Esito invio incerto: controlla Inviate e non reinviare." if policy.user_lang() == "it"
+                     else "Send outcome unknown: check Sent and do not resend."))
+        return "unknown"
+    record(rule_id, account_id, message_id, sender,
               "sent" if ok else "failed", "" if ok else "send-failed",
               request_id)
     policy.notify_approval_requested(

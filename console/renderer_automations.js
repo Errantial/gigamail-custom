@@ -18,6 +18,7 @@
   async function api(path, opts = {}) {
     const r = await fetch(API + path, {
       headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(opts.method && opts.method !== 'GET' ? 120000 : 15000),
       ...opts,
     });
     let data = null;
@@ -403,10 +404,11 @@
   const seenAt = () => { try { return Number(localStorage.getItem(SEEN_KEY) || 0); } catch (_) { return 0; } };
   const markSeen = () => { try { localStorage.setItem(SEEN_KEY, String(Date.now() / 1000)); } catch (_) { /* no storage */ } };
 
-  function setBadge(pending, recent) {
+  function setBadge(pending, recent, pendingCount = null) {
     const b = $('pendingBadge');
     if (!b || !AV()) return;
     const c = AV().badgeCounts(pending, recent, seenAt());
+    if (pendingCount !== null) c.todo = pendingCount;
     const pill = (cls, n, title) => (n > 0
       ? `<span class="s-pill ${cls}" title="${escapeHtml(title)}">${AV().badgeText(n)}</span>` : '');
     b.innerHTML = pill('todo', c.todo, L('pending_title', 'Richieste in attesa'))
@@ -416,10 +418,12 @@
     b.hidden = !b.innerHTML;
   }
 
+  let pendingInFlight = false;
   async function refreshPending() {
     const box = $('pendingList');
     const recentBox = $('recentList');
-    if (!box || !AV()) return;
+    if (!box || !AV() || pendingInFlight) return;
+    pendingInFlight = true;
     try {
       const [pending, recent] = await Promise.all([api('/approvals'), api('/approvals/recent?hours=24')]);
       // the page is open: what it shows is seen
@@ -439,14 +443,36 @@
     } catch (e) {
       box.innerHTML = `<div class="hint">${T('Errore', 'Error', '错误')}: ${escapeHtml(e.message)}</div>`;
     }
+    finally { pendingInFlight = false; }
   }
 
+  let badgeInFlight = false;
   async function pollBadge() {
+    if (badgeInFlight) return;
+    badgeInFlight = true;
     try {
-      const [pending, recent] = await Promise.all([api('/approvals'), api('/approvals/recent?hours=24')]);
-      setBadge(pending, recent);
-      setRulesBadge(await api('/rules'));
-    } catch (_) { /* no backend yet: the badge stays as it is */ }
+      const summary = await api('/status/summary');
+      setBadge([], summary.recent, summary.pending_count);
+      setRulesBadge(summary.rules);
+      let mode = $('mcpSendMode');
+      if (!mode) {
+        mode = document.createElement('p');
+        mode.id = 'mcpSendMode';
+        mode.setAttribute('role', 'status');
+        const target = $('view-automations');
+        if (target) target.prepend(mode);
+      }
+      mode.textContent = summary.send_mode.mode === 'immediate'
+        ? T('Invio MCP predefinito: immediato', 'Default MCP sending: immediate')
+        : T('Invio MCP predefinito: richiede approvazione', 'Default MCP sending: approval required');
+      for (const account of summary.account_send_modes || []) {
+        mode.textContent += ` · #${account.account_id}: ` + (account.mode === 'immediate'
+          ? T('immediato', 'immediate') : T('approvazione', 'approval'));
+      }
+      mode.title = T('Configurazione per account: gigamail send-mode --account-id ID',
+        'Per-account configuration: gigamail send-mode --account-id ID');
+    } catch (_) { /* Keep existing counts while the backend reconnects. */ }
+    finally { badgeInFlight = false; }
   }
 
   async function onPendingAction(e) {
@@ -458,7 +484,9 @@
       if (btn.dataset.act === 'approve') {
         toast(L('pending_confirm_hello', 'Conferma con Windows Hello…'));
         const r = await api(`/approvals/${encodeURIComponent(id)}/approve`, { method: 'POST' });
-        if (r.status === 'executed' && r.outcome === 'failed') {
+        if (r.status === 'executed' && r.outcome === 'unknown') {
+          toast(L('st_unknown', 'Esito incerto, non reinviare'), 'warn');
+        } else if (r.status === 'executed' && r.outcome === 'failed') {
           toast(`${L('st_send_failed', 'invio fallito')}: ${r.error || ''}`, 'error');
         } else if (r.status === 'executed') {
           toast(r.completed_by === 'watcher'

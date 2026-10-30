@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- **Custom reliability update:** persist outbound operation claims, support
+  caller-provided idempotency keys, and retain uncertain submissions without
+  automatic resend. Preserve known provider results when outcome logging fails.
+- Scope reply history to account/folder with automatic legacy-schema migration;
+  reject malformed explicit account ids, preserve attachment reply threading,
+  validate every attachment before sending, and make Microsoft reads observational.
+- Pool Graph mail connections, bound HTTP/SMTP operations, check read-status
+  failures, and keep automatic retries limited to safe reads.
+- Add global/per-account MCP send modes, effective-mode discovery and console
+  display, plus credential-free `gigamail doctor` diagnostics.
+- Retain desktop retry keys across reloads, label uncertain/partial send results,
+  prevent overlapping polling, and fetch compact badge summaries.
+- Replace cache files atomically and merge token-cache updates under an OS lock.
+
+- **Custom fork:** operators can set `GIGAMAIL_SEND_REQUIRE_APPROVAL=false`
+  to send new emails and replies immediately through MCP, with audit and
+  dry-run support. Approval remains enabled by default.
+
 - **The agent bar's Claude Code always has GigaMail's tools.** For Codex
   and Antigravity the console writes their MCP config; for Claude Code it
   relied on the user having run `claude mcp add` or installed the plugin.

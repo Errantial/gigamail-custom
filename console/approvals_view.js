@@ -85,6 +85,7 @@
   function outcomeOf(s, t) {
     if (s.status === 'executed') {
       if (s.outcome === 'ok') return { cls: 'ok', text: t('st_sent', 'inviata') };
+      if (s.outcome === 'unknown') return { cls: 'warn', text: t('st_unknown', 'esito incerto, non reinviare') };
       if (s.outcome === 'dryrun') return { cls: 'warn', text: t('st_dryrun', 'prova, non inviata') };
       if (s.outcome) return { cls: 'err', text: t('st_send_failed', 'invio fallito') };
       return { cls: 'warn', text: t('st_executing', 'in esecuzione') };

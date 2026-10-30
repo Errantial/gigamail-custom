@@ -312,9 +312,11 @@ async function execSend() {
     let url = `${API}/mail/send`;
     if (accountId) url += `?account_id=${accountId}`;
     const attachmentsClean = attachments.map(({dataUrl, isImage, ...rest}) => rest);
+    const payload = {to, subject, body, cc:cc?[cc]:[], bcc:bcc?[bcc]:[], attachments:attachmentsClean};
+    payload.idempotency_key = await window.MailSendAttempt.keyFor(payload, `compose:${accountId}`);
     const response = await fetch(url, {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({to, subject, body, cc:cc?[cc]:[], bcc:bcc?[bcc]:[], attachments:attachmentsClean})
+      body: JSON.stringify(payload)
     });
     let result = {};
     try { result = await response.json(); } catch {}
@@ -322,6 +324,9 @@ async function execSend() {
       const detail = Array.isArray(result?.detail)
         ? result.detail.map(d => d?.msg || JSON.stringify(d)).join('; ')
         : result?.detail;
+      if (result.status === 'unknown' || result.submission_state === 'unknown') {
+        throw new Error(window.MailSendAttempt.message(result, document.documentElement.lang === 'it'));
+      }
       throw new Error(detail || result?.error || `${T('cmp_send_unconfirmed', 'Invio non confermato')} (HTTP ${response.status})`);
     }
     if (result.dryrun) {
@@ -340,8 +345,11 @@ async function execSend() {
         await window.newMailWindowAPI?.followupSave({ message_id:null, account_id:accountId, subject, to_addr:to, hours:followupHours });
       } catch (e) { console.warn('followupSave:', e); }
     }
-    st.textContent = T('cmp_sent_check', 'Inviata ✓');
-    setTimeout(() => window.newMailWindowAPI?.close(), 800);
+    st.textContent = window.MailSendAttempt.message(result, document.documentElement.lang === 'it');
+    if (result.warning || result.audit_warning || result.tracking_warning || result.submission_state === 'partially_accepted') {
+      st.textContent += ' ' + (result.warning || result.audit_warning || result.tracking_warning || '');
+      label.textContent = T('cmp_sent_check', 'Inviata ✓');
+    } else setTimeout(() => window.newMailWindowAPI?.close(), 800);
   } catch(e) {
     st.textContent = T('cmp_send_error', 'Errore invio') + (e && e.message ? `: ${e.message}` : '');
     resetSendBtn();

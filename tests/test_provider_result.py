@@ -174,7 +174,7 @@ def test_esecuzione_fallita_sulla_riga(monkeypatch):
             execute_fn=lambda a: (_ for _ in ()).throw(RuntimeError("smtp down")))
     row = policy.store().get(rid)
     assert row["status"] == policy.EXECUTED  # consumata PRIMA (at-most-once)
-    assert row["execution_outcome"] == "failed"
+    assert row["execution_outcome"] == "unknown"
     assert "smtp down" in row["provider_result"]["error"]
 
 

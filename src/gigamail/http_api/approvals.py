@@ -61,6 +61,21 @@ def recent_approvals(hours: float = 24):
     return _with_notifications(policy.store().list_decided(since))
 
 
+@router.get("/status/summary")
+def status_summary(account_id: int = None):
+    from gigamail.core import accounts, rules, send_config
+    summary = policy.store().badge_summary(time.time() - 86400)
+    summary.update(rules=rules.store().badge_summary(), send_mode=send_config.status(account_id),
+                   account_send_modes=[send_config.status(a["id"]) for a in accounts.get_accounts()])
+    return summary
+
+
+@router.get("/send-mode")
+def get_send_mode(account_id: int = None):
+    from gigamail.core import send_config
+    return send_config.status(account_id)
+
+
 @router.get("/approvals/{request_id}")
 def get_approval(request_id: str):
     rec = policy.store().get(request_id)

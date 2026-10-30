@@ -211,7 +211,8 @@ contextBridge.exposeInMainWorld('ademail', {
     accountId = null,
     attachments = null,
     cc = null,
-    bcc = null
+    bcc = null,
+    idempotencyKey = null
   ) => {
     let url = `${API}/mail/send`;
     if (accountId) url += `?account_id=${accountId}`;
@@ -220,7 +221,8 @@ contextBridge.exposeInMainWorld('ademail', {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ to, subject, body,
         reply_to_id: replyToId, original_draft: originalDraft, instruction,
-        attachments: attachments || [], cc: cc || [], bcc: bcc || [] }),
+        attachments: attachments || [], cc: cc || [], bcc: bcc || [],
+        idempotency_key: idempotencyKey }),
     });
   },
 

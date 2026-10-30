@@ -88,7 +88,7 @@ def pronta(account_id: int, message: Dict[str, Any],
             continue
         if not ingestion.matches(regola, message):
             continue
-        riga = rs.get_handled(regola["rule_id"], mid)
+        riga = rs.get_handled(regola["rule_id"], mid, account_id=account_id, folder=ingestion.folder_of(regola))
         if riga:
             if riga.get("status") not in _CONCLUSI:
                 return False

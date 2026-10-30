@@ -128,7 +128,7 @@ def test_an_agent_request_approved_here_is_executed_by_gigamail(client, monkeypa
     rid2 = _request(to="anna.bianchi@example.com")
     r = client.post(f"/approvals/{rid2}/approve")
     assert r.status_code == 200
-    assert r.json()["status"] == "executed" and r.json()["outcome"] == "failed"
+    assert r.json()["status"] == "executed" and r.json()["outcome"] == "unknown"
     assert "SMTP down" in r.json()["error"]
     # a watcher draft goes out now, by the watcher's own send path
     from gigamail.watcher import execution

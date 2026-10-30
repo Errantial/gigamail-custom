@@ -19,6 +19,7 @@ os.environ["ADE_ROOT"] = str(_TMP / "ADE")
 # ADE_ROOT/APPDATA. Never let a test session inherit production data paths.
 for _name in ("GIGAMAIL_ROOT", "GIGAMAIL_DATA_DIR", "ADE_MAIL_DATA_DIR"):
     os.environ.pop(_name, None)
+os.environ.pop("GIGAMAIL_SEND_REQUIRE_APPROVAL", None)
 os.environ.pop("ADE_AGENT_CMD", None)
 os.environ.pop("ADE_CONSOLE_TOKEN", None)
 # La suite non deve MAI aprire un prompt Windows Hello / Touch ID vero sul

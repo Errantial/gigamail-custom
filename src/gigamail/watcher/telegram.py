@@ -33,6 +33,11 @@ def _complete_agent_request(tg, rid: str) -> None:
         say(tg, f"⚠ Approvata ma non eseguita ({rid}): {err}",
             f"⚠ Approved but not executed ({rid}): {err}")
         return
+    if rep.get("outcome") == "unknown":
+        err = rep.get("error") or ""
+        say(tg, f"⚠ Esito incerto ({rid}), non reinviare: {err}",
+            f"⚠ Outcome unknown ({rid}), do not resend: {err}")
+        return
     ok = rep.get("outcome") in ("ok", "dryrun")
     err = f": {rep['error']}" if rep.get("error") else ""
     say(tg,
@@ -73,7 +78,7 @@ def check_trust(tg) -> None:
             policy.store().reject(row["request_id"],
                                   by="system:telegram-chat-changed")
             rs.set_status(row["rule_id"], row["message_id"], "rejected",
-                          "telegram-chat-changed")
+                          "telegram-chat-changed", **rules_mod.handled_scope(row))
             revoked += 1
     try:
         if policy.user_lang() == "it":
@@ -217,7 +222,7 @@ def action(w, tg, act: str, rid: str, rs, message_id: int = 0) -> None:
         # richiesta eseguibile per tutta la finestra.
         ok = policy.store().revoke(rid, by=f"telegram:{tg.chat_id}")
         if da_regola and ok:
-            rs.set_status(row["rule_id"], row["message_id"], "rejected")
+            rs.set_status(row["rule_id"], row["message_id"], "rejected", **rules_mod.handled_scope(row))
         say(tg,
             f"↩ Approvazione revocata ({rid}). Non e' partita."
             if ok else f"{rid}: troppo tardi, e' gia' stata eseguita.",
@@ -268,7 +273,7 @@ def action(w, tg, act: str, rid: str, rs, message_id: int = 0) -> None:
             tg.clear_buttons(message_id)
             return
         w.execute_approved()
-        h = rs.get_handled(row["rule_id"], row["message_id"]) or {}
+        h = rs.get_handled(row["rule_id"], row["message_id"], **rules_mod.handled_scope(row)) or {}
         ok = h.get("status") == "sent"
         say(tg,
             f"✅ Inviata ({rid})." if ok
@@ -280,7 +285,7 @@ def action(w, tg, act: str, rid: str, rs, message_id: int = 0) -> None:
     if act == "r":
         policy.store().reject(rid, by=who)
         if da_regola:
-            rs.set_status(row["rule_id"], row["message_id"], "rejected")
+            rs.set_status(row["rule_id"], row["message_id"], "rejected", **rules_mod.handled_scope(row))
         say(tg, f"❌ Rifiutata ({rid}). Nessun invio.",
             f"❌ Rejected ({rid}). Nothing sent.")
         tg.clear_buttons(message_id)
@@ -363,7 +368,7 @@ def check_pin(w, tg, rid: str, text: str, rs, message_id: int = 0) -> None:
         _complete_agent_request(tg, rid)
         return
     w.execute_approved()
-    h = rs.get_handled(row["rule_id"], row["message_id"]) or {}
+    h = rs.get_handled(row["rule_id"], row["message_id"], **rules_mod.handled_scope(row)) or {}
     ok = h.get("status") == "sent"
     say(tg,
         f"✅ Inviata ({rid})." if ok
@@ -404,7 +409,7 @@ def retry(w, tg, rid: str, feedback: str, rs) -> None:
         return
     if rec["status"] == policy.PENDING and not rec["expired"]:
         policy.store().reject(rid, by=f"telegram:{tg.chat_id}")
-    rs.request_retry(row["rule_id"], row["message_id"], feedback)
+    rs.request_retry(row["rule_id"], row["message_id"], feedback, **rules_mod.handled_scope(row))
     policy.audit("watch_rule", {"rule_id": row["rule_id"],
                                 "message_id": row["message_id"]},
                  "retry_requested", detail=feedback[:200])

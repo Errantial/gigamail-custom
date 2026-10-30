@@ -62,6 +62,7 @@ def _execute_reply(request_id: str, args: Dict[str, Any]) -> Any:
                 body=a["body"], auto_submitted=True,
                 cc=a.get("cc") or None,
                 attachments=attachments_mod.payload(a.get("attachments")),
+                idempotency_key=a.get("idempotency_key"),
             )
             if a.get("to") else
             mail_router.reply_message(
@@ -70,6 +71,7 @@ def _execute_reply(request_id: str, args: Dict[str, Any]) -> Any:
                 folder=a.get("folder") or "inbox",
                 cc=a.get("cc") or None,
                 attachments=attachments_mod.payload(a.get("attachments")),
+                idempotency_key=a.get("idempotency_key"),
             )
         ),
     )
@@ -112,7 +114,7 @@ def requeue_with_note(request_id: str, note: str) -> bool:
             return after_appointment.queue_edit(request_id, note)
         if row["rule_id"] == tg_risposte.RULE_ID:
             return tg_risposte.queue_desktop_edit(request_id, note)
-        rs.request_retry(row["rule_id"], row["message_id"], note)
+        rs.request_retry(row["rule_id"], row["message_id"], note, **rules_mod.handled_scope(row))
         return True
     except Exception:
         return False

@@ -27,6 +27,31 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+
+def normalize_folder(folder):
+    value = str(folder or "INBOX")
+    return "INBOX" if value.lower() == "inbox" else value
+
+
+def _scope_sql(account_id=None, folder=None, uidvalidity=None):
+    clauses, values = [], []
+    if account_id is not None:
+        clauses.append("account_id=?")
+        values.append(int(account_id))
+    if folder is not None:
+        clauses.append("folder=?")
+        values.append(normalize_folder(folder))
+    if uidvalidity is not None:
+        clauses.append("uidvalidity=?")
+        values.append(str(uidvalidity))
+    return (" AND " + " AND ".join(clauses) if clauses else ""), values
+
+
+def handled_scope(row):
+    return {"account_id": row["account_id"], "folder": row.get("folder") or "INBOX",
+            "uidvalidity": row.get("uidvalidity") or ""}
+
+
 # Trigger possibili, dal meno al piu' rischioso:
 #   senders  lista esplicita di indirizzi (match sul From autenticato)
 #   folder   una cartella: mittente arbitrario — e' il trigger da cui
@@ -89,6 +114,7 @@ class RuleStore:
                 conn.execute("PRAGMA journal_mode=WAL")
             except sqlite3.Error:
                 pass
+            conn.execute("BEGIN IMMEDIATE")
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS rules (
                     rule_id           TEXT PRIMARY KEY,
@@ -163,6 +189,39 @@ class RuleStore:
             # tick is not a burst).
             if "received_ts" not in cols:
                 conn.execute("ALTER TABLE handled ADD COLUMN received_ts REAL")
+            # Scope IMAP UIDs to their mailbox and folder; preserve old records.
+            cols = {r[1] for r in conn.execute("PRAGMA table_info(handled)")}
+            if "folder" not in cols:
+                conn.execute("ALTER TABLE handled ADD COLUMN folder TEXT NOT NULL DEFAULT 'INBOX'")
+                for rule in conn.execute("SELECT rule_id, trigger_kind, trigger_values FROM rules").fetchall():
+                    if rule["trigger_kind"] == "folder":
+                        values = json.loads(rule["trigger_values"])
+                        if values:
+                            conn.execute("UPDATE handled SET folder=? WHERE rule_id=?",
+                                         (normalize_folder(values[0]), rule["rule_id"]))
+                from gigamail import policy
+                for handled in conn.execute("SELECT rule_id, account_id, message_id, request_id FROM handled WHERE request_id IS NOT NULL").fetchall():
+                    rec = policy.store().get(handled["request_id"])
+                    args = (rec or {}).get("args") or {}
+                    if args.get("account_id") == handled["account_id"] and args.get("folder"):
+                        conn.execute("UPDATE handled SET folder=? WHERE rule_id=? AND message_id=? AND account_id=?",
+                                     (normalize_folder(args["folder"]), handled["rule_id"], handled["message_id"], handled["account_id"]))
+            if "uidvalidity" not in cols:
+                conn.execute("ALTER TABLE handled ADD COLUMN uidvalidity TEXT NOT NULL DEFAULT ''")
+            info = conn.execute("PRAGMA table_info(handled)").fetchall()
+            if sum(bool(r[5]) for r in info) == 2:
+                conn.execute("""CREATE TABLE handled_scoped (
+                    rule_id TEXT NOT NULL, account_id INTEGER NOT NULL,
+                    message_id TEXT NOT NULL, sender TEXT NOT NULL DEFAULT '',
+                    status TEXT NOT NULL, reason TEXT, request_id TEXT, ts REAL NOT NULL,
+                    feedback TEXT, received_ts REAL, folder TEXT NOT NULL DEFAULT 'INBOX',
+                    uidvalidity TEXT NOT NULL DEFAULT '',
+                    PRIMARY KEY(rule_id, account_id, folder, uidvalidity, message_id))""")
+                conn.execute("INSERT INTO handled_scoped SELECT rule_id, account_id, message_id, sender, status, reason, request_id, ts, feedback, received_ts, folder, uidvalidity FROM handled")
+                conn.execute("DROP TABLE handled")
+                conn.execute("ALTER TABLE handled_scoped RENAME TO handled")
+                conn.execute("CREATE INDEX ix_handled_rule_ts ON handled(rule_id, ts)")
+            conn.execute("CREATE INDEX IF NOT EXISTS ix_handled_message_scope ON handled(account_id, folder, message_id)")
             cols = {r[1] for r in conn.execute("PRAGMA table_info(rules)")}
             if "reply_to_body_address" not in cols:
                 conn.execute("ALTER TABLE rules ADD COLUMN"
@@ -258,6 +317,11 @@ class RuleStore:
                 "SELECT * FROM rules ORDER BY created_at DESC").fetchall()
         return [self._row_to_rule(r) for r in rows]
 
+    def badge_summary(self):
+        with self._conn() as conn:
+            rows = conn.execute("SELECT paused, pause_reason FROM rules WHERE paused=1").fetchall()
+        return [{"state": "paused", "pause_reason": row["pause_reason"]} for row in rows]
+
     def active(self) -> List[Dict[str, Any]]:
         """Regole che il watcher deve considerare: non in pausa, non scadute."""
         now = time.time()
@@ -319,11 +383,12 @@ class RuleStore:
     # piu'. Oltre questa soglia si rilavora.
     MATCHED_ORFANO_SECONDI = 1800
 
-    def already_handled(self, rule_id: str, message_id: str) -> bool:
+    def already_handled(self, rule_id: str, message_id: str, *, account_id=None, folder=None, uidvalidity=None) -> bool:
+        scope, values = _scope_sql(account_id, folder, uidvalidity)
         with self._conn() as conn:
             row = conn.execute(
-                "SELECT status, ts FROM handled WHERE rule_id=? AND message_id=?",
-                (rule_id, str(message_id))).fetchone()
+                "SELECT status, ts FROM handled WHERE rule_id=? AND message_id=?" + scope,
+                [rule_id, str(message_id), *values]).fetchone()
         if row is None:
             return False
         if row["status"] == "matched" and (
@@ -334,34 +399,45 @@ class RuleStore:
 
     def record(self, rule_id: str, account_id: int, message_id: str,
                sender: str, status: str, reason: str = "",
-               request_id: str = "", received_ts: Optional[float] = None) -> None:
+               request_id: str = "", received_ts: Optional[float] = None, *, folder=None, uidvalidity="") -> None:
+        if folder is None:
+            # Approval payloads preserve folders for built-in rules too.
+            from gigamail import policy
+            rec = policy.store().get(request_id) if request_id else None
+            rule = self.get(rule_id)
+            folder = ((rec or {}).get("args") or {}).get("folder")
+            if not folder and rule and rule.get("trigger_kind") == "folder":
+                folder = rule["trigger_values"][0]
+        folder = normalize_folder(folder)
         with self._conn() as conn:
             if received_ts is None:
                 row = conn.execute(
-                    "SELECT received_ts FROM handled WHERE rule_id=? AND message_id=?",
-                    (rule_id, str(message_id))).fetchone()
+                    "SELECT received_ts FROM handled WHERE rule_id=? AND message_id=? AND account_id=? AND folder=? AND uidvalidity=?",
+                    (rule_id, str(message_id), account_id, folder, str(uidvalidity))).fetchone()
                 received_ts = row["received_ts"] if row else None
             conn.execute(
                 "INSERT OR REPLACE INTO handled (rule_id, account_id,"
-                " message_id, sender, status, reason, request_id, ts, received_ts)"
-                " VALUES (?,?,?,?,?,?,?,?,?)",
+                " message_id, sender, status, reason, request_id, ts, received_ts, folder, uidvalidity)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                 (rule_id, int(account_id), str(message_id),
                  (sender or "").lower(), status, reason or None,
-                 request_id or None, time.time(), received_ts))
+                 request_id or None, time.time(), received_ts, folder, str(uidvalidity)))
 
     def set_status(self, rule_id: str, message_id: str, status: str,
-                   reason: str = "") -> None:
+                   reason: str = "", *, account_id=None, folder=None, uidvalidity=None) -> None:
+        scope, values = _scope_sql(account_id, folder, uidvalidity)
         with self._conn() as conn:
             conn.execute(
                 "UPDATE handled SET status=?, reason=?, ts=?"
-                " WHERE rule_id=? AND message_id=?",
-                (status, reason or None, time.time(), rule_id, str(message_id)))
+                " WHERE rule_id=? AND message_id=?" + scope,
+                [status, reason or None, time.time(), rule_id, str(message_id), *values])
 
-    def get_handled(self, rule_id: str, message_id: str) -> Optional[Dict[str, Any]]:
+    def get_handled(self, rule_id: str, message_id: str, *, account_id=None, folder=None, uidvalidity=None) -> Optional[Dict[str, Any]]:
+        scope, values = _scope_sql(account_id, folder, uidvalidity)
         with self._conn() as conn:
             row = conn.execute(
-                "SELECT * FROM handled WHERE rule_id=? AND message_id=?",
-                (rule_id, str(message_id))).fetchone()
+                "SELECT * FROM handled WHERE rule_id=? AND message_id=?" + scope,
+                [rule_id, str(message_id), *values]).fetchone()
         return dict(row) if row else None
 
     def find_by_request(self, request_id: str) -> Optional[Dict[str, Any]]:
@@ -374,26 +450,28 @@ class RuleStore:
                 (request_id,)).fetchone()
         return dict(row) if row else None
 
-    def replies_to(self, message_id: str) -> List[Dict[str, Any]]:
+    def replies_to(self, message_id: str, *, account_id=None, folder=None, uidvalidity=None) -> List[Dict[str, Any]]:
         """Every handled row for one mail, whatever drafted the reply: a
         rule, a reply asked from Telegram, the video-call link. One mail
         deserves one reply, and each path checks here before drafting
         (core.reply_guard)."""
+        scope, values = _scope_sql(account_id, folder, uidvalidity)
         with self._conn() as conn:
             rows = conn.execute(
-                "SELECT * FROM handled WHERE message_id=? ORDER BY ts",
-                (str(message_id),)).fetchall()
+                "SELECT * FROM handled WHERE message_id=?" + scope + " ORDER BY ts",
+                [str(message_id), *values]).fetchall()
         return [dict(r) for r in rows]
 
-    def request_retry(self, rule_id: str, message_id: str, feedback: str) -> None:
+    def request_retry(self, rule_id: str, message_id: str, feedback: str, *, account_id=None, folder=None, uidvalidity=None) -> None:
         """L'umano ha rifiutato la bozza e chiesto una modifica: la mail
         torna in coda con il feedback, e il watcher la rifa' al prossimo
         giro (process_retries) — ripassando dal gate."""
+        scope, values = _scope_sql(account_id, folder, uidvalidity)
         with self._conn() as conn:
             conn.execute(
                 "UPDATE handled SET status='retry', reason=NULL, feedback=?,"
-                " ts=? WHERE rule_id=? AND message_id=?",
-                (feedback, time.time(), rule_id, str(message_id)))
+                " ts=? WHERE rule_id=? AND message_id=?" + scope,
+                [feedback, time.time(), rule_id, str(message_id), *values])
 
     def retries(self) -> List[Dict[str, Any]]:
         with self._conn() as conn:

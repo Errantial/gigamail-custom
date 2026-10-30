@@ -98,6 +98,7 @@ def _build_app(cache_json: str = ''):
     cache = msal.SerializableTokenCache()
     if cache_json:
         cache.deserialize(cache_json)
+    cache._gigamail_original = json.loads(cache_json) if cache_json else {}
     app = msal.PublicClientApplication(
         CLIENT_ID,
         authority=AUTHORITY,
@@ -115,9 +116,33 @@ def _get_app():
 
 
 def _save_cache(cache: msal.SerializableTokenCache):
-    if cache.has_state_changed:
-        with open(TOKEN_PATH, 'w') as f:
-            f.write(cache.serialize())
+    if not cache.has_state_changed:
+        return
+    from .atomic_file import file_lock, write_text
+    updated = json.loads(cache.serialize())
+    original = getattr(cache, "_gigamail_original", {})
+    with file_lock(TOKEN_PATH):
+        try:
+            with open(TOKEN_PATH, encoding="utf-8") as stream:
+                current = json.load(stream)
+        except (OSError, ValueError):
+            current = json.loads(json.dumps(original))
+        # Merge only changed token records, preserving refreshes by other accounts.
+        for table in original.keys() | updated.keys():
+            before, after = original.get(table, {}), updated.get(table, {})
+            if isinstance(before, dict) and isinstance(after, dict):
+                target = current.setdefault(table, {})
+                if not isinstance(target, dict):
+                    target = current[table] = {}
+                for key in before.keys() | after.keys():
+                    if key in after and before.get(key) != after[key]:
+                        target[key] = after[key]
+                    elif key not in after and target.get(key) == before[key]:
+                        target.pop(key, None)
+            elif before != after:
+                current[table] = after
+        write_text(TOKEN_PATH, json.dumps(current))
+        cache._gigamail_original = updated
 
 
 def _match_account(app, context=None):

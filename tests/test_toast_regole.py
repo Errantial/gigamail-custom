@@ -37,9 +37,9 @@ def test_modifica_su_una_bozza_da_regola_la_rifa(monkeypatch):
 
     class _RS:
         def find_by_request(self, rid):
-            return {"rule_id": "rule_x", "message_id": "42"}
+            return {"rule_id": "rule_x", "message_id": "42", "account_id": 1, "folder": "INBOX"}
 
-        def request_retry(self, rule_id, message_id, feedback):
+        def request_retry(self, rule_id, message_id, feedback, **scope):
             chiamate["retry"] = (rule_id, message_id, feedback)
 
     monkeypatch.setattr(rules_mod, "store", lambda: _RS())

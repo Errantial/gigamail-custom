@@ -165,3 +165,21 @@ def payload(risolti: Optional[List[Dict[str, Any]]]) -> List[Dict[str, str]]:
         out.append({"name": f["name"], "type": tipo,
                     "data_b64": base64.b64encode(data).decode("ascii")})
     return out
+
+
+def validate_wire_attachment(attachment):
+    """Validate every document before starting a provider submission."""
+    name = attachment.get("name") or "unnamed"
+    encoded = attachment.get("data_b64")
+    if encoded is None:
+        encoded = attachment.get("contentBytes")
+    content_type = attachment.get("type") or attachment.get("contentType") or "application/octet-stream"
+    try:
+        if not attachment.get("name") or encoded is None:
+            raise ValueError("missing name or content")
+        if not re.fullmatch(r"[A-Za-z0-9!#$&^_.+%-]+/[A-Za-z0-9!#$&^_.+%-]+", content_type):
+            raise ValueError("invalid MIME type")
+        data = base64.b64decode(encoded, validate=True)
+    except Exception as exc:
+        raise ValueError(f"Invalid attachment {name}: {exc}") from exc
+    return data, content_type

@@ -23,8 +23,14 @@ def complete_row(row, rec=None, verbose: bool = False) -> dict:
         rec = policy.store().get(row["request_id"])
 
     def _set(status, reason=""):
-        rs.set_status(rule_id, message_id, status, reason)
-        return {"status": status, "reason": reason}
+        try:
+            rs.set_status(rule_id, message_id, status, reason, **rules_mod.handled_scope(row))
+            return {"status": status, "reason": reason}
+        except Exception:
+            import logging
+            logging.getLogger(__name__).exception("Cannot record watcher outcome")
+            return {"status": status, "reason": reason,
+                    "tracking_warning": "Watcher outcome tracking unavailable"}
 
     if rec is None:
         return _set("failed", "request-vanished")
@@ -39,6 +45,8 @@ def complete_row(row, rec=None, verbose: bool = False) -> dict:
         # non prova che una mail sia partita. Se l'altro esecutore e'
         # ancora al lavoro, si aspetta il suo esito senza reinviare.
         outcome = rec.get("execution_outcome")
+        if outcome == "unknown":
+            return _set("unknown", "submission-uncertain-do-not-resend")
         if outcome == "ok":
             return _set("sent", "executed-elsewhere")
         if outcome:
@@ -52,7 +60,11 @@ def complete_row(row, rec=None, verbose: bool = False) -> dict:
     except Exception as e:
         # Qualunque cosa sia andata storta nel provider, lo stato
         # lo registra: la mail non sparisce in un limbo.
-        return _set("failed", str(e)[:200])
+        recorded = policy.store().get(row["request_id"]) or {}
+        state = "unknown" if recorded.get("execution_outcome") == "unknown" else "failed"
+        return _set(state, str(e)[:200])
+    if isinstance(result, dict) and result.get("submission_state") == "unknown":
+        return _set("unknown", "submission-uncertain-do-not-resend")
     ok = bool(result.get("success", True)) if isinstance(result, dict) else bool(result)
     out = _set("sent" if ok else "failed", "" if ok else "send-failed")
     _log(("inviata " if ok else "INVIO FALLITO ")
@@ -82,7 +94,7 @@ def process_retries(w) -> int:
         rule = rs.get(row["rule_id"])
         if not rule or rule["paused"] or rule["expired"]:
             rs.set_status(row["rule_id"], row["message_id"], "failed",
-                          "rule-inactive")
+                          "rule-inactive", **rules_mod.handled_scope(row))
             continue
         previous = None
         rec = policy.store().get(row["request_id"]) if row.get("request_id") else None
@@ -94,11 +106,11 @@ def process_retries(w) -> int:
                 folder=folder_of(rule)) or {}
         except Exception as e:
             rs.set_status(row["rule_id"], row["message_id"], "failed",
-                          f"refetch:{e}"[:200])
+                          f"refetch:{e}"[:200], **rules_mod.handled_scope(row))
             continue
         if not message:
             rs.set_status(row["rule_id"], row["message_id"], "failed",
-                          "message-vanished")
+                          "message-vanished", **rules_mod.handled_scope(row))
             continue
         w.process_message(rule, message,
                           retry_feedback=row.get("feedback") or "",

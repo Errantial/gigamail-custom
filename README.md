@@ -1,3 +1,5 @@
+> Custom version: see [CUSTOM.md](CUSTOM.md) for the optional immediate email setting.
+
 <!--
 GigaMail — mail for your AI agent
 Copyright (C) 2026 Adecubed

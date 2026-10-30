@@ -38,8 +38,8 @@ async function sendPopup(file, response, { followupFails = false } = {}) {
   };
   const attachment = { name: 'scheda.pdf', data_b64: 'cGRm', type: 'application/pdf', dataUrl: 'preview' };
   const context = {
-    document: { getElementById: id => elements[id] },
-    window: { newMailWindowAPI: api, replyWindowAPI: api },
+    document: { getElementById: id => elements[id], documentElement: { lang: 'it' } },
+    window: { newMailWindowAPI: api, replyWindowAPI: api, MailSendAttempt: require('../send_attempt') },
     API: 'http://fixture.invalid', accountId: 7, mailData: { account_id: 7, id: '42' },
     attachments: [attachment], followupHours: 24,
     draftId: 'draft:1', draftTimer: 123, mailSent: false,
@@ -170,7 +170,7 @@ for (const file of ['new_mail_window.html', 'reply_window.html']) {
     if (file === 'new_mail_window.html') {
       assert.equal(context.mailSent, true);
       assert.equal(state.draftDeletes.length, 1);
-      assert.match(elements.status.textContent, /Inviata/);
+      assert.match(elements.status.textContent, /Accettata dal server/);
     }
   });
 }

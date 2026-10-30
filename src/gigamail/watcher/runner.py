@@ -105,7 +105,7 @@ class Watcher:
                     if not self._matches(rule, message):
                         continue
                     message_id = str(message.get("id"))
-                    if rules_mod.store().already_handled(rule["rule_id"], message_id):
+                    if rules_mod.store().already_handled(rule["rule_id"], message_id, account_id=rule["account_id"], folder=ingestion.folder_of(rule)):
                         continue
                     self.heartbeat()   # una bozza puo' durare minuti
                     self.process_message(rule, message)

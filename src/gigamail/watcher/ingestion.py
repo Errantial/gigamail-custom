@@ -13,7 +13,7 @@ from .log import _log
 
 
 def folder_of(rule: Dict[str, Any]) -> str:
-    return rule["trigger_values"][0] if rule["trigger_kind"] == "folder" else "inbox"
+    return rule["trigger_values"][0] if rule.get("trigger_kind") == "folder" else "inbox"
 
 
 def matches(rule: Dict[str, Any], message: Dict[str, Any]) -> bool:
